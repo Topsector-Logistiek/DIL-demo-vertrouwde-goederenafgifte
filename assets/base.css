@@ -1,0 +1,159 @@
+:root {
+    --color-back: #000;
+    --color-white: #fff;
+    --color-table-border: #ddd;
+    --color-main-bg: #fff;
+    --color-button-border: #ccc;
+}
+
+html {
+    background: var(--color-bg);
+    font-family: sans-serif;
+    min-height: 100vh;
+}
+body {
+    margin: 0;
+    min-height: 100vh;
+}
+nav, footer, main {
+    margin: auto;
+    padding: 2rem;
+    width: 70rem;
+}
+main {
+    background: var(--color-main-bg);
+}
+nav, footer {
+    background-repeat: no-repeat;
+    background-size: contain;
+    background-position: right;
+    background-color: var(--color-bg);
+    padding: 2rem;
+}
+nav h1 {
+    margin: 0;
+}
+
+h1, h2, h3, h4, h5 {
+    margin: 0 0 1em 0;
+}
+
+q {
+    font-style: italic;
+}
+
+section {
+    margin-bottom: 2em;
+}
+section:last-child {
+    margin-bottom: 0;
+}
+.field {
+    margin-bottom: 1rem;
+}
+.field:last-child {
+    margin-bottom: 0;
+}
+
+.field label {
+    width: 8em;
+    display: inline-block;
+    font-weight: bold;
+    vertical-align: top;
+    padding-top: .5em;
+}
+
+.field input, .field textarea {
+    width: 30rem;
+    font-size: 1rem;
+    padding: .5rem;
+}
+.field textarea {
+    height: 4em;
+}
+
+div.actions {
+    margin-top: 2rem;
+}
+
+button, .button, .button-primary, .button-secondary {
+    position: relative;
+    display: inline-block;
+    padding: 0 1em;
+    margin: 0 .5rem 0 0;
+    line-height: 2rem;
+    color: var(--color-black);
+    background: var(--color-white);
+    outline: none;
+    text-decoration: none;
+    box-sizing: border-box;
+    user-select: none;
+    border: solid 1px var(--color-button-border);
+    box-shadow: .2em .2em .2em rgba(0, 0, 0, .1);
+    border-radius: .5em;
+    cursor: pointer;
+    text-transform: uppercase;
+    text-align: center;
+    font-size: .9em;
+}
+.button-primary {
+    background: var(--color-button-primary);
+    border: solid 1px var(--color-button-primary-border);
+}
+.button-secondary {
+    background: var(--color-button-secondary);
+    border: solid 1px var(--color-button-secondary-border);
+}
+button:last-child, .button:last-child {
+    margin-right: 0;
+}
+
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    border-spacing: 0;
+}
+th, td {
+    text-align: left;
+    vertical-align: middle;
+    line-height: 1.5rem;
+    padding: .5rem 1rem;
+    border-bottom: 1px solid var(--color-table-border);
+}
+tfoot tr:last-child td {
+    border-bottom: none;
+}
+table .actions {
+    text-align: right;
+}
+table .actions .button {
+    margin-bottom: 0;
+}
+
+fieldset {
+    border: 1px solid var(--color-table-border);
+}
+legend {
+    font-weight: bold;
+}
+
+.trip {
+    display: flex;
+}
+.trip fieldset {
+    flex: 1;
+}
+
+dl > div {
+    display: flex;
+    margin-bottom: 1em;
+}
+dl > div:last-child {
+    margin-bottom: 0;
+}
+
+dt {
+    width: 10em;
+    font-weight: bold;
+}
