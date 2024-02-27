@@ -1,0 +1,13 @@
+:root {
+    --color-bg: #c7a9d6;
+    --color-button-primary: #b8d6a9;
+    --color-button-secondary: #a9d6c7;
+}
+
+h2.verification-accepted {
+    background: var(--color-green);
+    padding: 1em;
+}
+h2.verification-accepted:before {
+    content: '✔ ';
+}

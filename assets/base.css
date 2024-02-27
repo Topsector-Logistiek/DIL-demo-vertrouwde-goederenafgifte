@@ -4,6 +4,7 @@
     --color-table-border: #ddd;
     --color-main-bg: #fff;
     --color-button-border: #ccc;
+    --color-green: #b1f4b0;
 }
 
 html {
@@ -73,7 +74,10 @@ section:last-child {
 }
 
 div.actions {
-    margin-top: 2rem;
+    margin: 2rem 0;
+}
+div.actions:last-child {
+    margin-bottom: 0;
 }
 
 button, .button, .button-primary, .button-secondary {
