@@ -19,7 +19,7 @@ body {
 nav, footer, main {
     margin: auto;
     padding: 2rem;
-    width: 70rem;
+    width: 80rem;
 }
 main {
     background: var(--color-main-bg);
@@ -57,7 +57,7 @@ section:last-child {
 }
 
 .field label {
-    width: 8em;
+    width: 10em;
     display: inline-block;
     font-weight: bold;
     vertical-align: top;
@@ -160,4 +160,10 @@ dl > div:last-child {
 dt {
     width: 10em;
     font-weight: bold;
+}
+
+blockquote.notes {
+    padding: .5rem;
+    margin: 1rem 0;
+    font-style: italic;
 }

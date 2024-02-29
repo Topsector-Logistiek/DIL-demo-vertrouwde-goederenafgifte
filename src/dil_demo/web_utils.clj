@@ -27,6 +27,7 @@
 (defn template [site title main]
   [:html
    [:head
+    [:meta {:charset "utf-8"}]
     [:title title]
     [:link {:rel "stylesheet", :href (str "../assets/" site ".css")}]
     [:link {:rel "stylesheet", :href "../assets/base.css"}]]
@@ -39,18 +40,12 @@
        (for [val vals]
          [:option {:value val}])])]])
 
-(defn field [{:keys [name label type value list]}]
+(defn field [{:keys [name label type value disabled] :as opts}]
   [:div.field
    [:label {:for name} label]
-   (cond
-     (nil? type)
-     [:input {:name name, :disabled true, :value value}]
-
-     (= "textarea" type)
-     [:textarea {:name name} value]
-
-     :else
-     [:input {:name name, :type type, :value value, :list list}])])
+   (if (= "textarea" type)
+     [:textarea {:name name, :disabled disabled} value]
+     [:input opts])])
 
 (defn pick [coll]
   (first (shuffle coll)))
