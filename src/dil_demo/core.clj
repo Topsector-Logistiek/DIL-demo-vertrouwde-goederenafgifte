@@ -6,8 +6,7 @@
 
 (defonce server-atom (atom nil))
 
-(defn start-webserver
-  [{config :jetty} app]
+(defn start-webserver [{config :jetty} app]
   (run-jetty app config))
 
 (defn stop! []
@@ -15,12 +14,10 @@
     (.stop server)
     (reset! server-atom nil)))
 
-(defn start!
-  []
+(defn start! [config]
   (stop!)
   (reset! server-atom
           (start-webserver config (web/make-app config))))
 
-(defn -main
-  []
+(defn -main []
   (start-webserver config (web/make-app config)))

@@ -1,9 +1,11 @@
 (ns dil-demo.web
   (:require [compojure.core :refer [routes]]
             [compojure.route :refer [resources]]
-            [dil-demo.erp.web :as erp-web]
-            [dil-demo.tms.web :as tms-web]
-            [dil-demo.wms.web :as wms-web])
+            [ring.middleware.defaults :refer [site-defaults wrap-defaults]]
+            [ring.util.response :refer [content-type not-found]]
+            [dil-demo.erp :as erp]
+            [dil-demo.tms :as tms]
+            [dil-demo.wms :as wms])
   (:import (java.util.regex Pattern)))
 
 (defn rewrite-relative-redirect [res url-prefix]
@@ -20,15 +22,19 @@
         res ;; (rewrite-relative-redirect res url-prefix)
         (app req)))))
 
-(def not-found-handler (constantly {:status 404}))
+(def not-found-handler
+  (constantly (-> "Not found"
+                  (not-found)
+                  (content-type "text/html"))))
 
 (def handler
   (routes
    (resources "/")
    not-found-handler))
 
-(defn make-app [_]
+(defn make-app [config]
   (-> handler
-      (wrap-with-prefix "/erp" erp-web/handler)
-      (wrap-with-prefix "/tms" tms-web/handler)
-      (wrap-with-prefix "/wms" wms-web/handler)))
+      (wrap-with-prefix "/erp" (erp/make-handler config))
+      (wrap-with-prefix "/tms" (tms/make-handler config))
+      (wrap-with-prefix "/wms" (wms/make-handler config))
+      (wrap-defaults site-defaults)))
