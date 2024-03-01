@@ -56,8 +56,5 @@
 (defn days-from-now [i]
   (java.util.Date/from (.plusSeconds (java.time.Instant/now) (* 60 60 24 i))))
 
-(defn to-html [site filename title h]
-  (println filename)
-  (with-open [writer (io/writer filename :encoding "UTF-8")]
-    (binding [*out* writer]
-      (println (str "<!DOCTYPE HTML>" (hiccup/html (template site title h)))))))
+(defn render-body [site title h]
+  (str "<!DOCTYPE HTML>" (hiccup/html (template site title h))))

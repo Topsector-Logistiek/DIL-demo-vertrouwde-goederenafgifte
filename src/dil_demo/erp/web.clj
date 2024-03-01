@@ -1,8 +1,10 @@
 (ns dil-demo.erp.web
-  (:require [dil-demo.web-utils :as w]))
+  (:require [compojure.core :refer [GET POST defroutes]]
+            [dil-demo.web-utils :as w]
+            [ring.util.response :refer [redirect]]))
 
 (defn list-entries [entries]
-  (let [actions [:a.button.button-primary {:href (str "entry-new.html")} "Nieuw"]]
+  (let [actions [:a.button.button-primary {:href "entry-new"} "Nieuw"]]
     [:table
      [:thead
       [:tr
@@ -23,7 +25,7 @@
          [:td.goods goods]
          [:td.status status]
          [:td.actions
-          [:a.button.button-secondary {:href (str "entry-" ref ".html")} "Openen"]]])]
+          [:a.button.button-secondary {:href (str "entry-" ref)} "Openen"]]])]
      [:tfoot
       [:tr
        [:td.actions {:colspan 7} actions]]]]))
@@ -32,7 +34,7 @@
                           pickup-date pickup-address pickup-notes
                           delivery-date delivery-address delivery-notes
                           goods transporter]}]
-  [:form.edit
+  [:form
    [:section
     (w/field {:name "status", :label "Status", :value status, :disabled true})
     (w/field {:name "ref", :label "Klantorder nr.", :type "number", :value ref})
@@ -50,11 +52,11 @@
     (w/field {:name "transporter", :label "Transporter", :type "text", :value transporter, :list "transporters"})]
    [:div.actions
     [:button.button.button-primary {:type "submit"} "Bewaren"]
-    [:a.button.button-secondary {:href (str "entry-" ref "-publish.html")} "Transportopdracht aanmaken"]
-    [:a.button {:href "index.html"} "Annuleren"]]])
+    [:a.button.button-secondary {:href (str "publish-" ref)} "Transportopdracht aanmaken"]
+    [:a.button {:href "."} "Annuleren"]]])
 
 (defn publish-entry [{:keys [ref pickup-date pickup-address pickup-notes delivery-date delivery-address delivery-notes goods transporter]}]
-  [:form.publish
+  [:form  {:method "POST", :action (str "publish-" ref)}
    [:section.details
     [:dl
      [:div
@@ -85,17 +87,17 @@
      [:legend "Goederen"]
      [:pre goods]]]
    [:div.actions
-    [:a.button.button-primary {:href (str "entry-" ref "-sent.html")
-                               :onclick "return confirm('Zeker weten?')"}
+    [:button.button-primary {:type    "submit"
+                             :onclick "return confirm('Zeker weten?')"}
      "Versturen"]
-    [:a.button {:href (str "entry-" ref ".html")} "Annuleren"]]])
+    [:a.button {:href (str "entry-" ref)} "Annuleren"]]])
 
-(defn sent-entry [{:keys [pickup-address transporter]}]
+(defn published-entry [{:keys [pickup-address transporter]}]
   [:div
    [:section
     [:p "Transportopdracht verstuurd naar locatie " [:q pickup-address] " en vervoerder " [:q transporter] "."]
     [:div.actions
-     [:a.button {:href "index.html"} "Terug naar overzicht"]]]
+     [:a.button {:href "."} "Terug naar overzicht"]]]
    [:details.explaination
     [:summary "Uitleg"]
     [:ol
@@ -110,11 +112,13 @@
       [:h3 "Stuur Transportopdracht naar TMS van Vervoerder"]
       [:p "Via EDIFACT  / E-mail etc."]]]]])
 
+
+
 (def entries
   (let [start 1337]
     (mapv (fn [i]
             (let [pickup-address (w/pick w/locations)]
-              {:ref              (+ i start 20240000)
+              {:ref              (str (+ i start 20240000))
                :status           (w/pick w/statuses)
                :order-date       (w/format-date (w/days-from-now (/ i 5)))
                :pickup-date      (w/format-date (w/days-from-now (inc (/ i 5))))
@@ -127,22 +131,43 @@
                :transporter      (w/pick w/transporters)}))
           (range 20))))
 
-(defn -main []
-  (let [to-html (partial w/to-html "erp")]
-    (to-html "erp/index.html"
-             "ERP — Klantorders"
-             (list-entries entries))
-    (to-html "erp/entry-new.html"
-             "ERP — Nieuwe entry"
-             (edit-entry {:ref    (inc (apply max (->> entries (map :ref))))
-                          :status "New"}))
-    (doseq [{:keys [ref] :as entry} entries]
-      (to-html (str "erp/entry-" ref ".html")
-               "ERP — Klantorder"
-               (edit-entry entry))
-      (to-html (str "erp/entry-" ref "-publish.html")
-               "ERP — Transportopdracht aanmaken"
-               (publish-entry entry))
-      (to-html (str "erp/entry-" ref "-sent.html")
-               "ERP — Transportopdracht verstuurd"
-               (sent-entry entry)))))
+(defn get-entry [ref]
+  (first (filter #(= ref (:ref %)) entries)))
+
+(defn next-entry-ref []
+  (->> entries (map :ref) (map #(Integer/parseInt %)) (apply max) inc str))
+
+
+
+(defn render-body [title h]
+  (w/render-body "erp" (str "ERP — " title ) h))
+
+(defroutes handler
+  (GET "/" []
+    {:body (render-body "Klantorders"
+                        (list-entries entries))})
+
+  (GET "/entry-new" []
+    {:body (render-body "Nieuwe klantorder"
+                        (edit-entry {:ref    (next-entry-ref)
+                                     :status "New"}))})
+
+  (GET "/entry-:ref" [ref]
+    (when-let [entry (get-entry ref)]
+      {:body (render-body (str "Klantorder: " ref)
+                          (edit-entry entry))}))
+
+
+  (GET "/publish-:ref" [ref]
+    (when-let [entry (get-entry ref)]
+      {:body (render-body "Transportopdracht aanmaken"
+                          (publish-entry entry))}))
+
+  (POST "/publish-:ref" [ref]
+        ;; TODO
+        (redirect (str "published-" ref) :see-other))
+
+  (GET "/published-:ref" [ref]
+    (when-let [entry (get-entry ref)]
+      {:body (render-body "Transportopdracht aangemaakt"
+                          (published-entry entry))})))

@@ -4,10 +4,19 @@
     --color-button-secondary: #a9d6c7;
 }
 
+h2.verification {
+    padding: 1em;
+}
 h2.verification-accepted {
     background: var(--color-green);
-    padding: 1em;
 }
 h2.verification-accepted:before {
     content: '✔ ';
+}
+
+h2.verification-rejected {
+    background: var(--color-red);
+}
+h2.verification-rejected:before {
+    content: '❌ ';
 }

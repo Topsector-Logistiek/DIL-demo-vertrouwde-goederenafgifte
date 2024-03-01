@@ -1,5 +1,7 @@
 (ns dil-demo.tms.web
-  (:require [dil-demo.web-utils :as w]))
+  (:require [compojure.core :refer [defroutes GET POST]]
+            [dil-demo.web-utils :as w]
+            [ring.util.response :refer [redirect]]))
 
 (defn list-entries [entries]
   [:table
@@ -22,10 +24,10 @@
        [:td.goods goods]
        [:td.status status]
        [:td.actions
-        [:a.button.button-secondary {:href (str "entry-" ref ".html")} "Openen"]]])]])
+        [:a.button.button-secondary {:href (str "assign-" ref)} "Openen"]]])]])
 
-(defn edit-entry [{:keys [ref pickup-date pickup-address pickup-notes delivery-date delivery-address delivery-notes goods]}]
-  [:form
+(defn assign-entry [{:keys [ref pickup-date pickup-address pickup-notes delivery-date delivery-address delivery-notes goods]}]
+  [:form {:method "POST", :action (str "assign-" ref)}
    [:section.details
     [:dl
      [:div
@@ -41,24 +43,24 @@
      [:fieldset.pickup-address
       [:legend "Ophaaladres"]
       [:h3 pickup-address]
-      [:pre "Kerkstraat 1\n1234 AB  Nergenshuizen"]
+      [:pre "Kerkstraat 1\n1234 AB  Nergenshuizen"] ;; TODO
       [:blockquote.notes pickup-notes]]
      [:fieldset.delivery-address
       [:legend "Afleveradres"]
       [:h3 delivery-address]
-      [:pre "Dorpsweg 2\n4321 YZ  Andershuizen"]
+      [:pre "Dorpsweg 2\n4321 YZ  Andershuizen"] ;; TODO
       [:blockquote.notes delivery-notes]]]
     [:section.goods
      [:fieldset
       [:legend "Goederen"]
       [:pre goods]]]
 
-    (w/field {:name "license-plate", :label "Kenteken", :type "text"})
-    (w/field {:name "chauffeur-id", :label "Chauffeur ID", :type "text"})
+    (w/field {:name "license-plate", :label "Kenteken", :type "text", :required true})
+    (w/field {:name "chauffeur-id", :label "Chauffeur ID", :type "text", :required true})
 
     [:div.actions
-     [:a.button.button-primary {:href (str "entry-" ref "-assigned.html")} "Toewijzen"]
-     [:a.button {:href "index.html"} "Annuleren"]]]])
+     [:button.button-primary {:type "submit"} "Toewijzen"]
+     [:a.button {:href "."} "Annuleren"]]]])
 
 (defn assigned-entry [{:keys [ref]}]
   [:div
@@ -66,7 +68,7 @@
     [:p "Transportopdracht " [:q ref] " toegewezen."]
     [:img {:src "../assets/qr-sample.png"}]
     [:div.actions
-     [:a.button {:href "index.html"} "Terug naar overzicht"]]]
+     [:a.button {:href "."} "Terug naar overzicht"]]]
    [:details.explaination
     [:summary "Uitleg"]
     [:ol
@@ -75,11 +77,13 @@
       [:p "API call naar " [:strong "AR van de Vervoerder"] " om een autorisatie te registeren"]
       [:ul [:li "Klantorder nr."] [:li "Chauffeur ID"] [:li "Kenteken"]]]]]])
 
+
+
 (def entries
   (let [start 1337]
     (mapv (fn [i]
             (let [pickup-address (w/pick w/locations)]
-              {:ref              (+ i start 20240000)
+              {:ref              (str (+ i start 20240000))
                :status           (w/pick w/statuses)
                :pickup-date      (w/format-date (w/days-from-now (/ i 5)))
                :pickup-address   pickup-address
@@ -91,15 +95,29 @@
                :transporter      (w/pick w/transporters)}))
           (range 20))))
 
-(defn -main []
-  (let [to-html (partial w/to-html "tms")]
-    (to-html "tms/index.html"
-             "TMS — Transportopdrachten"
-             (list-entries entries))
-    (doseq [{:keys [ref] :as entry} entries]
-      (to-html (str "tms/entry-" ref ".html")
-               "TMS — Transportopdracht"
-               (edit-entry entry))
-      (to-html (str "tms/entry-" ref "-assigned.html")
-               "TMS — Transportopdracht toegewezen aan chauffeur"
-               (assigned-entry entry)))))
+(defn get-entry [ref]
+  (first (filter #(= ref (:ref %)) entries)))
+
+
+
+(defn render-body [title h]
+  (w/render-body "tms" (str "TMS — " title) h))
+
+(defroutes handler
+  (GET "/" []
+       {:body (render-body "Transportopdrachten"
+                           (list-entries entries))})
+
+  (GET "/assign-:ref" [ref]
+       (when-let [entry (get-entry ref)]
+         {:body (render-body (str "Transportopdracht: " ref)
+                             (assign-entry entry))}))
+
+  (POST "/assign-:ref" [ref]
+        ;; TODO
+        (redirect (str "assigned-" ref) :see-other))
+
+  (GET "/assigned-:ref" [ref]
+       (when-let [entry (get-entry ref)]
+         {:body (render-body (str "Transportopdracht toegewezen")
+                             (assigned-entry entry))})))
