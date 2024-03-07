@@ -176,7 +176,7 @@ dt {
     font-weight: bold;
 }
 
-blockquote.notes {
+blockquote.remarks {
     padding: .5rem;
     margin: 1rem 0;
     font-style: italic;

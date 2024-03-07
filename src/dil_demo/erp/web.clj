@@ -100,12 +100,12 @@
        [:legend "Ophaaladres"]
        [:h3 load-location]
        [:pre "Kerkstraat 1\n1234 AB  Nergenshuizen"]
-       [:blockquote.notes load-remarks]]
+       [:blockquote.remarks load-remarks]]
       [:fieldset.unload-location
        [:legend "Afleveradres"]
        [:h3 unload-location]
        [:pre "Dorpsweg 2\n4321 YZ  Andershuizen"]
-       [:blockquote.notes unload-remarks]]]
+       [:blockquote.remarks unload-remarks]]]
      [:section.goods
       [:fieldset
        [:legend "Goederen"]

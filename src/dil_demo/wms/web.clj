@@ -31,7 +31,7 @@
         (w/delete-button (str "transport-order-" id))]])]])
 
 (defn show-transport-order [transport-order]
-  (let [{:keys [id ref load-date load-notes carrier]}
+  (let [{:keys [id ref load-date load-remarks carrier]}
         (otm/transport-order->map transport-order)]
     [:section.details
      [:dl
@@ -46,26 +46,26 @@
        [:dd carrier]]
       [:div
        [:dt "Opmerkingen"]
-       [:dd [:blockquote.notes load-notes]]]]
+       [:dd [:blockquote.remarks load-remarks]]]]
      [:div.actions
       [:a.button.button-primary {:href (str "verify-" id)} "Veriferen"]
       [:a.button {:href "."} "Annuleren"]]]))
 
 (defn verify-transport-order [transport-order]
-  (let [{:keys [id ref load-notes carrier]}
+  (let [{:keys [id ref load-remarks carrier]}
         (otm/transport-order->map transport-order)]
     [:form {:method "POST", :action (str "verify-" id)}
      (w/anti-forgery-input)
 
      (w/field {:label "Opdracht nr.", :value ref, :disabled true})
      (w/field {:label "Vervoerder", :value carrier, :disabled true})
-     (w/field {:label "Opmerkingen", :value load-notes, :type "textarea", :disabled true})
+     (w/field {:label "Opmerkingen", :value load-remarks, :type "textarea", :disabled true})
 
      [:div.actions
       [:a.button {:onclick "alert('Nog niet geïmplementeerd..')"} "Scan QR"]]
 
-     (w/field {:name "license-plate", :label "Kenteken", :required true})
      (w/field {:name "chauffeur-id", :label "Chauffeur ID", :required true})
+     (w/field {:name "license-plate", :label "Kenteken", :required true})
 
      [:div.actions
       [:button.button-primary {:type "submit"} "Veriferen"]
