@@ -8,6 +8,10 @@
                "completed" "Afgerond"
                "cancelled" "Geannuleerd"})
 
+
+
+;; OTM Consignment for ERP
+
 (defn map->consignment
   [{:keys [id ref status goods carrier load-date load-location load-remarks unload-date unload-location unload-remarks]}]
   {:id                  id
@@ -114,10 +118,12 @@
 
 
 
+;; OTM TransportOrder for WMS
+
 (defn consignment->transport-order [consignment]
   {:id           (str (UUID/randomUUID))
    :consignments [{:association-type "inline"
-                   :entity           consignment}]})
+                   :entity           consignment}]}) ;; TODO dissoc actors and unload action
 
 (defn transport-order->map [{:keys [id] :as transport-order}]
   (-> transport-order
@@ -133,6 +139,8 @@
 
 
 
+;; OTM Trip for TMS
+
 (defn consignment->trip [consignment]
   {:id                  (str (UUID/randomUUID))
    :external-attributes {:ref (consignment-ref consignment)}
@@ -143,7 +151,7 @@
    [{:association-type "inline"
      :roles            #{"carrier"}
      :entity
-     {:name (consignment-carrier consignment)}}]
+     {:name (consignment-carrier consignment)}}] ;; TODO dissoc
 
    :actions
    [{:association-type "inline"

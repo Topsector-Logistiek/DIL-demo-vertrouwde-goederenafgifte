@@ -131,11 +131,11 @@
         [:p "API call naar " [:strong "AR van de Verlader"] " om een autorisatie te registeren"]
         [:ul [:li "Klantorder nr."] [:li "Vervoerder ID"]]]
        [:li
-        [:h3 "Stuur Transportopdracht naar WMS van DC"]
-        [:p "Via EDIFACT / E-mail etc."]]
+        [:h3 "Stuur OTM Transportopdracht naar WMS van DC"]
+        [:pre.json (w/to-json (otm/consignment->transport-order consignment))]]
        [:li
-        [:h3 "Stuur Transportopdracht naar TMS van Vervoerder"]
-        [:p "Via EDIFACT  / E-mail etc."]]]]]))
+        [:h3 "Stuur OTM Trip naar TMS van Vervoerder"]
+        [:pre.json (w/to-json (otm/consignment->trip consignment))]]]]]))
 
 
 

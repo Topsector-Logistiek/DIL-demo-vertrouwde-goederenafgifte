@@ -1,9 +1,10 @@
 (ns dil-demo.web-utils
   (:require [hiccup2.core :as hiccup]
+            [clojure.string :as string]
+            [clojure.data.json :as json]
             [ring.middleware.anti-forgery :refer [*anti-forgery-token*]])
-  (:import [java.util UUID Date]
-           [java.text SimpleDateFormat]
-           [java.time Instant]))
+  (:import [java.util UUID]
+           [java.text SimpleDateFormat]))
 
 (def locations #{"Intel, Schiphol"
                  "Nokia, Stockholm"
@@ -72,14 +73,50 @@
    [:input {:type "hidden", :name "_method", :value "DELETE"}]
    [:button {:type "submit", :onclick "return confirm('Zeker weten?')"} "Verwijderen"]])
 
-(defn pick [coll]
-  (first (shuffle coll)))
-
 (defn format-date [date]
   (.format (SimpleDateFormat. "yyyy-MM-dd") date))
 
-(defn days-from-now [i]
-  (Date/from (.plusSeconds (Instant/now) (* 60 60 24 i))))
-
 (defn render-body [site title h & {:keys [flash]}]
   (str "<!DOCTYPE HTML>" (hiccup/html (template site title h :flash flash))))
+
+(defn camelize
+  "Convert key `s` from lispy to jsony style."
+  [s]
+  (let [words (string/split s #"-")]
+    (string/join (into [(first words)] (map string/capitalize (rest words))))))
+
+(defn to-json
+  "Transform `val` from lispy value to jsony string."
+  [val & {:keys [depth pad] :or {depth 0, pad "  "} :as opts}]
+  (let [padding (-> depth (repeat pad) (string/join))]
+    (str
+     padding
+     (cond
+       (map? val)
+       (if (empty? val)
+         "{}"
+         (str "{\n"
+              (string/join ",\n"
+                           (for [[k v] val]
+                             (str
+                              padding pad
+                              (to-json (camelize (name k)) (assoc opts :depth 0))
+                              ": "
+                              (string/trim (to-json v (assoc opts :depth (inc depth)))))))
+              "\n"
+              padding
+              "}"))
+
+       (coll? val)
+       (if (empty? val)
+         "[]"
+         (str "[\n"
+              (string/join ",\n"
+                           (for [v val]
+                             (to-json v (assoc opts :depth (inc depth)))))
+              "\n"
+              padding
+              "]"))
+
+       :else
+       (json/write-str val)))))

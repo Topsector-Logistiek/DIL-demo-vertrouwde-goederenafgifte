@@ -45,6 +45,16 @@ q {
     font-style: italic;
 }
 
+p {
+    margin: 1rem 0;
+}
+p:first-child {
+    margin-top: 0;
+}
+p:last-child {
+    margin-bottom: 0;
+}
+
 section {
     margin-bottom: 2em;
 }
@@ -156,13 +166,6 @@ legend {
     font-weight: bold;
 }
 
-section.trip {
-    display: flex;
-}
-section.trip fieldset {
-    flex: 1;
-}
-
 dl > div {
     display: flex;
     margin-bottom: 1em;
@@ -176,10 +179,22 @@ dt {
     font-weight: bold;
 }
 
-blockquote.remarks {
+li {
+    margin-bottom: 1rem;
+}
+li:last-child {
+    margin-bottom: 0;
+}
+
+blockquote {
     padding: .5rem;
     margin: 1rem 0;
     font-style: italic;
+}
+
+pre {
+    padding: 1rem;
+    box-shadow: inset 0em 0em .1rem .1rem rgb(0, 0, 0, .1);
 }
 
 .flash {
@@ -193,4 +208,17 @@ blockquote.remarks {
 }
 .flash-error {
     background: var(--color-red);
+}
+
+section.trip {
+    display: flex;
+}
+section.trip fieldset {
+    flex: 1;
+}
+
+details > ol {
+    padding: 2rem 3rem;
+    box-shadow: inset 0em 0em .3rem .3rem rgb(0, 0, 0, .1);
+    background: #fefefe;
 }
