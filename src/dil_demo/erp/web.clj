@@ -40,7 +40,7 @@
        [:td.actions {:colspan 7} actions]]]]))
 
 (defn edit-consignment [consignment]
-  (let [{:keys [id status ref load-date load-location load-remarks unload-location unload-date unload-remarks goods carrier]}
+  (let [{:keys [id status ref load-date load-location load-remarks unload-location unload-date unload-remarks goods carrier-eori]}
         (otm/consignment->map consignment)]
     [:form {:method "POST"}
      (w/anti-forgery-input)
@@ -67,8 +67,8 @@
      [:section
       (w/field {:name  "goods",    :value goods,
                 :label "Goederen", :type  "text", :list w/goods, :required true})
-      (w/field {:name  "carrier",    :value carrier,
-                :label "Vervoerder", :type  "text", :list w/carriers, :required true})]
+      (w/field {:name  "carrier-eori", :value carrier-eori,
+                :label "Vervoerder",   :type  "select", :list w/carriers, :required true})]
      [:div.actions
       [:button.button.button-primary {:type "submit"} "Bewaren"]
       (when id
@@ -76,7 +76,7 @@
       [:a.button {:href "."} "Annuleren"]]]))
 
 (defn publish-consignment [consignment]
-  (let [{:keys [id ref load-date load-location load-remarks unload-date unload-location unload-remarks goods carrier]}
+  (let [{:keys [id ref load-date load-location load-remarks unload-date unload-location unload-remarks goods carrier-eori]}
         (otm/consignment->map consignment)]
     [:form {:method "POST"}
      (w/anti-forgery-input)
@@ -94,7 +94,7 @@
         [:dd unload-date]]
        [:div
         [:dt "Vervoerder"]
-        [:dd carrier]]]]
+        [:dd (w/carriers carrier-eori)]]]]
      [:section.trip
       [:fieldset.load-location
        [:legend "Ophaaladres"]
@@ -117,10 +117,14 @@
       [:a.button {:href (str "consignment-" id)} "Annuleren"]]]))
 
 (defn published-consignment [consignment]
-  (let [{:keys [load-location carrier]} (otm/consignment->map consignment)]
+  (let [{:keys [load-location carrier-eori]} (otm/consignment->map consignment)]
     [:div
      [:section
-      [:p "Transportopdracht verstuurd naar locatie " [:q load-location] " en vervoerder " [:q carrier] "."]
+      [:p "Transportopdracht verstuurd naar locatie "
+       [:q load-location]
+       " en vervoerder "
+       [:q (w/carriers carrier-eori)]
+       "."]
       [:div.actions
        [:a.button {:href "."} "Terug naar overzicht"]]]
      [:details.explaination
@@ -129,7 +133,7 @@
        [:li
         [:h3 "Autoriseer de Vervoerder names de Verlader voor de Klantorder"]
         [:p "API call naar " [:strong "AR van de Verlader"] " om een autorisatie te registeren"]
-        [:ul [:li "Klantorder nr."] [:li "Vervoerder ID"]]]
+        [:ul [:li "Klantorder nr."] [:li "Vervoerder EORI (" [:q carrier-eori] ")"]]]
        [:li
         [:h3 "Stuur OTM Transportopdracht naar WMS van DC"]
         [:pre.json (w/to-json (otm/consignment->transport-order consignment))]]

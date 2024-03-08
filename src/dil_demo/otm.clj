@@ -13,7 +13,7 @@
 ;; OTM Consignment for ERP
 
 (defn map->consignment
-  [{:keys [id ref status goods carrier load-date load-location load-remarks unload-date unload-location unload-remarks]}]
+  [{:keys [id ref status goods carrier-eori load-date load-location load-remarks unload-date unload-location unload-remarks]}]
   {:id                  id
    :external-attributes {:ref ref}
    :status              status
@@ -26,7 +26,8 @@
    [{:association-type "inline"
      :roles #{"carrier"}
      :entity
-     {:name carrier}}]
+     {:contact-details [{:type "eori"
+                         :value carrier-eori}]}}]
 
    :actions
    [{:association-type "inline"
@@ -98,10 +99,13 @@
        (map :entity)
        (first)))
 
-(defn consignment-carrier [consignment]
-  (-> consignment
-      (consignment-actor "carrier")
-      :name))
+(defn consignment-carrier-eori [consignment]
+  (->> (-> consignment
+           (consignment-actor "carrier")
+           :contact-details)
+       (filter #(= "eori" (:type %)))
+       (first)
+       :value))
 
 (defn consignment->map [consignment]
   {:id              (:id consignment)
@@ -114,7 +118,7 @@
    :unload-location (consignment-unload-location consignment)
    :unload-remarks  (consignment-unload-remarks consignment)
    :goods           (consignment-goods consignment)
-   :carrier         (consignment-carrier consignment)})
+   :carrier-eori    (consignment-carrier-eori consignment)})
 
 
 

@@ -1,10 +1,10 @@
 (ns dil-demo.web-utils
-  (:require [hiccup2.core :as hiccup]
+  (:require [clojure.data.json :as json]
             [clojure.string :as string]
-            [clojure.data.json :as json]
+            [hiccup2.core :as hiccup]
             [ring.middleware.anti-forgery :refer [*anti-forgery-token*]])
-  (:import [java.util UUID]
-           [java.text SimpleDateFormat]))
+  (:import (java.text SimpleDateFormat)
+           (java.util UUID)))
 
 (def locations #{"Intel, Schiphol"
                  "Nokia, Stockholm"
@@ -19,10 +19,7 @@
              "Cola"
              "T-shirts"})
 
-(def carriers #{"De Vries transport"
-                    "Jansen logistiek"
-                    "Dijkstra vracht"
-                    "de Jong vervoer"})
+(def carriers {"NL0000000000" "De Vries Transport"})
 
 (defn anti-forgery-input []
   [:input {:name "__anti-forgery-token", :value *anti-forgery-token*, :type "hidden"}])

@@ -18,7 +18,7 @@
        [:td {:colspan 999}
         "Nog geen transportopdrachten geregistreerd.."]])
 
-    (for [{:keys [id ref load-date carrier goods]}
+    (for [{:keys [id ref load-date goods]}
           (map otm/transport-order->map transport-orders)]
       [:tr.transport-order
        [:td.date load-date]
@@ -58,7 +58,7 @@
      [:div.actions
       [:a.button {:onclick "alert('Nog niet geïmplementeerd..')"} "Scan QR"]]
 
-     (w/field {:name "carrier", :label "Vervoerder", :required true, :list w/carriers})
+     (w/field {:name "carrier-eori", :label "Vervoerder EORI", :required true})
      (w/field {:name "chauffeur-id", :label "Chauffeur ID", :required true})
      (w/field {:name "license-plate", :label "Kenteken", :required true})
 
@@ -67,15 +67,15 @@
       [:a.button {:href "."} "Annuleren"]]]))
 
 (defn accepted-transport-order [transport-order
-                                {:keys [carrier chauffeur-id license-plate]}]
+                                {:keys [carrier-eori chauffeur-id license-plate]}]
   [:div
    [:section
     [:h2.verification.verification-accepted "Afgifte akkoord"]
     [:p
      "Transportopdracht "
      [:q (otm/transport-order-ref transport-order)]
-     " goedgekeurd voor vervoerder "
-     [:q carrier]
+     " goedgekeurd voor vervoerder met EORI "
+     [:q carrier-eori]
      ", chauffeur met ID eindigend op "
      [:q chauffeur-id]
      " en kenteken "
@@ -89,22 +89,22 @@
      [:li
       [:h3 "Check Authorisatie Vervoerder names de Verlader"]
       [:p "API call naar " [:strong "AR van de Verlader"] " om te controleren of Vervoerder names Verlader de transportopdracht uit mag voeren."]
-      [:ul [:li "Klantorder nr."] [:li "Vervoerder ID"]]]
+      [:ul [:li "Klantorder nr."] [:li "Vervoerder EORI"]]]
      [:li
       [:h3 "Check Authorisatie Chauffeur en Kenteken names de Vervoerder"]
       [:p "API call naar " [:strong "AR van de Vervoerder"] " om te controleren of de Chauffeur met Kenteken de transportopdracht"]
       [:ul [:li "Klantorder nr."] [:li "Chauffeur ID"] [:li "Kenteken"]]]]]])
 
 (defn rejected-transport-order [transport-order
-                                {:keys [carrier chauffeur-id license-plate]}]
+                                {:keys [carrier-eori chauffeur-id license-plate]}]
   [:div
    [:section
     [:h2.verification.verification-rejected "Afgifte NIET akkoord"]
     [:p
      "Transportopdracht "
      [:q (otm/transport-order-ref transport-order)]
-     " is AFGEKEURD voor transporteur "
-     [:q carrier]
+     " is AFGEKEURD voor vervoerder met EORI "
+     [:q carrier-eori]
      ", chauffeur met ID eindigend op "
      [:q chauffeur-id]
      " en kenteken "
@@ -118,7 +118,7 @@
      [:li
       [:h3 "Check Authorisatie Vervoerder names de Verlader"]
       [:p "API call naar " [:strong "AR van de Verlader"] " om te controleren of Vervoerder names Verlader de transportopdracht uit mag voeren."]
-      [:ul [:li "Klantorder nr."] [:li "Vervoerder ID"]]]
+      [:ul [:li "Klantorder nr."] [:li "Vervoerder EORI"]]]
      [:li
       [:h3 "Check Authorisatie Chauffeur en Kenteken names de Vervoerder"]
       [:p "API call naar " [:strong "AR van de Vervoerder"] " om te controleren of de Chauffeur met Kenteken de transportopdracht"]
@@ -134,7 +134,7 @@
 
 
 
-(defn verify [transport-order {:keys [carrier chauffeur-id license-plate]}]
+(defn verify [transport-order {:keys [carrier-eori chauffeur-id license-plate]}]
   (= 0 (int (* 2 (rand))))) ;; TODO
 
 
