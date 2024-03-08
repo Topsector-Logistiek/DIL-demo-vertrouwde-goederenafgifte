@@ -2,7 +2,9 @@
   (:require [compojure.core :refer [defroutes DELETE GET POST]]
             [dil-demo.otm :as otm]
             [dil-demo.web-utils :as w]
-            [ring.util.response :refer [content-type redirect response]]))
+            [clojure.data.json :refer [json-str]]
+            [ring.util.response :refer [content-type redirect response]])
+  (:import [java.util UUID]))
 
 (defn list-transport-orders [transport-orders]
   [:table
@@ -46,6 +48,17 @@
       [:a.button.button-primary {:href (str "verify-" id)} "Veriferen"]
       [:a.button {:href "."} "Annuleren"]]]))
 
+(defn qr-code-scan-button [carrier-id driver-id plate-id]
+  (let [id (str "qr-code-video-" (UUID/randomUUID))]
+    [:div.qr-code-scan-container
+     [:video {:id id, :style "display:none"}]
+
+     [:script {:src "/assets/qr-scanner.legacy.min.js"}] ;; https://github.com/nimiq/qr-scanner
+     [:script {:src "/assets/scan-qr.js"}]
+     [:a.button
+      {:onclick (str "scanDriverQr(this, " (json-str id) ", " (json-str carrier-id) ", " (json-str driver-id) ", " (json-str plate-id) ", " ")")}
+      "Scan QR"]]))
+
 (defn verify-transport-order [transport-order]
   (let [{:keys [id ref load-remarks]}
         (otm/transport-order->map transport-order)]
@@ -55,13 +68,20 @@
      (w/field {:label "Opdracht nr.", :value ref, :disabled true})
      (w/field {:label "Opmerkingen", :value load-remarks, :type "textarea", :disabled true})
 
-     [:div.actions
-      [:a.button {:onclick "alert('Nog niet geïmplementeerd..')"} "Scan QR"]]
 
-     (w/field {:name "carrier-eori", :label "Vervoerder EORI", :required true})
-     (w/field {:name    "driver-id-digits", :label    "Chauffeur ID", :placeholder "Laatste 4 cijfers",
-               :pattern "\\d{4}", :required true})
-     (w/field {:name "license-plate", :label "Kenteken", :required true})
+     [:div.actions
+      (qr-code-scan-button "carrier-eori" "driver-id-digits" "license-plate")]
+
+     (w/field {:id       "carrier-eori"
+               :name     "carrier-eori", :label "Vervoerder EORI"
+               :required true})
+     (w/field {:id          "driver-id-digits"
+               :name        "driver-id-digits",  :label   "Chauffeur ID",
+               :placeholder "Laatste 4 cijfers", :pattern "\\d{4}",
+               :required    true})
+     (w/field {:id   "license-plate"
+               :name "license-plate", :label "Kenteken",
+               :required true})
 
      [:div.actions
       [:button.button-primary {:type "submit"} "Veriferen"]

@@ -21,7 +21,7 @@ body {
 header, footer, main {
     margin: auto;
     padding: 2rem;
-    width: 80rem;
+    max-width: 80rem;
 }
 main {
     background: var(--color-main-bg);
@@ -82,6 +82,7 @@ section:last-child {
 
 .field input, .field textarea, .field select {
     width: 30rem;
+    max-width: calc(100vw - 5rem);
     font-family: inherit;
     font-size: 1rem;
     padding: .5rem;
@@ -230,4 +231,8 @@ details > ol {
     padding: 2rem 3rem;
     box-shadow: inset 0em 0em .3rem .3rem rgb(0, 0, 0, .1);
     background: #fefefe;
+}
+
+video {
+    width: 100%;
 }

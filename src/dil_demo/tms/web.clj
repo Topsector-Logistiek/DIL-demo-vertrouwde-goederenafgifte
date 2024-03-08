@@ -1,8 +1,11 @@
 (ns dil-demo.tms.web
   (:require [compojure.core :refer [defroutes DELETE GET POST]]
+            [hiccup2.core :as h]
             [dil-demo.otm :as otm]
             [dil-demo.web-utils :as w]
-            [ring.util.response :refer [content-type redirect response]]))
+            [clojure.data.json :refer [json-str]]
+            [ring.util.response :refer [content-type redirect response]])
+  (:import [java.util UUID]))
 
 (defn list-trips [trips]
   [:table
@@ -74,12 +77,23 @@
        [:button.button-primary {:type "submit"} "Toewijzen"]
        [:a.button {:href "."} "Annuleren"]]]]))
 
+(defn qr-code [text]
+  (let [id (str "qrcode-" (UUID/randomUUID))]
+    [:div.qr-code-container
+     [:script {:src "/assets/qrcode.js"}] ;; https://davidshimjs.github.io/qrcodejs/
+
+     [:div.qr-code {:id id}]
+     [:script (h/raw
+               (str "new QRCode(document.getElementById(" (json-str id) "), " (json-str text) ")"))]]))
+
 (defn assigned-trip [trip]
-  (let [{:keys [ref]} (otm/trip->map trip)]
+  (let [{:keys [ref driver-id-digits license-plate]} (otm/trip->map trip)]
     [:div
      [:section
       [:p "Transportopdracht " [:q ref] " toegewezen."]
-      [:img {:src "../assets/qr-sample.png"}]
+
+      (qr-code (str ":dil-demo:TODO-EORI-VERVOERDER:" driver-id-digits ":" license-plate))
+
       [:div.actions
        [:a.button {:href "."} "Terug naar overzicht"]]]
      [:details.explaination
