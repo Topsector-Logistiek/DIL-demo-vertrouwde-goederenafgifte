@@ -122,8 +122,14 @@
 
 (defn consignment->transport-order [consignment]
   {:id           (str (UUID/randomUUID))
-   :consignments [{:association-type "inline"
-                   :entity           consignment}]}) ;; TODO dissoc actors and unload action
+   :consignments
+   [{:association-type "inline"
+     :entity           (-> consignment
+                           (dissoc :actors)
+                           (update :actions
+                                   (fn [actions]
+                                     (filter #(= "load" (-> % :entity :action-type))
+                                             actions))))}]})
 
 (defn transport-order->map [{:keys [id] :as transport-order}]
   (-> transport-order
@@ -144,14 +150,6 @@
 (defn consignment->trip [consignment]
   {:id                  (str (UUID/randomUUID))
    :external-attributes {:ref (consignment-ref consignment)}
-
-   :vehicle nil
-
-   :actors
-   [{:association-type "inline"
-     :roles            #{"carrier"}
-     :entity
-     {:name (consignment-carrier consignment)}}] ;; TODO dissoc
 
    :actions
    [{:association-type "inline"

@@ -10,7 +10,6 @@
     [:tr
      [:th.date "Ophaaldatum"]
      [:th.ref "Opdracht nr."]
-     [:th.carrier "Vervoerder"]
      [:th.goods "Goederen"]
      [:th.actions]]]
    [:tbody
@@ -24,14 +23,13 @@
       [:tr.transport-order
        [:td.date load-date]
        [:td.ref ref]
-       [:td.carrier carrier]
        [:td.goods goods]
        [:td.actions
         [:a.button.button-secondary {:href (str "transport-order-" id)} "Openen"]
         (w/delete-button (str "transport-order-" id))]])]])
 
 (defn show-transport-order [transport-order]
-  (let [{:keys [id ref load-date load-remarks carrier]}
+  (let [{:keys [id ref load-date load-remarks]}
         (otm/transport-order->map transport-order)]
     [:section.details
      [:dl
@@ -42,9 +40,6 @@
        [:dt "Ophaaldatum"]
        [:dd load-date]]
       [:div
-       [:dt "Vervoerder"]
-       [:dd carrier]]
-      [:div
        [:dt "Opmerkingen"]
        [:dd [:blockquote.remarks load-remarks]]]]
      [:div.actions
@@ -52,18 +47,18 @@
       [:a.button {:href "."} "Annuleren"]]]))
 
 (defn verify-transport-order [transport-order]
-  (let [{:keys [id ref load-remarks carrier]}
+  (let [{:keys [id ref load-remarks]}
         (otm/transport-order->map transport-order)]
     [:form {:method "POST", :action (str "verify-" id)}
      (w/anti-forgery-input)
 
      (w/field {:label "Opdracht nr.", :value ref, :disabled true})
-     (w/field {:label "Vervoerder", :value carrier, :disabled true})
      (w/field {:label "Opmerkingen", :value load-remarks, :type "textarea", :disabled true})
 
      [:div.actions
       [:a.button {:onclick "alert('Nog niet geïmplementeerd..')"} "Scan QR"]]
 
+     (w/field {:name "carrier", :label "Vervoerder", :required true, :list w/carriers})
      (w/field {:name "chauffeur-id", :label "Chauffeur ID", :required true})
      (w/field {:name "license-plate", :label "Kenteken", :required true})
 
@@ -71,45 +66,63 @@
       [:button.button-primary {:type "submit"} "Veriferen"]
       [:a.button {:href "."} "Annuleren"]]]))
 
-(defn accepted-transport-order [transport-order]
-  (let [{:keys [ref carrier]} (otm/transport-order->map transport-order)]
-    [:div
-     [:section
-      [:h2.verification.verification-accepted "Afgifte akkoord"]
-      [:p "Transportopdracht " [:q ref] " goedgekeurd voor transporteur " [:q carrier] "."]
-      [:div.actions
-       [:a.button {:href "."} "Terug naar overzicht"]]]
-     [:details.explaination
-      [:summary "Uitleg"]
-      [:ol
-       [:li
-        [:h3 "Check Authorisatie Vervoerder names de Verlader"]
-        [:p "API call naar " [:strong "AR van de Verlader"] " om te controleren of Vervoerder names Verlader de transportopdracht uit mag voeren."]
-        [:ul [:li "Klantorder nr."] [:li "Vervoerder ID"]]]
-       [:li
-        [:h3 "Check Authorisatie Chauffeur en Kenteken names de Vervoerder"]
-        [:p "API call naar " [:strong "AR van de Vervoerder"] " om te controleren of de Chauffeur met Kenteken de transportopdracht"]
-        [:ul [:li "Klantorder nr."] [:li "Chauffeur ID"] [:li "Kenteken"]]]]]]))
+(defn accepted-transport-order [transport-order
+                                {:keys [carrier chauffeur-id license-plate]}]
+  [:div
+   [:section
+    [:h2.verification.verification-accepted "Afgifte akkoord"]
+    [:p
+     "Transportopdracht "
+     [:q (otm/transport-order-ref transport-order)]
+     " goedgekeurd voor vervoerder "
+     [:q carrier]
+     ", chauffeur met ID eindigend op "
+     [:q chauffeur-id]
+     " en kenteken "
+     [:q license-plate]
+     "."]
+    [:div.actions
+     [:a.button {:href "."} "Terug naar overzicht"]]]
+   [:details.explaination
+    [:summary "Uitleg"]
+    [:ol
+     [:li
+      [:h3 "Check Authorisatie Vervoerder names de Verlader"]
+      [:p "API call naar " [:strong "AR van de Verlader"] " om te controleren of Vervoerder names Verlader de transportopdracht uit mag voeren."]
+      [:ul [:li "Klantorder nr."] [:li "Vervoerder ID"]]]
+     [:li
+      [:h3 "Check Authorisatie Chauffeur en Kenteken names de Vervoerder"]
+      [:p "API call naar " [:strong "AR van de Vervoerder"] " om te controleren of de Chauffeur met Kenteken de transportopdracht"]
+      [:ul [:li "Klantorder nr."] [:li "Chauffeur ID"] [:li "Kenteken"]]]]]])
 
-(defn rejected-transport-order [transport-order]
-  (let [{:keys [ref carrier]} (otm/transport-order->map transport-order)]
-    [:div
-     [:section
-      [:h2.verification.verification-rejected "Afgifte NIET akkoord"]
-      [:p "Transportopdracht " [:q ref] " is AFGEKEURD voor transporteur " [:q carrier] "."]
-      [:div.actions
-       [:a.button {:href "."} "Terug naar overzicht"]]]
-     [:details.explaination
-      [:summary "Uitleg"]
-      [:ol
-       [:li
-        [:h3 "Check Authorisatie Vervoerder names de Verlader"]
-        [:p "API call naar " [:strong "AR van de Verlader"] " om te controleren of Vervoerder names Verlader de transportopdracht uit mag voeren."]
-        [:ul [:li "Klantorder nr."] [:li "Vervoerder ID"]]]
-       [:li
-        [:h3 "Check Authorisatie Chauffeur en Kenteken names de Vervoerder"]
-        [:p "API call naar " [:strong "AR van de Vervoerder"] " om te controleren of de Chauffeur met Kenteken de transportopdracht"]
-        [:ul [:li "Klantorder nr."] [:li "Chauffeur ID"] [:li "Kenteken"]]]]]]))
+(defn rejected-transport-order [transport-order
+                                {:keys [carrier chauffeur-id license-plate]}]
+  [:div
+   [:section
+    [:h2.verification.verification-rejected "Afgifte NIET akkoord"]
+    [:p
+     "Transportopdracht "
+     [:q (otm/transport-order-ref transport-order)]
+     " is AFGEKEURD voor transporteur "
+     [:q carrier]
+     ", chauffeur met ID eindigend op "
+     [:q chauffeur-id]
+     " en kenteken "
+     [:q license-plate]
+     "."]
+    [:div.actions
+     [:a.button {:href "."} "Terug naar overzicht"]]]
+   [:details.explaination
+    [:summary "Uitleg"]
+    [:ol
+     [:li
+      [:h3 "Check Authorisatie Vervoerder names de Verlader"]
+      [:p "API call naar " [:strong "AR van de Verlader"] " om te controleren of Vervoerder names Verlader de transportopdracht uit mag voeren."]
+      [:ul [:li "Klantorder nr."] [:li "Vervoerder ID"]]]
+     [:li
+      [:h3 "Check Authorisatie Chauffeur en Kenteken names de Vervoerder"]
+      [:p "API call naar " [:strong "AR van de Vervoerder"] " om te controleren of de Chauffeur met Kenteken de transportopdracht"]
+      [:ul [:li "Klantorder nr."] [:li "Chauffeur ID"] [:li "Kenteken"]]]]]])
 
 
 
@@ -118,6 +131,11 @@
 
 (defn get-transport-order [store id]
   (get-in store [:transport-orders id]))
+
+
+
+(defn verify [transport-order {:keys [carrier chauffeur-id license-plate]}]
+  (= 0 (int (* 2 (rand))))) ;; TODO
 
 
 
@@ -157,26 +175,27 @@
               (verify-transport-order transport-order)
               flash)))
 
-  (POST "/verify-:id" [id]
-    ;; TODO
-    (redirect (str (if (= 0 (int (* 2 (rand))))
-                     "rejected-"
-                     "accepted-") id) :see-other))
+  (POST "/verify-:id" {:keys [flash store]
+                       {:keys [id] :as params} :params}
+    (when-let [transport-order (get-transport-order store id)]
+      (if (verify transport-order params)
+        (render (str "Transportopdracht ("
+                     (otm/transport-order-ref transport-order)
+                     ") geaccepteerd")
+                (accepted-transport-order transport-order params)
+                flash)
+        (render (str "Transportopdracht ("
+                     (otm/transport-order-ref transport-order)
+                     ") afgewezen")
+                (rejected-transport-order transport-order params)
+                flash))))
 
   (GET "/accepted-:id" {:keys [flash store]
                         {:keys [id]} :params}
     (when-let [transport-order (get-transport-order store id)]
-      (render (str "Transportopdracht ("
-                   (otm/transport-order-ref transport-order)
-                   ") geaccepteerd")
-              (accepted-transport-order transport-order)
-              flash)))
+))
 
   (GET "/rejected-:id" {:keys [flash store]
                         {:keys [id]} :params}
     (when-let [transport-order (get-transport-order store id)]
-      (render (str "Transportopdracht ("
-                   (otm/transport-order-ref transport-order)
-                   ") afgewezen")
-              (rejected-transport-order transport-order)
-              flash))))
+      )))
