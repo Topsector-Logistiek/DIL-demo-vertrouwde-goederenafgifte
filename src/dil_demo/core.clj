@@ -1,4 +1,5 @@
 (ns dil-demo.core
+  (:gen-class)
   (:require [dil-demo.web :as web]
             [ring.adapter.jetty :refer [run-jetty]]))
 
