@@ -5,7 +5,8 @@
             [ring.util.response :refer [content-type not-found]]
             [dil-demo.erp :as erp]
             [dil-demo.tms :as tms]
-            [dil-demo.wms :as wms])
+            [dil-demo.wms :as wms]
+            [dil-demo.store :as store])
   (:import (java.util.regex Pattern)))
 
 (defn rewrite-relative-redirect [res url-prefix]
@@ -34,7 +35,8 @@
 
 (defn make-app [config]
   (-> handler
-      (wrap-with-prefix "/erp" (erp/make-handler config))
-      (wrap-with-prefix "/tms" (tms/make-handler config))
-      (wrap-with-prefix "/wms" (wms/make-handler config))
+      (wrap-with-prefix "/erp" (erp/make-handler (config :erp)))
+      (wrap-with-prefix "/tms" (tms/make-handler (config :tms)))
+      (wrap-with-prefix "/wms" (wms/make-handler (config :wms)))
+      (store/wrap (config :store))
       (wrap-defaults site-defaults)))

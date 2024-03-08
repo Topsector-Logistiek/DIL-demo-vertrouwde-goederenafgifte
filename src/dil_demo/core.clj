@@ -3,7 +3,9 @@
   (:require [dil-demo.web :as web]
             [ring.adapter.jetty :refer [run-jetty]]))
 
-(def config {:jetty {:port 8080}})
+(def config
+  {:jetty {:port (Integer/parseInt (or (System/getenv "PORT") "8080"))}
+   :store {:file (or (System/getenv "STORE_FILE") "/tmp/dil-demo.edn")}})
 
 (defonce server-atom (atom nil))
 

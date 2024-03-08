@@ -12,27 +12,24 @@
   [store-atom [_ table-key id]]
   (swap! store-atom update table-key dissoc id))
 
-(def store-file (io/file "/tmp/dil-demo.edn"))
-
-(defn load-store []
-  (let [file store-file]
+(defn load-store [filename]
+  (let [file (io/file filename)]
     (if (.exists file)
       (edn/read-string (slurp file))
       {})))
 
-(def ^:private store-atom (atom (load-store)))
-
-(defn save-store [store]
-  (spit store-file (pr-str store)))
+(defn save-store [store filename]
+  (spit (io/file filename) (pr-str store)))
 
 (defn wrap
-  [app]
-  (fn wrap-store [req]
-    (let [req         (assoc req :store @store-atom)
-          {:keys [store-commands]
-           :as   res} (app req)]
-      (when (seq store-commands)
-        (doseq [cmd store-commands]
-          (commit store-atom cmd))
-        (future (save-store @store-atom)))
-      res)))
+  [app {:keys [file]}]
+  (let [store-atom (atom (load-store file))]
+    (fn wrap-store [req]
+      (let [req         (assoc req :store @store-atom)
+            {:keys [store-commands]
+             :as   res} (app req)]
+        (when (seq store-commands)
+          (doseq [cmd store-commands]
+            (commit store-atom cmd))
+          (future (save-store @store-atom file)))
+        res))))
