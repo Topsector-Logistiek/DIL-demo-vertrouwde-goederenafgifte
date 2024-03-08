@@ -12,7 +12,7 @@
      [:th.ref "Klantorder nr."]
      [:th.location "Ophaaladres"]
      [:th.location "Afleveradres"]
-     [:th.driver "Chauffeur"]
+     [:th.id-digits "Chauffeur ID cijfers"]
      [:th.license-plate "Kenteken"]
      [:th.actions]]]
    [:tbody
@@ -21,21 +21,21 @@
        [:td {:colspan 999}
         "Nog geen transportopdrachten geregistreerd.."]])
 
-    (for [{:keys [id ref load-date load-location unload-location driver license-plate]}
+    (for [{:keys [id ref load-date load-location unload-location driver-id-digits license-plate]}
           (map otm/trip->map trips)]
       [:tr.trip
        [:td.date load-date]
        [:td.ref ref]
        [:td.location load-location]
        [:td.location unload-location]
-       [:td.driver driver]
+       [:td.id-digits driver-id-digits]
        [:td.license-plate license-plate]
        [:td.actions
         [:a.button.button-secondary {:href (str "assign-" id)} "Openen"]
         (w/delete-button (str "trip-" id))]])]])
 
 (defn assign-trip [trip]
-  (let [{:keys [id ref load-date load-location load-remarks unload-date unload-location unload-remarks driver license-plate]}
+  (let [{:keys [id ref load-date load-location load-remarks unload-date unload-location unload-remarks driver-id-digits license-plate]}
         (otm/trip->map trip)]
     [:form {:method "POST"}
      (w/anti-forgery-input)
@@ -63,10 +63,12 @@
         [:pre "Dorpsweg 2\n4321 YZ  Andershuizen"] ;; TODO
         [:blockquote.remarks unload-remarks]]]
 
-      (w/field {:name "driver", :value driver
-                :label "Chauffeur ID", :type "text", :required true})
+      (w/field {:name "driver-id-digits", :value driver-id-digits
+                :label "Chauffeur ID", :placeholder "Laatste 4 cijfers"
+                :type "text", :pattern "\\d{4}", :required true})
       (w/field {:name "license-plate", :value license-plate
-                :label "Kenteken", :type "text", :required true})
+                :label "Kenteken",
+                :type "text", :required true})
 
       [:div.actions
        [:button.button-primary {:type "submit"} "Toewijzen"]
@@ -86,7 +88,7 @@
        [:li
         [:h3 "Autoriseer de Chauffeur names de Vervoerder voor de Klantorder vervoerd met Kenteken"]
         [:p "API call naar " [:strong "AR van de Vervoerder"] " om een autorisatie te registeren"]
-        [:ul [:li "Klantorder nr."] [:li "Chauffeur ID"] [:li "Kenteken"]]]]]]))
+        [:ul [:li "Klantorder nr."] [:li "Chauffeur ID (laatste 4 cijfers)"] [:li "Kenteken"]]]]]]))
 
 
 
@@ -126,13 +128,13 @@
               flash)))
 
   (POST "/assign-:id" {:keys [store]
-                       {:keys [id driver license-plate]} :params}
+                       {:keys [id driver-id-digits license-plate]} :params}
     (when-let [trip (get-trip store id)]
       (-> (str "assigned-" id)
           (redirect :see-other)
           (assoc :flash {:success "Chauffeur en kenteken toegewezen"})
           (assoc :store-commands [[:put! :trips (-> trip
-                                                    (otm/trip-driver! driver)
+                                                    (otm/trip-driver-id-digits! driver-id-digits)
                                                     (otm/trip-license-plate! license-plate))]]))))
 
   (GET "/assigned-:id" {:keys [flash store]

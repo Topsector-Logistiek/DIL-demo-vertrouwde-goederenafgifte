@@ -175,7 +175,7 @@
                                        :geo-reference {}}}
       :remarks     (consignment-unload-remarks consignment)}}]})
 
-(defn map->trip [{:keys [id ref load-date load-location load-remarks unload-date unload-location unload-remarks driver license-plate]}]
+(defn map->trip [{:keys [id ref load-date load-location load-remarks unload-date unload-location unload-remarks driver-id-digits license-plate]}]
   {:id                  id
    :external-attributes {:ref ref}
 
@@ -187,7 +187,7 @@
    [{:association-type "inline"
      :roles #{"driver"}
      :entity
-     {:name  driver}}]
+     {:external-attributes {:id-digits driver-id-digits}}}]
 
    :actions
    [{:association-type "inline"
@@ -253,18 +253,19 @@
        (map :entity)
        (first)))
 
-(defn trip-driver [trip]
+(defn trip-driver-id-digits [trip]
   (-> trip
       (trip-actor "driver")
-      :name))
+      :external-attributes
+      :id-digits))
 
-(defn trip-driver! [trip driver]
+(defn trip-driver-id-digits! [trip driver-id-digits]
   (update trip :actors
           (fn [actors]
             (concat (filterv (complement #(get (:roles %) "driver")) actors)
                     [{:association-type "inline"
                       :roles #{"driver"}
-                      :entity {:name driver}}]))))
+                      :entity {:external-attributes {:id-digits driver-id-digits}}}]))))
 
 (defn trip-license-plate [trip]
   (get-in trip [:vehicle 0 :entity :license-plate]))
@@ -282,5 +283,5 @@
    :unload-date     (trip-unload-date trip)
    :unload-location (trip-unload-location trip)
    :unload-remarks  (trip-unload-remarks trip)
-   :driver          (trip-driver trip)
+   :driver-id-digits          (trip-driver-id-digits trip)
    :license-plate   (trip-license-plate trip)})
