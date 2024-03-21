@@ -32,7 +32,7 @@
     [:link {:rel "stylesheet", :href (str "../assets/" site ".css")}]
     [:link {:rel "stylesheet", :href "../assets/base.css"}]]
    [:body
-    [:nav [:h1 title]]
+    [:header [:h1 title]]
     [:main
      (for [[type message] flash]
        [:div.flash {:class (str "flash-" (name type))} message])
