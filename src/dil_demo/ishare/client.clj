@@ -4,24 +4,15 @@
             [babashka.json :as json]
             [buddy.sign.jwt :as jwt]
             [buddy.core.keys :as keys]
-            [clojure.string :as string]
-            [clojure.java.io :as io])
+            [clojure.string :as string])
   (:import java.time.Instant
            java.util.UUID
-           java.io.StringReader
-           org.bouncycastle.openssl.PEMParser))
+           java.io.StringReader))
 
-;; key-file is a PEM file with private key and full certificate chains
-;;
-;; you can create one using
-
-;; /usr/bin/openssl pkcs12 -in XX.p12 -nocerts -nodes -out XX.pem
-;;
-(def key-file "credentials/EU.EORI.NLSMARTPHON.pem")
-
-(def private-key
+(defn private-key
+  "Read private key from file."
+  [key-file]
   (keys/private-key key-file))
-
 
 ;; From https://dev.ishareworks.org/reference/jwt.html#refjwt
 ;;
@@ -32,32 +23,16 @@
 ;;
 ;; Does this mean we don't need to include the trusted CAs in the x5c
 ;; chain?
-;;
-;; FIXME: This assumes that certificates are in order and there is no
-;; other item (like private key) in the middle
-;;
-;; /usr/bin/openssl pkcs12 -in XX.p12 -chain -nokeys -out XX.crt
 
-(def cert-file "credentials/EU.EORI.NLSMARTPHON.crt")
-
-(defn- repeat-some
-  "Returns a lazy sequence of calls to `f`, terminating when item is nil."
-  [f]
-  (take-while some? (repeatedly f)))
-
-(defn certificate-chain
-  "Reads a certificate chain from a PEM encoded file or stream"
-  [x]
-  (with-open [reader (io/reader x)]
-    (let [parser (PEMParser. reader)]
-      (into [] (repeat-some #(.readObject parser))))))
-
-(def x5c (->> (-> cert-file
-                  slurp
-                  (string/replace-first #"(?s)\A.*?-+BEGIN CERTIFICATE-+\s+" "")
-                  (string/replace #"(?s)\s*-+END CERTIFICATE-+\s*\Z" "")
-                  (string/split #"(?s)\s*-+END CERTIFICATE-+.*?-+BEGIN CERTIFICATE-+\s*"))
-              (mapv #(string/replace % #"\s+" ""))))
+(defn x5c
+  "Read chain file into vector of certificates."
+  [cert-file]
+  (->> (-> cert-file
+           slurp
+           (string/replace-first #"(?s)\A.*?-+BEGIN CERTIFICATE-+\s+" "")
+           (string/replace #"(?s)\s*-+END CERTIFICATE-+\s*\Z" "")
+           (string/split #"(?s)\s*-+END CERTIFICATE-+.*?-+BEGIN CERTIFICATE-+\s*"))
+       (mapv #(string/replace % #"\s+" ""))))
 
 (defn seconds-since-unix-epoch
   []
@@ -218,7 +193,8 @@ When bearer token is not needed, provide a `nil` token"
    reponse, under :ishare/result"
    :response (fn [response]
                (if-let [path (get-in response [:request :ishare/lens])]
-                 (assoc response :ishare/result (get-in response path))))})
+                 (assoc response :ishare/result (get-in response path))
+                 response))})
 
 (def log-interceptor
   {:name ::log
@@ -273,20 +249,6 @@ When bearer token is not needed, provide a `nil` token"
   (-> request
       exec
       :ishare/result))
-
-(def satellite-request
-  {:ishare/endpoint    "https://dilsat1-mw.pg.bdinetwork.org"
-   :ishare/server-id   "EU.EORI.NLDILSATTEST1"
-   :ishare/client-id   "EU.EORI.NLSMARTPHON"
-   :ishare/x5c         x5c
-   :ishare/private-key private-key})
-
-(def ishare-ar-request
-  {:ishare/endpoint    "https://ar.isharetest.net/"
-   :ishare/server-id   "EU.EORI.NL000000004"
-   :ishare/client-id   "EU.EORI.NLSMARTPHON"
-   :ishare/x5c         x5c
-   :ishare/private-key private-key})
 
 
 
@@ -378,7 +340,19 @@ When bearer token is not needed, provide a `nil` token"
          :ishare/lens         [:body "delegation_token"]))
 
 (comment
+  (def satellite-request
+    {:ishare/endpoint    "https://dilsat1-mw.pg.bdinetwork.org"
+     :ishare/server-id   "EU.EORI.NLDILSATTEST1"
+     :ishare/client-id   "EU.EORI.NLSMARTPHON"
+     :ishare/x5c         (x5c "credentials/EU.EORI.NLSMARTPHON.crt")
+     :ishare/private-key (private-key "credentials/EU.EORI.NLSMARTPHON.pem")})
 
+  (def ishare-ar-request
+    {:ishare/endpoint    "https://ar.isharetest.net/"
+     :ishare/server-id   "EU.EORI.NL000000004"
+     :ishare/client-id   "EU.EORI.NLSMARTPHON"
+     :ishare/x5c         (x5c "credentials/EU.EORI.NLSMARTPHON.crt")
+     :ishare/private-key (private-key "credentials/EU.EORI.NLSMARTPHON.pem")})
 
   (def delegation-evidence
     {"delegationEvidence"

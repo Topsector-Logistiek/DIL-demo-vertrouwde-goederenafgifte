@@ -155,6 +155,13 @@
   {:id                  (str (UUID/randomUUID))
    :external-attributes {:ref (consignment-ref consignment)}
 
+   :actors
+   [{:association-type "inline"
+     :roles #{"carrier"}
+     :entity
+     {:contact-details [{:type "eori"
+                         :value (consignment-carrier-eori consignment)}]}}]
+
    :actions
    [{:association-type "inline"
      :entity
@@ -175,7 +182,7 @@
                                        :geo-reference {}}}
       :remarks     (consignment-unload-remarks consignment)}}]})
 
-(defn map->trip [{:keys [id ref load-date load-location load-remarks unload-date unload-location unload-remarks driver-id-digits license-plate]}]
+(defn map->trip [{:keys [id ref load-date load-location load-remarks unload-date unload-location unload-remarks carrier-eori driver-id-digits license-plate]}]
   {:id                  id
    :external-attributes {:ref ref}
 
@@ -185,6 +192,11 @@
 
    :actors
    [{:association-type "inline"
+     :roles #{"carrier"}
+     :entity
+     {:contact-details [{:type "eori"
+                         :value carrier-eori}]}}
+    {:association-type "inline"
      :roles #{"driver"}
      :entity
      {:external-attributes {:id-digits driver-id-digits}}}]
@@ -253,6 +265,14 @@
        (map :entity)
        (first)))
 
+(defn trip-carrier-eori [trip]
+  (->> (-> trip
+           (trip-actor "carrier")
+           :contact-details)
+       (filter #(= "eori" (:type %)))
+       (first)
+       :value))
+
 (defn trip-driver-id-digits [trip]
   (-> trip
       (trip-actor "driver")
@@ -275,13 +295,14 @@
                          :entity {:license-plate license-plate}}]))
 
 (defn trip->map [trip]
-  {:id              (:id trip)
-   :ref             (trip-ref trip)
-   :load-date       (trip-load-date trip)
-   :load-location   (trip-load-location trip)
-   :load-remarks    (trip-load-remarks trip)
-   :unload-date     (trip-unload-date trip)
-   :unload-location (trip-unload-location trip)
-   :unload-remarks  (trip-unload-remarks trip)
-   :driver-id-digits          (trip-driver-id-digits trip)
-   :license-plate   (trip-license-plate trip)})
+  {:id               (:id trip)
+   :ref              (trip-ref trip)
+   :load-date        (trip-load-date trip)
+   :load-location    (trip-load-location trip)
+   :load-remarks     (trip-load-remarks trip)
+   :unload-date      (trip-unload-date trip)
+   :unload-location  (trip-unload-location trip)
+   :unload-remarks   (trip-unload-remarks trip)
+   :driver-id-digits (trip-driver-id-digits trip)
+   :license-plate    (trip-license-plate trip)
+   :carrier-eori     (trip-carrier-eori trip)})

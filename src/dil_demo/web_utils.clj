@@ -38,7 +38,7 @@
    [:body
     [:header [:h1 title]]
     [:main
-     (for [[type message] flash]
+     (for [[type message] (select-keys flash [:error :success :warning])]
        [:div.flash {:class (str "flash-" (name type))} message])
      main]
     [:footer]]])

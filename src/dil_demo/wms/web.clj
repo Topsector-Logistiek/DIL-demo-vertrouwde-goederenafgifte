@@ -104,7 +104,7 @@
      "."]
     [:div.actions
      [:a.button {:href "."} "Terug naar overzicht"]]]
-   [:details.explaination
+   [:details.explanation
     [:summary "Uitleg"]
     [:ol
      [:li
@@ -133,7 +133,7 @@
      "."]
     [:div.actions
      [:a.button {:href "."} "Terug naar overzicht"]]]
-   [:details.explaination
+   [:details.explanation
     [:summary "Uitleg"]
     [:ol
      [:li

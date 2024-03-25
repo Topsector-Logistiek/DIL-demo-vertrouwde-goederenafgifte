@@ -9,7 +9,7 @@
   (:require [dil-demo.core :as core]))
 
 (defn start! []
-  (core/start! (assoc-in core/config [:jetty :join?] false)))
+  (core/start! (assoc-in (core/->config) [:jetty :join?] false)))
 
 (defn stop! []
   (core/stop!))

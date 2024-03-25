@@ -87,22 +87,25 @@
                (str "new QRCode(document.getElementById(" (json-str id) "), " (json-str text) ")"))]]))
 
 (defn assigned-trip [trip]
-  (let [{:keys [ref driver-id-digits license-plate]} (otm/trip->map trip)]
+  (let [{:keys [ref driver-id-digits license-plate carrier-eori]} (otm/trip->map trip)]
     [:div
      [:section
       [:p "Transportopdracht " [:q ref] " toegewezen."]
 
-      (qr-code (str ":dil-demo:TODO-EORI-VERVOERDER:" driver-id-digits ":" license-plate))
+      (qr-code (str ":dil-demo:" carrier-eori ":" driver-id-digits ":" license-plate))
 
       [:div.actions
        [:a.button {:href "."} "Terug naar overzicht"]]]
-     [:details.explaination
+     [:details.explanation
       [:summary "Uitleg"]
       [:ol
        [:li
         [:h3 "Autoriseer de Chauffeur names de Vervoerder voor de Klantorder vervoerd met Kenteken"]
         [:p "API call naar " [:strong "AR van de Vervoerder"] " om een autorisatie te registeren"]
-        [:ul [:li "Klantorder nr."] [:li "Chauffeur ID (laatste 4 cijfers)"] [:li "Kenteken"]]]]]]))
+        [:ul [:li "Klantorder nr."] [:li "Chauffeur ID (laatste 4 cijfers)"] [:li "Kenteken"]]]
+       [:li
+        [:h3 "OTM Trip"]
+        [:pre.json (w/to-json trip)]]]]]))
 
 
 

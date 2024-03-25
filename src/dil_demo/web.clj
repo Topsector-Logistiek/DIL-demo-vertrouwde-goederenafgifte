@@ -18,7 +18,7 @@
 
 (defn wrap-with-prefix [app url-prefix handler]
   (let [url-prefix-re (Pattern/compile (str "^" url-prefix "(/.*)"))]
-    (fn [{:keys [uri] :as req}]
+    (fn prefix-wrapper [{:keys [uri] :as req}]
       (let [path (last (re-find url-prefix-re uri))]
         (cond
           path
@@ -53,10 +53,16 @@
    (resources "/")
    not-found-handler))
 
+(defn wrap-carriers [app {{carrier-eori :eori} :tms}]
+  (let [carriers {carrier-eori "Precious goods movement BV"}]
+    (fn carriers-wrapper [req]
+      (app (assoc req :carriers carriers)))))
+
 (defn make-app [config]
   (-> handler
       (wrap-with-prefix "/erp" (erp/make-handler (config :erp)))
       (wrap-with-prefix "/tms" (tms/make-handler (config :tms)))
       (wrap-with-prefix "/wms" (wms/make-handler (config :wms)))
+      (wrap-carriers config)
       (store/wrap (config :store))
       (wrap-defaults site-defaults)))

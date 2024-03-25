@@ -24,7 +24,7 @@
 (defn wrap
   [app {:keys [file]}]
   (let [store-atom (atom (load-store file))]
-    (fn wrap-store [req]
+    (fn store-wrapper [req]
       (let [req         (assoc req :store @store-atom)
             {:keys [store-commands]
              :as   res} (app req)]

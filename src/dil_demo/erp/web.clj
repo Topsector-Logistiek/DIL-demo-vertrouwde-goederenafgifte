@@ -39,7 +39,7 @@
       [:tr
        [:td.actions {:colspan 7} actions]]]]))
 
-(defn edit-consignment [consignment]
+(defn edit-consignment [consignment {:keys [carriers]}]
   (let [{:keys [id status ref load-date load-location load-remarks unload-location unload-date unload-remarks goods carrier-eori]}
         (otm/consignment->map consignment)]
     [:form {:method "POST"}
@@ -68,14 +68,14 @@
       (w/field {:name  "goods",    :value goods,
                 :label "Goederen", :type  "text", :list w/goods, :required true})
       (w/field {:name  "carrier-eori", :value carrier-eori,
-                :label "Vervoerder",   :type  "select", :list w/carriers, :required true})]
+                :label "Vervoerder",   :type  "select", :list carriers, :required true})]
      [:div.actions
       [:button.button.button-primary {:type "submit"} "Bewaren"]
       (when id
         [:a.button.button-secondary {:href (str "publish-" id)} "Transportopdracht aanmaken"])
       [:a.button {:href "."} "Annuleren"]]]))
 
-(defn publish-consignment [consignment]
+(defn publish-consignment [consignment {:keys [carriers]}]
   (let [{:keys [id ref load-date load-location load-remarks unload-date unload-location unload-remarks goods carrier-eori]}
         (otm/consignment->map consignment)]
     [:form {:method "POST"}
@@ -94,7 +94,7 @@
         [:dd unload-date]]
        [:div
         [:dt "Vervoerder"]
-        [:dd (w/carriers carrier-eori)]]]]
+        [:dd (carriers carrier-eori)]]]]
      [:section.trip
       [:fieldset.load-location
        [:legend "Ophaaladres"]
@@ -116,30 +116,29 @@
        "Versturen"]
       [:a.button {:href (str "consignment-" id)} "Annuleren"]]]))
 
-(defn published-consignment [consignment]
+(defn published-consignment [consignment {:keys [carriers ishare]}]
   (let [{:keys [load-location carrier-eori]} (otm/consignment->map consignment)]
     [:div
      [:section
       [:p "Transportopdracht verstuurd naar locatie "
        [:q load-location]
        " en vervoerder "
-       [:q (w/carriers carrier-eori)]
+       [:q (carriers carrier-eori)]
        "."]
       [:div.actions
        [:a.button {:href "."} "Terug naar overzicht"]]]
-     [:details.explaination
+     [:details.explanation
       [:summary "Uitleg"]
       [:ol
-       [:li
-        [:h3 "Autoriseer de Vervoerder names de Verlader voor de Klantorder"]
-        [:p "API call naar " [:strong "AR van de Verlader"] " om een autorisatie te registeren"]
-        [:ul [:li "Klantorder nr."] [:li "Vervoerder EORI (" [:q carrier-eori] ")"]]]
        [:li
         [:h3 "Stuur OTM Transportopdracht naar WMS van DC"]
         [:pre.json (w/to-json (otm/consignment->transport-order consignment))]]
        [:li
         [:h3 "Stuur OTM Trip naar TMS van Vervoerder"]
-        [:pre.json (w/to-json (otm/consignment->trip consignment))]]]]]))
+        [:pre.json (w/to-json (otm/consignment->trip consignment))]]
+       [:li
+        [:h3 "Registreer policy bij AR"]
+        [:pre.json (w/to-json ishare)]]]]]))
 
 
 
@@ -170,13 +169,14 @@
             (list-consignments (get-consignments store))
             flash))
 
-  (GET "/consignment-new" {:keys [flash store]}
+  (GET "/consignment-new" {:keys [carriers flash store]}
     (render "Nieuwe klantorder"
             (edit-consignment
              (otm/map->consignment {:ref         (next-consignment-ref store)
                                     :load-date   (w/format-date (Date.))
                                     :unload-date (w/format-date (Date.))
-                                    :status      "draft"}))
+                                    :status      "draft"})
+             {:carriers carriers})
             flash))
 
   (POST "/consignment-new" {:keys [params]}
@@ -189,10 +189,10 @@
                                                                 :id id
                                                                 :status "draft"))]]))))
 
-  (GET "/consignment-:id" {:keys [flash store] {:keys [id]} :params}
+  (GET "/consignment-:id" {:keys [carriers flash store] {:keys [id]} :params}
     (let [consignment (get-consignment store id)]
       (render (str "Klantorder: " (otm/consignment-ref consignment))
-              (edit-consignment consignment)
+              (edit-consignment consignment {:carriers carriers})
               flash)))
 
   (POST "/consignment-:id" {:keys [params]}
@@ -208,10 +208,10 @@
           (assoc :flash {:success "Klantorder verwijderd"})
           (assoc :store-commands [[:delete! :consignments id]]))))
 
-  (GET "/publish-:id" {:keys [flash store] {:keys [id]} :params}
+  (GET "/publish-:id" {:keys [carriers flash store] {:keys [id]} :params}
     (when-let [consignment (get-consignment store id)]
       (render "Transportopdracht aanmaken"
-              (publish-consignment consignment)
+              (publish-consignment consignment {:carriers carriers})
               flash)))
 
   (POST "/publish-:id" {:keys [store] {:keys [id]} :params}
@@ -223,8 +223,11 @@
                                   [:put! :transport-orders (otm/consignment->transport-order consignment)]
                                   [:put! :trips (otm/consignment->trip consignment)]]))))
 
-  (GET "/published-:id" {:keys [flash store] {:keys [id]} :params}
+  (GET "/published-:id" {:keys            [carriers flash store]
+                         {:keys [id]}     :params
+                         {:keys [ishare]} :flash}
     (when-let [consignment (get-consignment store id)]
       (render "Transportopdracht aangemaakt"
-              (published-consignment consignment)
+              (published-consignment consignment {:carriers carriers
+                                                  :ishare   ishare})
               flash))))
