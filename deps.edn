@@ -6,10 +6,7 @@
         org.clojure/data.json   {:mvn/version "2.5.0"}
 
         ;; for uberjar
-        org.clojure/clojure {:mvn/version "1.11.1"}
-
-        ;; development tools
-        org.clojure/tools.namespace {:mvn/version "1.5.0"}}
+        org.clojure/clojure {:mvn/version "1.11.1"}}
 
  :paths ["src" "resources" "dev" "classes"]
 
