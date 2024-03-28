@@ -11,17 +11,20 @@
        (throw (Exception. (str "environment variable " k " not set"))))))
 
 (defn ->config []
-  {:jetty {:port (Integer/parseInt (get-env "PORT" "8080"))}
-   :store {:file (get-env "STORE_FILE" "/tmp/dil-demo.edn")}
-   :erp   {:eori       (get-env "ERP_EORI")
-           :key-file   (get-env "ERP_KEY_FILE")
-           :chain-file (get-env "ERP_CHAIN_FILE")}
-   :tms   {:eori       (get-env "TMS_EORI")
-           :key-file   (get-env "TMS_KEY_FILE")
-           :chain-file (get-env "TMS_CHAIN_FILE")}
-   :wms   {:eori       (get-env "WMS_EORI")
-           :key-file   (get-env "WMS_KEY_FILE")
-           :chain-file (get-env "WMS_CHAIN_FILE")}})
+  (let [erp-eori (get-env "ERP_EORI")
+        wms-eori (get-env "WMS_EORI")
+        tms-eori (get-env "TMS_EORI")]
+    {:jetty {:port (Integer/parseInt (get-env "PORT" "8080"))}
+     :store {:file (get-env "STORE_FILE" "/tmp/dil-demo.edn")}
+     :erp   {:eori       erp-eori
+             :key-file   (get-env "ERP_KEY_FILE" (str "credentials/" erp-eori ".pem"))
+             :chain-file (get-env "ERP_CHAIN_FILE" (str "credentials/" erp-eori ".crt"))}
+     :tms   {:eori       tms-eori
+             :key-file   (get-env "TMS_KEY_FILE" (str "credentials/" tms-eori ".pem"))
+             :chain-file (get-env "TMS_CHAIN_FILE" (str "credentials/" tms-eori ".crt"))}
+     :wms   {:eori       wms-eori
+             :key-file   (get-env "WMS_KEY_FILE" (str "credentials/" wms-eori ".pem"))
+             :chain-file (get-env "WMS_CHAIN_FILE" (str "credentials/" wms-eori ".crt"))}}))
 
 (defonce server-atom (atom nil))
 
