@@ -121,3 +121,7 @@
 
        :else
        (json/write-str val)))))
+
+(defn wrap-config [app config]
+  (fn config-wrapper [req]
+    (app (assoc req :config config))))

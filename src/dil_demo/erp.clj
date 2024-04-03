@@ -1,8 +1,9 @@
 (ns dil-demo.erp
   (:require [dil-demo.erp.web :as web]
             [dil-demo.ishare.client :as ishare-client]
-            [dil-demo.otm :as otm])
-  (:import clojure.lang.ExceptionInfo))
+            [dil-demo.otm :as otm]
+            [dil-demo.web-utils :as web-utils])
+  (:import (clojure.lang ExceptionInfo)))
 
 (defn- trip->delegation-evidence [client-id trip]
   (let [{:keys [ref carrier-eori]} (otm/trip->map trip)]
@@ -61,4 +62,5 @@
 
 (defn make-handler [config]
   (-> web/handler
+      (web-utils/wrap-config config)
       (wrap-delegation config)))

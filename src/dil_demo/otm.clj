@@ -13,7 +13,7 @@
 ;; OTM Consignment for ERP
 
 (defn map->consignment
-  [{:keys [id ref status goods carrier-eori load-date load-location load-remarks unload-date unload-location unload-remarks]}]
+  [{:keys [id ref status goods carrier-eori load-date load-location load-remarks unload-date unload-location unload-remarks owner-eori]}]
   {:id                  id
    :external-attributes {:ref ref}
    :status              status
@@ -24,10 +24,15 @@
 
    :actors
    [{:association-type "inline"
-     :roles #{"carrier"}
+     :roles            #{"carrier"}
      :entity
-     {:contact-details [{:type "eori"
-                         :value carrier-eori}]}}]
+     {:contact-details [{:type  "eori"
+                         :value carrier-eori}]}}
+    {:association-type "inline"
+     :roles            #{"owner"}
+     :entity
+     {:contact-details [{:type  "eori"
+                         :value owner-eori}]}}]
 
    :actions
    [{:association-type "inline"
@@ -93,19 +98,21 @@
       (consignment-action "unload")
       :remarks))
 
-(defn consignment-actor [{:keys [actors]} role]
+(defn consignment-actor-eori [{:keys [actors]} role]
   (->> actors
        (filter #(get (:roles %) role))
        (map :entity)
-       (first)))
-
-(defn consignment-carrier-eori [consignment]
-  (->> (-> consignment
-           (consignment-actor "carrier")
-           :contact-details)
+       (first)
+       :contact-details
        (filter #(= "eori" (:type %)))
        (first)
        :value))
+
+(defn consignment-carrier-eori [consignment]
+  (consignment-actor-eori consignment "carrier"))
+
+(defn consignment-owner-eori [consignment]
+  (consignment-actor-eori consignment "owner"))
 
 (defn consignment->map [consignment]
   {:id              (:id consignment)
@@ -118,22 +125,26 @@
    :unload-location (consignment-unload-location consignment)
    :unload-remarks  (consignment-unload-remarks consignment)
    :goods           (consignment-goods consignment)
-   :carrier-eori    (consignment-carrier-eori consignment)})
+   :carrier-eori    (consignment-carrier-eori consignment)
+   :owner-eori      (consignment-owner-eori consignment)})
 
 
 
 ;; OTM TransportOrder for WMS
 
 (defn consignment->transport-order [consignment]
-  {:id           (str (UUID/randomUUID))
+  {:id (str (UUID/randomUUID))
    :consignments
    [{:association-type "inline"
      :entity           (-> consignment
-                           (dissoc :actors)
+                           (update :actors
+                                   (fn [actors]
+                                     (filterv #(contains? (:roles %) "owner")
+                                              actors)))
                            (update :actions
                                    (fn [actions]
-                                     (filter #(= "load" (-> % :entity :action-type))
-                                             actions))))}]})
+                                     (filterv #(= "load" (-> % :entity :action-type))
+                                              actions))))}]})
 
 (defn transport-order->map [{:keys [id] :as transport-order}]
   (-> transport-order
@@ -145,7 +156,14 @@
   (get-in transport-order [:consignments 0 :entity]))
 
 (defn transport-order-ref [transport-order]
-  (consignment-ref (transport-order-consignment transport-order)))
+  (-> transport-order
+      (transport-order-consignment)
+      (consignment-ref)))
+
+(defn transport-order-owner-eori [transport-order]
+  (-> transport-order
+      (transport-order-consignment)
+      (consignment-owner-eori)))
 
 
 

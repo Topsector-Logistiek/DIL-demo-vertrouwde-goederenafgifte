@@ -179,7 +179,8 @@
              {:carriers carriers})
             flash))
 
-  (POST "/consignment-new" {:keys [params]}
+  (POST "/consignment-new" {:keys [params]
+                            {:keys [eori]} :config}
     (let [id (str (UUID/randomUUID))]
       (-> "."
           (redirect :see-other)
@@ -187,7 +188,8 @@
           (assoc :store-commands [[:put! :consignments
                                    (otm/map->consignment (assoc params
                                                                 :id id
-                                                                :status "draft"))]]))))
+                                                                :status "draft"
+                                                                :owner-eori eori))]]))))
 
   (GET "/consignment-:id" {:keys [carriers flash store] {:keys [id]} :params}
     (let [consignment (get-consignment store id)]
@@ -195,26 +197,32 @@
               (edit-consignment consignment {:carriers carriers})
               flash)))
 
-  (POST "/consignment-:id" {:keys [params]}
+  (POST "/consignment-:id" {:keys [params]
+                            {:keys [eori]} :config}
     (-> "."
         (redirect :see-other)
         (assoc :flash {:success "Klantorder aangepast"})
-        (assoc :store-commands [[:put! :consignments (otm/map->consignment params)]])))
+        (assoc :store-commands [[:put! :consignments (-> params
+                                                         (otm/map->consignment)
+                                                         (assoc :owner-eori eori))]])))
 
-  (DELETE "/consignment-:id" {:keys [store] {:keys [id]} :params}
+  (DELETE "/consignment-:id" {:keys [store]
+                              {:keys [id]} :params}
     (when (get-consignment store id)
       (-> "."
           (redirect :see-other)
           (assoc :flash {:success "Klantorder verwijderd"})
           (assoc :store-commands [[:delete! :consignments id]]))))
 
-  (GET "/publish-:id" {:keys [carriers flash store] {:keys [id]} :params}
+  (GET "/publish-:id" {:keys [carriers flash store]
+                       {:keys [id]} :params}
     (when-let [consignment (get-consignment store id)]
       (render "Transportopdracht aanmaken"
               (publish-consignment consignment {:carriers carriers})
               flash)))
 
-  (POST "/publish-:id" {:keys [store] {:keys [id]} :params}
+  (POST "/publish-:id" {:keys [store]
+                        {:keys [id]} :params}
     (when-let [consignment (get-consignment store id)]
       (-> (str "published-" id)
           (redirect :see-other)
