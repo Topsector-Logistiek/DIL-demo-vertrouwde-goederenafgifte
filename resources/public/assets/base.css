@@ -205,6 +205,7 @@ blockquote {
 pre {
     padding: 1rem;
     box-shadow: inset 0em 0em .1rem .1rem rgb(0, 0, 0, .1);
+    overflow: auto;
 }
 
 .flash {

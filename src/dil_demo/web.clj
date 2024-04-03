@@ -3,6 +3,7 @@
             [compojure.route :refer [resources]]
             [ring.middleware.defaults :refer [site-defaults wrap-defaults]]
             [ring.util.response :refer [content-type not-found redirect]]
+            [nl.jomco.ring-session-ttl-memory :refer [ttl-memory-store]]
             [dil-demo.erp :as erp]
             [dil-demo.tms :as tms]
             [dil-demo.wms :as wms]
@@ -65,4 +66,5 @@
       (wrap-with-prefix "/wms" (wms/make-handler (config :wms)))
       (wrap-carriers config)
       (store/wrap (config :store))
-      (wrap-defaults site-defaults)))
+      (wrap-defaults (assoc-in site-defaults
+                               [:session :store] (ttl-memory-store)))))

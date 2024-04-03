@@ -32,10 +32,10 @@
          :ishare/params (trip->delegation-evidence client-id trip)))
 
 (defn- trips->ishare-ar! [client-data trips]
-  (mapv #(-> client-data
-             (->ishare-ar-policy-request %)
-             (ishare-client/exec)
-             :ishare/result)
+  (mapv #(let [req (->ishare-ar-policy-request client-data %)
+               res (:ishare/result (ishare-client/exec req))]
+           {:request  (dissoc req :ishare/private-key)
+            :response res})
         trips))
 
 (defn wrap-delegation
