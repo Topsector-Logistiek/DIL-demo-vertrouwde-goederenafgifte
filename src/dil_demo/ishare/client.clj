@@ -296,6 +296,15 @@ When bearer token is not needed, provide a `nil` token"
          ;; NOTE: pagination to be implemented
          :ishare/lens   [:body "parties_token"]))
 
+(defmethod ishare->http-request :party
+  [{:ishare/keys [party-id] :as request}]
+  (assoc request
+         :method       :get
+         :path         (str "/parties/" party-id)
+         :as           :json
+         :ishare/unsign-token "party_token"
+         :ishare/lens [:body "party_token"]))
+
 (defmethod ishare->http-request :trusted-list
   [request]
   (assoc request
@@ -403,4 +412,11 @@ When bearer token is not needed, provide a `nil` token"
              :ishare/params delegation-mask)
       exec
       :ishare/result)
+
+  (-> satellite-request
+      (assoc :ishare/message-type :party
+             :ishare/party-id "EU.EORI.NLSMARTPHON")
+      exec
+      :ishare/result)
+
   )
