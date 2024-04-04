@@ -202,12 +202,15 @@ When bearer token is not needed, provide a `nil` token"
                  (assoc response :ishare/result (get-in response path))
                  response))})
 
+(def ^:dynamic log-interceptor-atom nil)
+
 (def log-interceptor
-  {:name ::log
+  {:name     ::log
    :response (fn [r]
-               (prn (:headers (:request r)))
-               (prn (:headers r))
-               (prn (:body r))
+               (when log-interceptor-atom
+                 (swap! log-interceptor-atom conj
+                        {:request  (:request r)
+                         :response (dissoc r :request)}))
                r)})
 
 (def build-uri-interceptor
@@ -227,18 +230,16 @@ When bearer token is not needed, provide a `nil` token"
 (def interceptors
   [ishare-interpreter-interactor
    lens-interceptor
-   unsign-token-interceptor ;; above throw, so we don't try to decode an
-   ;; error response
+   unsign-token-interceptor
    build-uri-interceptor
    fetch-bearer-token-interceptor
    bearer-token-interceptor
    interceptors/throw-on-exceptional-status-code
+   log-interceptor
    interceptors/construct-uri
    interceptors/accept-header
-   interceptors/basic-auth ;; TODO: remove?
    interceptors/query-params
    interceptors/form-params
-   interceptors/multipart ;; TODO: remove?
    json-interceptor       ;; should be between decode-body and
    ;; throw-on-exceptional-status-code, so that JSON
    ;; error messages are decoded
