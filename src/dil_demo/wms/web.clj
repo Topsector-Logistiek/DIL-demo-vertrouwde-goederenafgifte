@@ -2,6 +2,8 @@
   (:require [compojure.core :refer [defroutes DELETE GET POST]]
             [dil-demo.otm :as otm]
             [dil-demo.web-utils :as w]
+            [dil-demo.ishare.client :as ishare-client]
+            [dil-demo.ishare.policies :as policies]
             [clojure.data.json :refer [json-str]]
             [ring.util.response :refer [content-type redirect response]])
   (:import [java.util UUID]))
@@ -88,7 +90,8 @@
       [:a.button {:href "."} "Annuleren"]]]))
 
 (defn accepted-transport-order [transport-order
-                                {:keys [carrier-eori driver-id-digits license-plate]}]
+                                {:keys [carrier-eori driver-id-digits license-plate]}
+                                log]
   [:div
    [:section
     [:h2.verification.verification-accepted "Afgifte akkoord"]
@@ -106,18 +109,11 @@
      [:a.button {:href "."} "Terug naar overzicht"]]]
    [:details.explanation
     [:summary "Uitleg"]
-    [:ol
-     [:li
-      [:h3 "Check Authorisatie Vervoerder names de Verlader"]
-      [:p "API call naar " [:strong "AR van de Verlader"] " om te controleren of Vervoerder names Verlader de transportopdracht uit mag voeren."]
-      [:ul [:li "Klantorder nr."] [:li "Vervoerder EORI"]]]
-     [:li
-      [:h3 "Check Authorisatie Chauffeur en Kenteken names de Vervoerder"]
-      [:p "API call naar " [:strong "AR van de Vervoerder"] " om te controleren of de Chauffeur met Kenteken de transportopdracht"]
-      [:ul [:li "Klantorder nr."] [:li "Chauffeur ID (laatste 4 cijfers)"] [:li "Kenteken"]]]]]])
+    [:ol (w/ishare-log-intercept-to-hiccup log)]]])
 
 (defn rejected-transport-order [transport-order
-                                {:keys [carrier-eori driver-id-digits license-plate]}]
+                                {:keys [carrier-eori driver-id-digits license-plate]}
+                                log]
   [:div
    [:section
     [:h2.verification.verification-rejected "Afgifte NIET akkoord"]
@@ -135,15 +131,7 @@
      [:a.button {:href "."} "Terug naar overzicht"]]]
    [:details.explanation
     [:summary "Uitleg"]
-    [:ol
-     [:li
-      [:h3 "Check Authorisatie Vervoerder names de Verlader"]
-      [:p "API call naar " [:strong "AR van de Verlader"] " om te controleren of Vervoerder names Verlader de transportopdracht uit mag voeren."]
-      [:ul [:li "Klantorder nr."] [:li "Vervoerder EORI"]]]
-     [:li
-      [:h3 "Check Authorisatie Chauffeur en Kenteken names de Vervoerder"]
-      [:p "API call naar " [:strong "AR van de Vervoerder"] " om te controleren of de Chauffeur met Kenteken de transportopdracht"]
-      [:ul [:li "Klantorder nr."] [:li "Chauffeur ID (laatste 4 cijfers)"] [:li "Kenteken"]]]]]])
+    [:ol (w/ishare-log-intercept-to-hiccup log)]]])
 
 
 
@@ -155,8 +143,43 @@
 
 
 
-(defn verify [transport-order {:keys [carrier-eori driver-id-digits license-plate]}]
-  (= 0 (int (* 2 (rand))))) ;; TODO
+(defn verify-owner
+  "Ask AR of owner if carrier is allowed to pickup order."
+  [client-data transport-order {:keys [carrier-eori]}]
+  (let [owner-eori   (otm/transport-order-owner-eori transport-order)
+        owner-target (policies/->carrier-delegation-target (otm/transport-order-ref transport-order))
+        owner-mask   (policies/->delegation-mask {:issuer  owner-eori
+                                                  :subject carrier-eori
+                                                  :target  owner-target})]
+
+    (try
+      (-> client-data
+          (ishare-client/ar-delegation-evidence owner-mask
+                                                {:party-eori owner-eori
+                                                 :dataspace-id ishare-client/dil-demo-dataspace-id})
+          ;; TODO ok testen op notBefore en notOnOrAfter
+          (policies/permit? owner-target))
+      (catch Throwable _
+        false))))
+
+(defn verify-carrier
+  "Ask AR of carrier if driver is allowed to pickup order."
+  [client-data transport-order {:keys [driver-id-digits license-plate]}]
+  ;; TODO
+  true)
+
+(defn verify [client-data transport-order params]
+  (binding [ishare-client/log-interceptor-atom (atom [])]
+    [(and (verify-owner client-data transport-order params)
+          (verify-carrier client-data transport-order params))
+     @ishare-client/log-interceptor-atom]))
+
+(comment
+  (def store (dil-demo.store/load-store "/tmp/dil-demo.edn"))
+  (def transport-order (-> store :transport-orders first val))
+  (def client-data (-> (dil-demo.core/->config) :wms (ishare-client/->client-data)))
+  (def carrier-eori (-> (dil-demo.core/->config) :tms :eori))
+)
 
 
 
@@ -196,17 +219,18 @@
               (verify-transport-order transport-order)
               flash)))
 
-  (POST "/verify-:id" {:keys [flash store]
+  (POST "/verify-:id" {:keys [client-data flash store]
                        {:keys [id] :as params} :params}
     (when-let [transport-order (get-transport-order store id)]
-      (if (verify transport-order params)
-        (render (str "Transportopdracht ("
-                     (otm/transport-order-ref transport-order)
-                     ") geaccepteerd")
-                (accepted-transport-order transport-order params)
-                flash)
-        (render (str "Transportopdracht ("
-                     (otm/transport-order-ref transport-order)
-                     ") afgewezen")
-                (rejected-transport-order transport-order params)
-                flash)))))
+      (let [[result log] (verify client-data transport-order params)]
+        (if result
+            (render (str "Transportopdracht ("
+                         (otm/transport-order-ref transport-order)
+                         ") geaccepteerd")
+                    (accepted-transport-order transport-order params log)
+                    flash)
+          (render (str "Transportopdracht ("
+                       (otm/transport-order-ref transport-order)
+                       ") afgewezen")
+                  (rejected-transport-order transport-order params log)
+                  flash))))))

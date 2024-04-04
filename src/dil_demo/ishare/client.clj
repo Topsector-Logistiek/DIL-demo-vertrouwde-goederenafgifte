@@ -36,9 +36,10 @@
    :description
    "A request with `:ishare/unsign prop` will unsign the jwt under `prop` in response body"
    :response (fn [response]
-               (if-let [k (get-in response [:request :ishare/unsign-token])]
-                 (update-in response [:body k] jwt/unsign-token)
-                 response))})
+               (let [k (get-in response [:request :ishare/unsign-token])]
+                 (if (and k (get-in response [:body k]))
+                   (update-in response [:body k] jwt/unsign-token)
+                   response)))})
 
 (defn json-response?
   [response]
@@ -122,9 +123,7 @@ When bearer token is not needed, provide a `nil` token"
   {:name     ::log
    :response (fn [r]
                (when log-interceptor-atom
-                 (swap! log-interceptor-atom conj
-                        {:request  (:request r)
-                         :response (dissoc r :request)}))
+                 (swap! log-interceptor-atom conj r))
                r)})
 
 (def build-uri-interceptor
@@ -143,13 +142,13 @@ When bearer token is not needed, provide a `nil` token"
 
 (def interceptors
   [ishare-interpreter-interactor
+   interceptors/throw-on-exceptional-status-code
+   log-interceptor
    lens-interceptor
    unsign-token-interceptor
    build-uri-interceptor
    fetch-bearer-token-interceptor
    bearer-token-interceptor
-   interceptors/throw-on-exceptional-status-code
-   log-interceptor
    interceptors/construct-uri
    interceptors/accept-header
    interceptors/query-params
@@ -193,12 +192,6 @@ When bearer token is not needed, provide a `nil` token"
 ;; Parties is a satellite endpoint; response will be signed by the
 ;; satellite, and we cannot use `/parties` endpoint to validate the
 ;; signature of the `/parties` request.
-
-;; TODO: hoe komen we bij een AR van de verlader?
-;; Wat als er heel veel ARs zijn (meerdere per party)?
-
-;; TODO: ishare/namespace keys
-;; TODO: multimethod ishare requests -> http requests
 
 (defmethod ishare->http-request :parties
   [{:ishare/keys [params] :as request}]
@@ -262,6 +255,60 @@ When bearer token is not needed, provide a `nil` token"
          :json-params  delegation-mask
          :ishare/unsign-token "delegation_token"
          :ishare/lens         [:body "delegation_token"]))
+
+
+
+(def dil-demo-dataspace-id "NLDILDEMOGOEDEREN")
+
+(defn satellite-request [request]
+  (assoc request
+         :ishare/endpoint    "https://dilsat1-mw.pg.bdinetwork.org"
+         :ishare/server-id   "EU.EORI.NLDILSATTEST1"))
+
+(defn satellite-party [client-data party-id]
+  (-> client-data
+      (satellite-request)
+      (assoc :ishare/party-id party-id)
+      (assoc :ishare/message-type :party)
+      exec
+      :ishare/result))
+
+(defn satellite-party-authorisation-registry [client-data party-id dataspace-id]
+  (when-let [{:keys [authorizationRegistryName
+                     authorizationRegistryID
+                     authorizationRegistryUrl
+                     dataspaceID
+                     dataspaceName]}
+             (->> (-> client-data
+                      (satellite-party party-id)
+                      :party_info
+                      :authregistery)
+                  (filter #(= dataspace-id (:dataspaceID %)))
+                  first)]
+    {:id             authorizationRegistryID
+     :name           authorizationRegistryName
+     :url            authorizationRegistryUrl
+     :dataspace-id   dataspaceID
+     :dataspace-name dataspaceName}))
+
+(defn ar-delegation-evidence
+  "Get Delegation Evidence from AR of given party associated with
+  dataspace-id using delegation-mask."
+  [client-data delegation-mask {:keys [party-eori dataspace-id]}]
+  {:pre [client-data party-eori delegation-mask dataspace-id]}
+  (let [{ar-eori :id, ar-url :url}
+        (satellite-party-authorisation-registry client-data
+                                                party-eori
+                                                dil-demo-dataspace-id)]
+    ;; FEEDBACK: als subject eori niet bekend wordt er een 404 teruggegeven!?
+    (-> client-data
+        (assoc :ishare/endpoint ar-url
+               :ishare/server-id ar-eori
+               :ishare/message-type :delegation
+               :ishare/params delegation-mask)
+        exec
+        :ishare/result
+        :delegationEvidence)))
 
 
 

@@ -116,7 +116,7 @@
        "Versturen"]
       [:a.button {:href (str "consignment-" id)} "Annuleren"]]]))
 
-(defn published-consignment [consignment {:keys [carriers ishare]}]
+(defn published-consignment [consignment {:keys [carriers ishare-log]}]
   (let [{:keys [load-location carrier-eori]} (otm/consignment->map consignment)]
     [:div
      [:section
@@ -132,13 +132,11 @@
       [:ol
        [:li
         [:h3 "Stuur OTM Transportopdracht naar WMS van DC"]
-        [:pre.json (w/to-json (otm/consignment->transport-order consignment))]]
+        [:pre.json (w/otm-to-json (otm/consignment->transport-order consignment))]]
        [:li
         [:h3 "Stuur OTM Trip naar TMS van Vervoerder"]
-        [:pre.json (w/to-json (otm/consignment->trip consignment))]]
-       [:li
-        [:h3 "Registreer policy bij AR"]
-        [:pre.json (w/to-json ishare)]]]]]))
+        [:pre.json (w/otm-to-json (otm/consignment->trip consignment))]]
+       (w/ishare-log-intercept-to-hiccup ishare-log)]]]))
 
 
 
@@ -179,7 +177,7 @@
              {:carriers carriers})
             flash))
 
-  (POST "/consignment-new" {:keys [params]
+  (POST "/consignment-new" {:keys          [params]
                             {:keys [eori]} :config}
     (let [id (str (UUID/randomUUID))]
       (-> "."
@@ -197,7 +195,7 @@
               (edit-consignment consignment {:carriers carriers})
               flash)))
 
-  (POST "/consignment-:id" {:keys [params]
+  (POST "/consignment-:id" {:keys          [params]
                             {:keys [eori]} :config}
     (-> "."
         (redirect :see-other)
@@ -206,7 +204,7 @@
                                                          (otm/map->consignment)
                                                          (assoc :owner-eori eori))]])))
 
-  (DELETE "/consignment-:id" {:keys [store]
+  (DELETE "/consignment-:id" {:keys        [store]
                               {:keys [id]} :params}
     (when (get-consignment store id)
       (-> "."
@@ -214,14 +212,14 @@
           (assoc :flash {:success "Klantorder verwijderd"})
           (assoc :store-commands [[:delete! :consignments id]]))))
 
-  (GET "/publish-:id" {:keys [carriers flash store]
+  (GET "/publish-:id" {:keys        [carriers flash store]
                        {:keys [id]} :params}
     (when-let [consignment (get-consignment store id)]
       (render "Transportopdracht aanmaken"
               (publish-consignment consignment {:carriers carriers})
               flash)))
 
-  (POST "/publish-:id" {:keys [store]
+  (POST "/publish-:id" {:keys        [store]
                         {:keys [id]} :params}
     (when-let [consignment (get-consignment store id)]
       (-> (str "published-" id)
@@ -231,11 +229,11 @@
                                   [:put! :transport-orders (otm/consignment->transport-order consignment)]
                                   [:put! :trips (otm/consignment->trip consignment)]]))))
 
-  (GET "/published-:id" {:keys            [carriers flash store]
-                         {:keys [id]}     :params
-                         {:keys [ishare]} :flash}
+  (GET "/published-:id" {:keys                [carriers flash store]
+                         {:keys [id]}         :params
+                         {:keys [ishare-log]} :flash}
     (when-let [consignment (get-consignment store id)]
       (render "Transportopdracht aangemaakt"
-              (published-consignment consignment {:carriers carriers
-                                                  :ishare   ishare})
+              (published-consignment consignment {:carriers   carriers
+                                                  :ishare-log ishare-log})
               flash))))

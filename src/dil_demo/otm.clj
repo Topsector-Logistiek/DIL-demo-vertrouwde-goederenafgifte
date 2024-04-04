@@ -171,7 +171,7 @@
 
 (defn consignment->trip [consignment]
   {:id                  (str (UUID/randomUUID))
-   :external-attributes {:ref (consignment-ref consignment)}
+   :external-attributes {:consignment-ref (consignment-ref consignment)}
 
    :actors
    [{:association-type "inline"
@@ -202,7 +202,7 @@
 
 (defn map->trip [{:keys [id ref load-date load-location load-remarks unload-date unload-location unload-remarks carrier-eori driver-id-digits license-plate]}]
   {:id                  id
-   :external-attributes {:ref ref}
+   :external-attributes {:consignment-ref ref}
 
    :vehicle
    [{:association-type "inline"
@@ -240,7 +240,7 @@
       :remarks     unload-remarks}}]})
 
 (defn trip-ref [trip]
-  (get-in trip [:external-attributes :ref]))
+  (get-in trip [:external-attributes :consignment-ref]))
 
 (defn trip-action [{:keys [actions]} action-type]
   (->> actions

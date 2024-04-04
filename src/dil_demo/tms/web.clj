@@ -38,7 +38,7 @@
         (w/delete-button (str "trip-" id))]])]])
 
 (defn assign-trip [trip]
-  (let [{:keys [id ref load-date load-location load-remarks unload-date unload-location unload-remarks driver-id-digits license-plate]}
+  (let [{:keys [ref load-date load-location load-remarks unload-date unload-location unload-remarks driver-id-digits license-plate]}
         (otm/trip->map trip)]
     [:form {:method "POST"}
      (w/anti-forgery-input)

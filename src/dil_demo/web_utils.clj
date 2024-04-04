@@ -88,7 +88,11 @@
 
 (defn to-json
   "Transform `val` from lispy value to jsony string."
-  [val & {:keys [depth pad] :or {depth 0, pad "  "} :as opts}]
+  [val & {:keys [depth pad key-fn]
+          :or   {depth  0
+                 pad    "  "
+                 key-fn name}
+          :as   opts}]
   (let [padding (-> depth (repeat pad) (string/join))]
     (str
      padding
@@ -101,7 +105,7 @@
                            (for [[k v] val]
                              (str
                               padding pad
-                              (to-json (camelize (name k)) (assoc opts :depth 0))
+                              (to-json (key-fn k) (assoc opts :depth 0))
                               ": "
                               (string/trim (to-json v (assoc opts :depth (inc depth)))))))
               "\n"
@@ -119,8 +123,53 @@
               padding
               "]"))
 
+       (instance? java.net.URI val)
+       (json/write-str (str val) :escape-slash false)
+
        :else
-       (json/write-str val)))))
+       (json/write-str val :escape-slash false)))))
+
+(defn otm-to-json [val]
+  (to-json val :key-fn (comp camelize name)))
+
+(defmulti ishare-interaction-summary #(-> % :request :ishare/message-type))
+
+(defmethod ishare-interaction-summary :default
+  [_]
+  [:h3 "Oeps.."])
+
+(defmethod ishare-interaction-summary :access-token
+  [{{:ishare/keys [server-id]} :request}]
+  [:h3 "Ophalen access token voor " [:q server-id]])
+
+(defmethod ishare-interaction-summary :parties
+  [{{:ishare/keys [server-id]} :request}]
+  [:h3 "Partijen opvragen van " [:q server-id]])
+
+(defmethod ishare-interaction-summary :party
+  [{{:ishare/keys [server-id party-id]} :request}]
+  [:h3 "Partij " [:q party-id] " opvragen van satelliet " [:q server-id]])
+
+(defmethod ishare-interaction-summary :ishare/policy
+  [{{:ishare/keys [server-id]} :request}]
+  [:h3 "Delegation Evidence aanmaken in Authorisatie Register op " [:q server-id]])
+
+(defmethod ishare-interaction-summary :delegation
+  [{{:ishare/keys [server-id]} :request}]
+  [:h3 "Delegation Mask opvragen in Authorisatie Register " [:q server-id]])
+
+(defn ishare-log-intercept-to-hiccup [logs]
+  (for [interaction logs]
+    [:li.interaction
+     (ishare-interaction-summary interaction)
+     [:p "Request"]
+     [:pre.request
+      (to-json (-> interaction
+                   :request
+                   (select-keys [:method :uri :params :form-params :json-params :headers])))]
+     [:p "Response"]
+     [:pre.response
+      (to-json (select-keys interaction [:status :headers :body]))]]))
 
 (defn wrap-config [app config]
   (fn config-wrapper [req]
