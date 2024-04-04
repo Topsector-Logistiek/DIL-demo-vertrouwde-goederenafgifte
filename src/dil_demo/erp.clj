@@ -41,26 +41,24 @@
 
 (defn wrap-delegation
   "Create policies in AR when trips is created."
-  [app {:keys [eori key-file chain-file]}]
-  (let [client-data {:ishare/client-id   eori
-                     :ishare/private-key (ishare-client/private-key key-file)
-                     :ishare/x5c         (ishare-client/x5c chain-file)}]
-    (fn delegation-wrapper [req]
-      (let [{:keys [store-commands] :as res} (app req)]
-        (try
-          (let [ishare (->> store-commands
-                            (filter #(= [:put! :trips] (take 2 %)))
-                            (map #(nth % 2))
-                            (trips->ishare-ar! client-data))]
-            (if (seq ishare)
-              (assoc-in res [:flash :ishare] ishare)
-              res))
-          (catch ExceptionInfo ex
-            (-> res
-                (assoc-in [:flash :ishare] (-> ex (ex-data) (select-keys [:status :body])))
-                (assoc-in [:flash :error] "Aanmaken AR policy mislukt"))))))))
+  [app]
+  (fn delegation-wrapper [{:keys [client-data] :as req}]
+    (let [{:keys [store-commands] :as res} (app req)]
+      (try
+        (let [ishare (->> store-commands
+                          (filter #(= [:put! :trips] (take 2 %)))
+                          (map #(nth % 2))
+                          (trips->ishare-ar! client-data))]
+          (if (seq ishare)
+            (assoc-in res [:flash :ishare] ishare)
+            res))
+        (catch ExceptionInfo ex
+          (-> res
+              (assoc-in [:flash :ishare] (-> ex (ex-data) (select-keys [:status :body])))
+              (assoc-in [:flash :error] "Aanmaken AR policy mislukt")))))))
 
 (defn make-handler [config]
   (-> web/handler
       (web-utils/wrap-config config)
-      (wrap-delegation config)))
+      (wrap-delegation)
+      (ishare-client/wrap-client-data config)))

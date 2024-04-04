@@ -251,12 +251,6 @@ When bearer token is not needed, provide a `nil` token"
   (http/request (assoc request
                        :interceptors interceptors)))
 
-(defn exec-result
-  [request]
-  (-> request
-      exec
-      :ishare/result))
-
 
 
 (defmethod ishare->http-request :default
@@ -355,11 +349,24 @@ When bearer token is not needed, provide a `nil` token"
          :ishare/unsign-token "delegation_token"
          :ishare/lens         [:body "delegation_token"]))
 
+
+
+(defn ->client-data [{:keys [eori key-file chain-file]}]
+  {:ishare/client-id   eori
+   :ishare/private-key (private-key key-file)
+   :ishare/x5c         (x5c chain-file)})
+
+(defn wrap-client-data
+  [app config]
+  (let [client-data (->client-data config)]
+    (fn client-data-wrapper [req]
+      (app (assoc req :client-data client-data)))))
+
+
+
 (comment
-  (def satellite-request
-    {:ishare/endpoint    "https://dilsat1-mw.pg.bdinetwork.org"
-     :ishare/server-id   "EU.EORI.NLDILSATTEST1"
-     :ishare/client-id   "EU.EORI.NLSMARTPHON"
+  (def client-data
+    {:ishare/client-id   "EU.EORI.NLSMARTPHON"
      :ishare/x5c         (x5c "credentials/EU.EORI.NLSMARTPHON.crt")
      :ishare/private-key (private-key "credentials/EU.EORI.NLSMARTPHON.pem")})
 
@@ -403,7 +410,8 @@ When bearer token is not needed, provide a `nil` token"
                                            :environment {:licenses ["0001"]
                                                          :serviceProviders []}}}]}]}})
 
-  (-> satellite-request
+  (-> client-data
+      (satellite-request)
       (assoc :ishare/message-type :access-token)
       exec
       :ishare/result)
@@ -420,10 +428,4 @@ When bearer token is not needed, provide a `nil` token"
       exec
       :ishare/result)
 
-  (-> satellite-request
-      (assoc :ishare/message-type :party
-             :ishare/party-id "EU.EORI.NLSMARTPHON")
-      exec
-      :ishare/result)
-
-  )
+  (satellite-party-authorisation-registry client-data "EU.EORI.NLSMARTPHON" "NLDILDEMOGOEDEREN"))
