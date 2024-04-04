@@ -3,28 +3,33 @@
 
   See also: https://dev.ishareworks.org/reference/jwt.html"
   (:require [buddy.sign.jwt :as jwt]
-            [buddy.core.keys :as keys])
+            [buddy.core.keys :as keys]
+            [clojure.spec.alpha :as s])
   (:import java.time.Instant
            java.util.UUID
            java.io.StringReader))
 
-(defn- cert-reader
-  "Convert base64 encoded certificate string into a reader for parsing
-  as a PEM."
-  [cert-str]
-  ;; TODO: validate cert-str format
-  (StringReader. (str "-----BEGIN CERTIFICATE-----\n"
-                      cert-str
-                      "\n-----END CERTIFICATE-----\n")))
+;; Data specs; these are used to validate the data shape.
+;;
+;; Since assertions and conditions can be disabled, public methods and
+;; code directly handling external input MUST use other methods to
+;; ensure input data is valid. See `check!` below.
 
-(defn unsign-token
-  "Parse a signed token"
-  [token]
-  {:pre [token]}
-  (let [header   (jwt/decode-header token)
-        cert-str (first (:x5c header))
-        k        (keys/public-key (cert-reader cert-str))]
-    (jwt/unsign token k {:alg :rs256 :leeway 5})))
+(defn- check!
+  "Check that `x` is valid for spec `spec-key`. Returns `x` if valid.
+
+  Raises an exception if `x` is invalid. Unlike `s/assert` this cannot
+  be disabled."
+  [spec-key x]
+  (when-let [data (s/explain-data spec-key x)]
+    (throw (ex-info (s/explain-str spec-key x)
+                    {:spec    spec-key
+                     :x       x
+                     :explain data})))
+  x)
+
+
+;; iSHARE JWT Header data specification
 
 ;; From https://dev.ishareworks.org/reference/jwt.html#jwt-header
 ;;
@@ -44,7 +49,28 @@
 ;;
 ;;   Except from the alg, typ and x5c parameter, the JWT header SHALL
 ;;   NOT contain other header parameters."
-;;
+
+(s/def ::typ #{"JWT"})
+(s/def ::alg #{:rs256})
+(s/def ::base64-str
+  (s/and string?
+         #(re-matches #"[A-Za-z0-9\+/=]+" %)))
+(s/def ::cert-str ::base64-str)
+(s/def ::x5c (s/coll-of ::cert-str :kind vector? :min-count 1))
+
+(defn- no-additional-keys?
+  "True if m has no keys but the keys in `ks`"
+  [m ks]
+  (and (map? m)
+       (every? (set ks) (keys m))))
+
+(s/def ::header
+  (s/and
+     (s/keys :req-un [::typ ::alg ::x5c])
+     #(no-additional-keys? % [:typ :alg :x5c])))
+
+
+;; iSHARE JWT payload data specs
 ;;
 ;; From https://dev.ishareworks.org/reference/jwt.html#jwt-payload
 ;;
@@ -71,7 +97,78 @@
 ;;     Depending on the use of the JWT other JWT payload data MAY be
 ;;     defined."
 
+(s/def ::signed-token
+  (s/and string?
+         seq))
+
+(s/def ::timestamp-seconds
+  integer?)
+(s/def ::iat ::timestamp-seconds)
+(s/def ::exp ::timestamp-seconds)
+(s/def ::nbf ::timestamp-seconds)
+
+(s/def ::ishare-identifier
+  (s/and string?
+         #(re-matches #"EU\.EORI\..*" %)))
+
+(s/def ::iss ::ishare-identifier)
+(s/def ::sub ::ishare-identifier)
+(s/def ::aud ::ishare-identifier)
+
+(s/def ::jti (s/and string? seq))
+
+(defn expires-in-30-seconds?
+  [{:keys [iat exp]}]
+  (= 30 (- exp iat)))
+
+(defn nbf-equal-to-iat?
+  [{:keys [nbf iat] :as payload}]
+  ;; nbf is optional, only do the check if nbf is present
+  (when (contains? payload :nbf)
+    (= nbf iat)))
+
+(defn iss-equal-to-sub?
+  [{:keys [iss sub] :as payload}]
+  (= iss sub))
+
+(s/def ::payload
+  (s/and (s/keys :req-un [::iss ::sub ::aud ::jti ::iat ::exp]
+                 :opt-un [::nbf])
+         expires-in-30-seconds?
+         nbf-equal-to-iat?
+         iss-equal-to-sub?))
+
+
+;; Parsing and validating iSHARE JWTs
+
+(s/fdef cert-reader :args (s/cat :cert-str ::cert-str))
+
+(defn- cert-reader
+  "Convert base64 encoded certificate string into a reader for parsing
+  as a PEM."
+  [cert-str]
+  ;; TODO: validate cert-str format
+  (StringReader. (str "-----BEGIN CERTIFICATE-----\n"
+                      cert-str
+                      "\n-----END CERTIFICATE-----\n")))
+
+(defn unsign-token
+  "Parse a signed token. Returns parsed data or raises exception.
+
+  Raises exception when token is not a valid iSHARE JWT for any
+  reason, including expiration."
+  [token]
+  (check! ::signed-token token)
+  (let [{:keys [x5c]} (check! ::header (jwt/decode-header token))
+        cert-str      (first x5c)
+        pkey          (keys/public-key (cert-reader cert-str))]
+    (check! ::payload (jwt/unsign token pkey {:alg :rs256 :leeway 5}))))
+
+
+;; Creating iSHARE JWTs
+
 (defn- seconds-since-unix-epoch
+  "Current number of seconds since the UNIX epoch."
   []
   (.getEpochSecond (Instant/now)))
 
@@ -89,7 +186,7 @@
                :jti (UUID/randomUUID)
                :iat iat
                :nbf iat ;; nbf is not required according to the spec,
-                        ;; but the Poort8 AR requires it
+               ;; but the Poort8 AR used to require it
                :exp exp}
               private-key
               {:alg    :rs256
