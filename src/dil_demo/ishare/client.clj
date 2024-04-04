@@ -171,20 +171,26 @@
 (declare exec)
 
 (def fetch-bearer-token-interceptor
-  {:name ::fetch-bearer-token
-   :doc "When request has no :ishare/bearer-token, fetch it from the endpoint.
+  {:name    ::fetch-bearer-token
+   :doc     "When request has no :ishare/bearer-token, fetch it from the endpoint.
 When bearer token is not needed, provide a `nil` token"
    :request (fn [request]
               (if (contains? request :ishare/bearer-token)
                 request
-                (assoc request
-                       :ishare/bearer-token (-> request
-                                                (select-keys [:ishare/endpoint :ishare/client-id
-                                                              :ishare/server-id :ishare/x5c
-                                                              :ishare/private-key])
-                                                (assoc :ishare/message-type :access-token)
-                                                exec
-                                                :ishare/result))))})
+                (let [response (-> request
+                                   (select-keys [:ishare/endpoint
+                                                 :ishare/client-id
+                                                 :ishare/server-id
+                                                 :ishare/x5c
+                                                 :ishare/private-key])
+                                   (assoc :ishare/message-type :access-token)
+                                   exec)
+                      token (:ishare/result response)]
+                  (when-not token
+                    ;; FEEDBACK: bij invalid client op /token komt 202 status terug?
+                    (throw (ex-info "Error fetching access token" {:response response})))
+                  (assoc request
+                         :ishare/bearer-token token))))})
 
 (def lens-interceptor
   {:name     ::lens
