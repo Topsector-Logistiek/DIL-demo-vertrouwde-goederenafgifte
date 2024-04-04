@@ -377,6 +377,13 @@ When bearer token is not needed, provide a `nil` token"
      :ishare/x5c         (x5c "credentials/EU.EORI.NLSMARTPHON.crt")
      :ishare/private-key (private-key "credentials/EU.EORI.NLSMARTPHON.pem")})
 
+  (def poort8-ar-request
+    {:ishare/endpoint    "https://tsl-ishare-dataspace-coremanager-preview.azurewebsites.net/api/ishare"
+     :ishare/server-id   "EU.EORI.NLP8TSLAR1"
+     :ishare/client-id   "EU.EORI.NLPRECIOUSG"
+     :ishare/x5c         (x5c "credentials/EU.EORI.NLPRECIOUSG.crt")
+     :ishare/private-key (private-key "credentials/EU.EORI.NLPRECIOUSG.pem")})
+
   (def delegation-evidence
     {"delegationEvidence"
      {"notBefore"    0
