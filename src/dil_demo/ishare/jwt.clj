@@ -71,7 +71,7 @@
 
 
 ;; iSHARE JWT payload data specs
-;;
+
 ;; From https://dev.ishareworks.org/reference/jwt.html#jwt-payload
 ;;
 ;;   "The JWT payload MUST conform to the private_key_jwt method as
@@ -96,6 +96,53 @@
 ;;
 ;;     Depending on the use of the JWT other JWT payload data MAY be
 ;;     defined."
+
+;; From  OpenID Connect 1.0 Chapter 9.
+;; https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication
+;;
+;; private_key_jwt Clients that have registered a public key sign a
+;; JWT using that key. The Client authenticates in accordance with
+;; JSON Web Token (JWT) Profile for OAuth 2.0 Client Authentication
+;; and Authorization Grants [OAuth.JWT] and Assertion Framework for
+;; OAuth 2.0 Client Authentication and Authorization
+;; Grants [OAuth.Assertions]. The JWT MUST contain the following
+;; REQUIRED Claim Values and MAY contain the following OPTIONAL Claim
+;; Values:
+;;
+;;     iss
+;;
+;;         REQUIRED. Issuer. This MUST contain the client_id of the
+;;         OAuth Client.
+;;
+;;     sub
+;;
+;;         REQUIRED. Subject. This MUST contain the client_id of the
+;;         OAuth Client.
+;;
+;;     aud
+;;
+;;         REQUIRED. Audience. The aud (audience) Claim. Value that
+;;         identifies the Authorization Server as an intended
+;;         audience. The Authorization Server MUST verify that it is
+;;         an intended audience for the token. The Audience SHOULD be
+;;         the URL of the Authorization Server's Token Endpoint.
+;;
+;;     jti
+;;
+;;         REQUIRED. JWT ID. A unique identifier for the token, which
+;;         can be used to prevent reuse of the token. These tokens
+;;         MUST only be used once, unless conditions for reuse were
+;;         negotiated between the parties; any such negotiation is
+;;         beyond the scope of this specification.
+;;
+;;     exp
+;;
+;;         REQUIRED. Expiration time on or after which the JWT MUST
+;;         NOT be accepted for processing.
+;;
+;;     iat
+;;
+;;         OPTIONAL. Time at which the JWT was issued.
 
 (s/def ::signed-token
   (s/and string?
