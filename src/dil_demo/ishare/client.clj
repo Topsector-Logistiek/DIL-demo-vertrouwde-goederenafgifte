@@ -153,9 +153,9 @@ When bearer token is not needed, provide a `nil` token"
    interceptors/accept-header
    interceptors/query-params
    interceptors/form-params
-   json-interceptor       ;; should be between decode-body and
-   ;; throw-on-exceptional-status-code, so that JSON
-   ;; error messages are decoded
+   json-interceptor ;; should be between decode-body and
+                    ;; throw-on-exceptional-status-code, so that JSON
+                    ;; error messages are decoded
    interceptors/decode-body
    interceptors/decompress-body])
 
@@ -183,7 +183,7 @@ When bearer token is not needed, provide a `nil` token"
                         "grant_type"            "client_credentials"
                         "scope"                 "iSHARE" ;; TODO: allow restricting scope?
                         "client_assertion_type" "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
-                        "client_assertion"      (jwt/make-assertion request)}
+                        "client_assertion"      (jwt/make-client-assertion request)}
          ;; NOTE: body includes expiry information, which we could use
          ;; for automatic caching -- check with iSHARE docs to see if
          ;; that's always available

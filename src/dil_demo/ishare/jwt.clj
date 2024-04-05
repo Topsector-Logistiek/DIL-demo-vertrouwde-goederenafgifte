@@ -75,16 +75,21 @@
   []
   (.getEpochSecond (Instant/now)))
 
-(defn make-assertion
+(defn make-client-assertion
+  "Create a signed client assertion for requesting an access token.
+
+  The client assertion will be valid for 30 seconds."
   [{:ishare/keys [client-id server-id x5c private-key]}]
   {:pre [client-id server-id x5c private-key]}
   (let [iat (seconds-since-unix-epoch)
-        exp (+ 30 iat)]
-    (jwt/sign {:iss  client-id
-               :sub  client-id
+        exp (+ iat 30)]
+    (jwt/sign {:iss client-id
+               :sub client-id
                :aud server-id
                :jti (UUID/randomUUID)
                :iat iat
+               :nbf iat ;; nbf is not required according to the spec,
+                        ;; but the Poort8 AR requires it
                :exp exp}
               private-key
               {:alg    :rs256
