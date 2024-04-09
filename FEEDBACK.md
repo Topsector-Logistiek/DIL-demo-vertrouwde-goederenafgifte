@@ -1,4 +1,4 @@
-# APIs
+# iSHARE
 
 ## Satellite
 
@@ -14,6 +14,10 @@
 - Geeft bij verkeerd gebruik "500 Internal Server Error" terug ipv meer informatieve "400 Bad Request" met uitleg.
 
 # Delegation Evidence
+
+## Resource attributes
+
+Deze zijn niet toepasbaar voor deze use cases.  Het is hier een "actie" op een resource waar het om gaat.
 
 ## JWT geldigheid tov notBefore en notOnOrAfter
 
@@ -36,3 +40,7 @@ Het verschil tussen target.environment in de policysets en policies is onduideli
 - Volgens de documentatie is target.environment in deze context optioneel (bron: [Policies](https://dev.ishareworks.org/delegation/policy-sets.html#policies)) echter zowel de iSHARE als de Poort8 implementatie functioneren niet als deze niet gevuld is.  In de iSHARE implementatie wordt een lege lijst toegestaan (`[]`) en bij Poort8 komen we weg met `["Dummy"]`.
 
 - Onduidelijk wat het doel hiervan is.  Moeten systemen zelf checken of ze op de lijst staan?
+
+# OpenTripModel
+
+We gebruiken nu de "owner" actor om het EORI van de verlader op te slaan.  Dit is waarschijnlijk niet de juiste manier omdat de verlader niet meer dan de opdrachtgever van een transport opdracht is en niet de eigenaar van de goederen hoeft te zijn.  Er is geen beter actor type voorhanden.
