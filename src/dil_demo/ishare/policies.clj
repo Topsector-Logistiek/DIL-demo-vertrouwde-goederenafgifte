@@ -64,8 +64,10 @@
 
 (defn- mask-target
   ;; FEEDBACK waarom moet ik lege lijst van serviceProviders doorgeven voor masks?
+
+  ;; FEEDBACK by Poort8 AR mag dit ook niet leeg zijn
   [target]
-  (assoc-in target [:environment :serviceProviders] []))
+  (assoc-in target [:environment :serviceProviders] ["Dummy"]))
 
 (defn ->delegation-mask
   [{:keys [issuer subject target]}]
