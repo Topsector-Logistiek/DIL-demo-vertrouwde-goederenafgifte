@@ -136,40 +136,41 @@
 
 (defmethod ishare-interaction-summary :default
   [_]
-  [:h3 "Oeps.."])
+  [:span "Oeps.."])
 
 (defmethod ishare-interaction-summary :access-token
   [{{:ishare/keys [server-id]} :request}]
-  [:h3 "Ophalen access token voor " [:q server-id]])
+  [:span "Ophalen access token voor " [:q server-id]])
 
 (defmethod ishare-interaction-summary :parties
   [{{:ishare/keys [server-id]} :request}]
-  [:h3 "Partijen opvragen van " [:q server-id]])
+  [:span "Partijen opvragen van " [:q server-id]])
 
 (defmethod ishare-interaction-summary :party
   [{{:ishare/keys [server-id party-id]} :request}]
-  [:h3 "Partij " [:q party-id] " opvragen van satelliet " [:q server-id]])
+  [:span "Partij " [:q party-id] " opvragen van satelliet " [:q server-id]])
 
 (defmethod ishare-interaction-summary :ishare/policy
   [{{:ishare/keys [server-id]} :request}]
-  [:h3 "Delegation Evidence aanmaken in Authorisatie Register op " [:q server-id]])
+  [:span "Delegation Evidence aanmaken in Authorisatie Register op " [:q server-id]])
 
 (defmethod ishare-interaction-summary :delegation
   [{{:ishare/keys [server-id]} :request}]
-  [:h3 "Delegation Mask opvragen in Authorisatie Register " [:q server-id]])
+  [:span "Delegation Mask opvragen in Authorisatie Register " [:q server-id]])
 
 (defn ishare-log-intercept-to-hiccup [logs]
   (for [interaction logs]
     [:li.interaction
-     (ishare-interaction-summary interaction)
-     [:p "Request"]
-     [:pre.request
-      (to-json (-> interaction
-                   :request
-                   (select-keys [:method :uri :params :form-params :json-params :headers])))]
-     [:p "Response"]
-     [:pre.response
-      (to-json (select-keys interaction [:status :headers :body]))]]))
+     [:details
+      [:summary (ishare-interaction-summary interaction)]
+      [:p "Request:"]
+      [:pre.request
+       (to-json (-> interaction
+                    :request
+                    (select-keys [:method :uri :params :form-params :json-params :headers])))]
+      [:p "Response:"]
+      [:pre.response
+       (to-json (select-keys interaction [:status :headers :body]))]]]))
 
 (defn wrap-config [app config]
   (fn config-wrapper [req]

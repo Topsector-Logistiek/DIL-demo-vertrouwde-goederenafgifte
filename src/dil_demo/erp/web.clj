@@ -131,11 +131,13 @@
       [:summary "Uitleg"]
       [:ol
        [:li
-        [:h3 "Stuur OTM Transportopdracht naar WMS van DC"]
-        [:pre.json (w/otm-to-json (otm/consignment->transport-order consignment))]]
+        [:details
+         [:summary "Stuur OTM Transportopdracht naar WMS van DC"]
+         [:pre.json (w/otm-to-json (otm/consignment->transport-order consignment))]]]
        [:li
-        [:h3 "Stuur OTM Trip naar TMS van Vervoerder"]
-        [:pre.json (w/otm-to-json (otm/consignment->trip consignment))]]
+        [:details
+         [:summary "Stuur OTM Trip naar TMS van Vervoerder"]
+         [:pre.json (w/otm-to-json (otm/consignment->trip consignment))]]]
        (w/ishare-log-intercept-to-hiccup ishare-log)]]]))
 
 
