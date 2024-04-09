@@ -1,5 +1,6 @@
 (ns dil-demo.ishare.policies
-  (:import (java.time LocalDate LocalDateTime ZoneId)))
+  (:import (java.time Instant LocalDate LocalDateTime ZoneId)
+           java.time.format.DateTimeFormatter))
 
 ;; https://ishare.eu/licenses/
 (def license "ISHARE.0001") ;; FEEDBACK waarom deze "Re-sharing with Adhering Parties only"?
@@ -16,6 +17,19 @@
       (.atZone (ZoneId/systemDefault))
       (.toInstant)
       (.getEpochSecond)))
+
+(defn epoch->local-date-time [^long secs]
+  (-> secs
+      (Instant/ofEpochSecond)
+      (LocalDateTime/ofInstant (ZoneId/systemDefault))))
+
+(defn local-date-time->str [^LocalDateTime dt]
+  (.format dt DateTimeFormatter/ISO_LOCAL_DATE_TIME))
+
+(defn epoch->str [^long secs]
+  (-> secs
+      (epoch->local-date-time)
+      (local-date-time->str)))
 
 (defn date->not-before-not-on-or-after [date]
   (let [date (LocalDate/parse date)
@@ -75,3 +89,33 @@
                  (mapcat :policies)
                  (filter #(= (:target %) (mask-target target)))
                  (mapcat :rules))))))
+
+(defn rejection-reasons
+  "Collect reasons to reject target for delegation-evidence.
+
+  The result is a list of tuples: reason key and the offending value."
+  [delegation-evidence target]
+  {:pre [delegation-evidence target]}
+  (let [now               (local-date-time->epoch (LocalDateTime/now))
+        policies          (->> delegation-evidence
+                               :policySets
+                               (mapcat :policies))
+        matching-policies (filter #(= (:target %) (mask-target target))
+                                  policies)
+        rules             (mapcat :rules matching-policies)]
+    (cond-> []
+      (< now (:notBefore delegation-evidence))
+      (conj (str "Mag niet voor " (epoch->str (:notBefore delegation-evidence))) )
+
+      (>= now (:notOnOrAfter delegation-evidence))
+      (conj (str "Mag niet op of na " (epoch->str (:notOnOrAfter delegation-evidence))))
+
+      (empty? matching-policies) ;; FEEDBACK: should not happen?
+      (conj (str "Geen toepasbare policies gevonden: " (pr-str policies)))
+
+      (and (seq rules)
+           (not= rules [{:effect "Permit"}]))
+      (conj (str "Geen toepasbare regels gevonden: " (pr-str rules)))
+
+      :finally
+      (seq))))
