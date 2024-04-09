@@ -33,6 +33,7 @@
     [(try (-> client-data
               (->ishare-ar-policy-request trip)
               (ishare-client/exec))
+          ;; TODO: log/show Exceptions for debugging
           (catch Throwable _ false))
      @ishare-client/log-interceptor-atom]))
 
