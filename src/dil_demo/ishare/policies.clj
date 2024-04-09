@@ -54,10 +54,12 @@
   "Test if target is allowed on given Delegation Evidence."
   [delegation-evidence target]
   {:pre [delegation-evidence target]}
-  ;; TODO test notBefore / notOnOrAfter
-  (= [{:effect "Permit"}]
-     (->> delegation-evidence
-          :policySets
-          (mapcat :policies)
-          (filter #(= (:target %) (mask-target target)))
-          (mapcat :rules))))
+  (let [now (local-date-time->epoch (LocalDateTime/now))]
+    (and (>= now (:notBefore delegation-evidence))
+         (< now (:notOnOrAfter delegation-evidence))
+         (= [{:effect "Permit"}]
+            (->> delegation-evidence
+                 :policySets
+                 (mapcat :policies)
+                 (filter #(= (:target %) (mask-target target)))
+                 (mapcat :rules))))))

@@ -155,9 +155,8 @@
     (try
       (-> client-data
           (ishare-client/ar-delegation-evidence owner-mask
-                                                {:party-eori owner-eori
+                                                {:party-eori   owner-eori
                                                  :dataspace-id ishare-client/dil-demo-dataspace-id})
-          ;; TODO ok testen op notBefore en notOnOrAfter
           (policies/permit? owner-target))
       (catch Throwable _
         false))))
