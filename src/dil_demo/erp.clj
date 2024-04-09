@@ -16,7 +16,8 @@
          (policies/->delegation-evidence
           {:issuer  client-id
            :subject (otm/trip-carrier-eori trip)
-           :target  (policies/->carrier-delegation-target (otm/trip-ref trip))})))
+           :target  (policies/->carrier-delegation-target (otm/trip-ref trip))
+           :date    (otm/trip-load-date trip)})))
 
 
 (comment

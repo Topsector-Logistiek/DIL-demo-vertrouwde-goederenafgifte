@@ -1,4 +1,5 @@
-(ns dil-demo.ishare.policies)
+(ns dil-demo.ishare.policies
+  (:import (java.time LocalDate LocalDateTime ZoneId)))
 
 ;; https://ishare.eu/licenses/
 (def licenses ["0001"]) ;; FEEDBACK waarom deze "Re-sharing with Adhering Parties only"?
@@ -10,17 +11,30 @@
                  :attributes  ["*"]} ;; FEEDBACK deze resource is natuurlijk een hack
    :actions     ["BDI.PICKUP"]})
 
+(defn local-date-time->epoch [^LocalDateTime dt]
+  (-> dt
+      (.atZone (ZoneId/systemDefault))
+      (.toInstant)
+      (.getEpochSecond)))
+
+(defn date->not-before-not-on-or-after [date]
+  (let [date (LocalDate/parse date)
+        not-before (.atStartOfDay date)
+        not-on-or-after (.plusDays not-before 1)]
+    {:notBefore    (local-date-time->epoch not-before)
+     :notOnOrAfter (local-date-time->epoch not-on-or-after)}))
+
 (defn ->delegation-evidence
-  [{:keys [issuer subject target]}]
-  {:pre [issuer subject target]}
+  [{:keys [date issuer subject target]}]
+  {:pre [date issuer subject target]}
   {:delegationEvidence
-   {:notBefore    0 ;; TODO
-    :notOnOrAfter 0 ;; TODO
-    :policyIssuer issuer
-    :target       {:accessSubject subject}
-    :policySets [{:target   {:environment {:licenses licenses}}
-                  :policies [{:target target
-                              :rules  [{:effect :Permit}]}]}]}})
+   (merge
+    {:policyIssuer issuer
+     :target       {:accessSubject subject}
+     :policySets   [{:target   {:environment {:licenses licenses}}
+                     :policies [{:target target
+                                 :rules  [{:effect :Permit}]}]}]}
+    (date->not-before-not-on-or-after date))})
 
 (defn- mask-target
   ;; FEEDBACK waarom moet ik lege lijst van serviceProviders doorgeven voor masks?
