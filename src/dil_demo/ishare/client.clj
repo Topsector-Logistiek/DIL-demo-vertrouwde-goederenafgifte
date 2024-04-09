@@ -126,11 +126,18 @@ When bearer token is not needed, provide a `nil` token"
                  (swap! log-interceptor-atom conj r))
                r)})
 
+(defn normalize-uri
+  "Normalize the uri's path.
+
+  See java.net.URI#normalize"
+  [u]
+  (str (.normalize (java.net.URI. u))))
+
 (def build-uri-interceptor
   {:name ::build-uri-interceptor
    :request (fn [{:keys [path ishare/endpoint] :as request}]
               (if (and path endpoint)
-                (assoc request :uri (str endpoint path))
+                (assoc request :uri (normalize-uri (str endpoint path)))
                 request))})
 
 (defmulti ishare->http-request
@@ -244,6 +251,16 @@ When bearer token is not needed, provide a `nil` token"
          :ishare/unsign-token "policy_token"
          :ishare/lens         [:body "policy_token"]))
 
+
+(defmethod ishare->http-request :poort8/policy ;; Poort8 AR specific
+  [{params :ishare/params :as request}]
+  (assoc request
+         :method :post
+         :path "/../policies"
+         :as :json
+         :json-params (assoc params
+                             :useCase "iSHARE")
+         :ishare/lens [:body]))
 
 (defmethod ishare->http-request :delegation
   [{delegation-mask :ishare/params :as request}]

@@ -2,7 +2,7 @@
   (:import (java.time LocalDate LocalDateTime ZoneId)))
 
 ;; https://ishare.eu/licenses/
-(def licenses ["0001"]) ;; FEEDBACK waarom deze "Re-sharing with Adhering Parties only"?
+(def license "ISHARE.0001") ;; FEEDBACK waarom deze "Re-sharing with Adhering Parties only"?
 
 (defn ->carrier-delegation-target
   [consignment-ref]
@@ -31,10 +31,22 @@
    (merge
     {:policyIssuer issuer
      :target       {:accessSubject subject}
-     :policySets   [{:target   {:environment {:licenses licenses}}
+     :policySets   [{:target   {:environment {:licenses [license]}}
                      :policies [{:target target
                                  :rules  [{:effect :Permit}]}]}]}
     (date->not-before-not-on-or-after date))})
+
+(defn ->poort8-policy
+  [{:keys [subject consignment-ref]}]
+  {:pre [subject consignment-ref]}
+  {:subjectId       subject
+   :useCase         "iSHARE"
+   :serviceProvider nil
+   :action          "BDI.PICKUP"
+   :resourceId      consignment-ref
+   :type            "consignment-ref"
+   :attribute       "*"
+   :license         license})
 
 (defn- mask-target
   ;; FEEDBACK waarom moet ik lege lijst van serviceProviders doorgeven voor masks?
