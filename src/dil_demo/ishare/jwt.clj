@@ -72,6 +72,10 @@
 
 ;; iSHARE JWT payload data specs
 
+;; FEEDBACK: the following is incorrect: iss and sub are not always
+;; equal and may not be client-id. For instance, delegation evidence
+;; is issued by AR server for client.
+
 ;; From https://dev.ishareworks.org/reference/jwt.html#jwt-payload
 ;;
 ;;   "The JWT payload MUST conform to the private_key_jwt method as
@@ -171,9 +175,10 @@
 (defn nbf-equal-to-iat?
   [{:keys [nbf iat] :as payload}]
   ;; nbf is optional, only do the check if nbf is present
-  (when (contains? payload :nbf)
-    (= nbf iat)))
+  (or (not (contains? payload :nbf))
+      (= nbf iat)))
 
+;; TODO: This is only the case for client-assertions
 (defn iss-equal-to-sub?
   [{:keys [iss sub] :as payload}]
   (= iss sub))
@@ -182,8 +187,7 @@
   (s/and (s/keys :req-un [::iss ::sub ::aud ::jti ::iat ::exp]
                  :opt-un [::nbf])
          expires-in-30-seconds?
-         nbf-equal-to-iat?
-         iss-equal-to-sub?))
+         nbf-equal-to-iat?))
 
 
 ;; Parsing and validating iSHARE JWTs
