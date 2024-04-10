@@ -113,6 +113,20 @@
         [:pre.json (w/to-json trip)]]
        (w/ishare-log-intercept-to-hiccup ishare-log)]]]))
 
+(defn deleted-trip [{:keys [ishare-log]}]
+  [:div
+   [:section
+    [:div.actions
+     [:a.button {:href "."} "Terug naar overzicht"]]]
+   [:details.explanation
+    [:summary "Uitleg"]
+    [:ol
+     [:li
+      [:h3 "Trek autorisatie van Chauffeur in."]
+      [:p "API call naar " [:strong "AR van de Vervoerder"] " om een autorisatie te verwijderen"]
+      [:ul [:li "Klantorder nr."] [:li "Chauffeur ID (laatste 4 cijfers)"] [:li "Kenteken"]]]
+     (w/ishare-log-intercept-to-hiccup ishare-log)]]])
+
 
 
 (defn get-trips [store]
@@ -130,8 +144,7 @@
       (content-type "text/html")))
 
 (defroutes handler
-  ;; TODO: render ishare commands
-  (GET "/"  {:keys [flash store]}
+  (GET "/" {:keys [flash store]}
     (render "Transportopdrachten"
             (list-trips (get-trips store))
             flash))
@@ -139,13 +152,19 @@
   (DELETE "/trip-:id" {:keys        [store]
                        {:keys [id]} :params}
     (when (get-trip store id)
-      (-> "."
+      (-> "deleted"
           (redirect :see-other)
           (assoc :flash {:success "Transportopdracht verwijderd"})
           (assoc :store-commands [[:delete! :trips id]]))))
 
-  (GET "/assign-:id" {:keys        [flash store]
-                      {:keys [id]} :params}
+  (GET "/deleted" {{:keys [ishare-log] :as flash} :flash}
+      (render "Transportopdracht verwijderd"
+              (deleted-trip {:ishare-log ishare-log})
+              flash))
+
+  (GET "/assign-:id" {:keys                [flash store]
+                      {:keys [id]}         :params
+                      {:keys [ishare-log]} :flash}
     (when-let [trip (get-trip store id)]
       (render (str "Transportopdracht: " (otm/trip-ref trip))
               (assign-trip trip)
