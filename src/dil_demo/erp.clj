@@ -3,6 +3,7 @@
             [dil-demo.ishare.client :as ishare-client]
             [dil-demo.ishare.policies :as policies]
             [dil-demo.otm :as otm]
+            [clojure.tools.logging :as log]
             [dil-demo.web-utils :as web-utils]))
 
 (defn- ->ishare-ar-policy-request [{:ishare/keys [client-id]
@@ -33,8 +34,9 @@
     [(try (-> client-data
               (->ishare-ar-policy-request trip)
               (ishare-client/exec))
-          ;; TODO: log/show Exceptions for debugging
-          (catch Throwable _ false))
+          (catch Throwable ex
+            (log/error ex)
+            false))
      @ishare-client/log-interceptor-atom]))
 
 (defn wrap-delegation
