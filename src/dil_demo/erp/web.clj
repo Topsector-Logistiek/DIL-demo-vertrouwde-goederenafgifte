@@ -1,5 +1,6 @@
 (ns dil-demo.erp.web
-  (:require [compojure.core :refer [defroutes DELETE GET POST]]
+  (:require [clojure.string :as string]
+            [compojure.core :refer [defroutes DELETE GET POST]]
             [dil-demo.otm :as otm]
             [dil-demo.web-utils :as w]
             [ring.util.response :refer [content-type redirect response]])
@@ -54,14 +55,14 @@
       (w/field {:name  "load-date",   :type  "date",
                 :label "Ophaaldatum", :value load-date})
       (w/field {:name  "load-location", :value load-location,
-                :label "Ophaaladres",   :type  "text", :list w/locations, :required true})
+                :label "Ophaaladres",   :type  "text", :list (keys w/locations), :required true})
       (w/field {:name  "load-remarks", :value load-remarks,
                 :label "Opmerkingen",  :type  "textarea"})]
      [:section
       (w/field {:name  "unload-date",  :value unload-date,
                 :label "Afleverdatum", :type  "date"})
       (w/field {:name  "unload-location", :value unload-location,
-                :label "Afleveradres",    :type  "text", :list w/locations, :required true})
+                :label "Afleveradres",    :type  "text", :list (keys w/locations), :required true})
       (w/field {:name  "unload-remarks", :value unload-remarks,
                 :label "Opmerkingen",    :type  "textarea"})]
      [:section
@@ -99,13 +100,17 @@
       [:fieldset.load-location
        [:legend "Ophaaladres"]
        [:h3 load-location]
-       [:pre "Kerkstraat 1\n1234 AB  Nergenshuizen"]
-       [:blockquote.remarks load-remarks]]
+       (when-let [address (get w/locations load-location)]
+         [:pre address])
+       (when-not (string/blank? load-remarks)
+         [:blockquote.remarks load-remarks])]
       [:fieldset.unload-location
        [:legend "Afleveradres"]
        [:h3 unload-location]
-       [:pre "Dorpsweg 2\n4321 YZ  Andershuizen"]
-       [:blockquote.remarks unload-remarks]]]
+       (when-let [address (get w/locations unload-location)]
+         [:pre address])
+       (when-not (string/blank? unload-remarks)
+         [:blockquote.remarks unload-remarks])]]
      [:section.goods
       [:fieldset
        [:legend "Goederen"]

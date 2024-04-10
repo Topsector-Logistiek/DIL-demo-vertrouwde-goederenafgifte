@@ -1,11 +1,12 @@
 (ns dil-demo.tms.web
-  (:require [compojure.core :refer [defroutes DELETE GET POST]]
-            [hiccup2.core :as h]
+  (:require [clojure.data.json :refer [json-str]]
+            [clojure.string :as string]
+            [compojure.core :refer [defroutes DELETE GET POST]]
             [dil-demo.otm :as otm]
             [dil-demo.web-utils :as w]
-            [clojure.data.json :refer [json-str]]
+            [hiccup2.core :as h]
             [ring.util.response :refer [content-type redirect response]])
-  (:import [java.util UUID]))
+  (:import (java.util UUID)))
 
 (defn list-trips [trips]
   [:table
@@ -31,8 +32,8 @@
        [:td.ref ref]
        [:td.location load-location]
        [:td.location unload-location]
-       [:td.id-digits driver-id-digits]
-       [:td.license-plate license-plate]
+       [:td.id-digits (w/or-em-dash driver-id-digits)]
+       [:td.license-plate (w/or-em-dash license-plate)]
        [:td.actions
         [:a.button.button-secondary {:href (str "assign-" id)} "Openen"]
         (w/delete-button (str "trip-" id))]])]])
@@ -58,13 +59,17 @@
        [:fieldset.load-location
         [:legend "Ophaaladres"]
         [:h3 load-location]
-        [:pre "Kerkstraat 1\n1234 AB  Nergenshuizen"] ;; TODO
-        [:blockquote.remarks load-remarks]]
+        (when-let [address (get w/locations load-location)]
+          [:pre address])
+        (when-not (string/blank? load-remarks)
+          [:blockquote.remarks ])]
        [:fieldset.unload-location
         [:legend "Afleveradres"]
         [:h3 unload-location]
-        [:pre "Dorpsweg 2\n4321 YZ  Andershuizen"] ;; TODO
-        [:blockquote.remarks unload-remarks]]]
+        (when-let [address (get w/locations unload-location)]
+          [:pre address])
+        (when-not (string/blank? unload-remarks)
+          [:blockquote.remarks unload-remarks])]]
 
       (w/field {:name "driver-id-digits", :value driver-id-digits
                 :label "Chauffeur ID", :placeholder "Laatste 4 cijfers"

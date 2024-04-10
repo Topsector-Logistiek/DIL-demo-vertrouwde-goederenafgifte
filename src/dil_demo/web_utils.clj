@@ -6,12 +6,23 @@
   (:import (java.text SimpleDateFormat)
            (java.util UUID)))
 
-(def locations #{"Intel, Schiphol"
-                 "Nokia, Stockholm"
-                 "Bol, Waalwijk"
-                 "AH, Pijnacker"
-                 "Jumbo, Tilburg"
-                 "AH Winkel 23, Drachten"})
+(def locations {"Intel, Schiphol"
+                "Capronilaan 37\n1119 NG  Schiphol-Rijk\nNederland"
+
+                "Nokia, Espoo"
+                "Karakaari 7\n02610 Espoo\nFinland"
+
+                "Bol, Waalwijk"
+                "Mechie Trommelenweg 1\n5145 ND  Waalwijk\nNederland"
+
+                "AH, Pijnacker"
+                "Ackershof 53-60\n2641 DZ  Pijnacker\nNederland"
+
+                "Jumbo, Tilburg"
+                "Stappegoorweg 175\n5022 DD  Tilburg\nNederland"
+
+                "AH Winkel 23, Drachten"
+                "Kiryat Onoplein 87\n9203 KS  Drachten\nNederland"})
 
 (def goods #{"Toiletpapier"
              "Bananen"
@@ -76,6 +87,11 @@
 
 (defn format-date [date]
   (.format (SimpleDateFormat. "yyyy-MM-dd") date))
+
+(defn or-em-dash [val]
+  (if (string/blank? val)
+    "—"
+    val))
 
 (defn render-body [site title h & {:keys [flash]}]
   (str "<!DOCTYPE HTML>" (hiccup/html (template site title h :flash flash))))
