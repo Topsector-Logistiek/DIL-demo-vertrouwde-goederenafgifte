@@ -140,7 +140,7 @@
         [:q license-plate]
         "."]
        [:ul.rejections
-        (for [rejection owner-rejections]
+        (for [rejection carrier-rejections]
           [:li rejection])]
        ])
 
