@@ -18,7 +18,15 @@ Het lijkt onmogelijk om een policy in te trekken.
 
 - Geeft bij verkeerd gebruik "500 Internal Server Error" terug ipv meer informatieve "400 Bad Request" met uitleg.
 
+- (was) Niet mogelijk om notBefore en notOnOrAfter door te gegeven in nieuwe policy.
+
+- `/delegation` geeft bij afwijzing `notBefore` en `notOnOrAfter` as `-1` terug.  Dat is conform JSON schema (bron: [iSHARE Scheme Specification](https://app.swaggerhub.com/apis/iSHARE/iSHARE_Scheme_Specification/2.0#/jwt_payload_delegation_evidence_token)) maar niet heel nuttig.
+
 # Delegation Evidence
+
+Het antwoord bij het opvragen van DE is verwarrend vooral in het geval van een afwijzing.  Bij een afwijzing wordt de DE mask verpakt als DE terug geleverd met daarin de rules aangepast.  Dit heeft als probleem dat ingrediënten die missen in de mask erbij "verzonnen" moeten worden (bijvoorbeeld `notBefore`).  Het is ook niet duidelijk of er meerdere policies op een vraag terug kunnen komen en zoja welke conclusies daaruit genomen mogen worden.
+
+Omdat het opvoeren van een DE niet gestandaardiseerd is, is het ook niet duidelijk hoe een policy weer ingetrokken moet worden.  Zo lijkt het AR van iSHARE geen mogelijkheid te hebben om een policy in te trekken maar is het theoretisch mogelijk een nieuw DE op te vroegen waar van de rules niet "Permit" maar "Deny" bevatten.  Wat `/delegation` dan teruggeeft is onduidelijk en slaat weer terug op het voorgaande punt over wat er gebeurd als er meerder policies voor een resource target bestaan.
 
 ## Resource attributes
 
