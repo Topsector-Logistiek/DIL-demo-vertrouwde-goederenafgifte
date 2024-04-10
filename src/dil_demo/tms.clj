@@ -84,11 +84,13 @@
     (let [response (app req)
           trip     (trip-added response)]
       (if-let [subject (and trip (driver-licence-ref trip))]
-        (let [response (ishare-exec-with-log response (-> client-data
-                                                          (->poort8-ar-request)
-                                                          (assoc :ishare/message-type :poort8/policy
-                                                                 :ishare/params (policies/->poort8-policy {:consignment-ref (otm/trip-ref trip)
-                                                                                                           :subject         subject}))))]
+        (let [response (ishare-exec-with-log response
+                                             (-> client-data
+                                                 (->poort8-ar-request)
+                                                 (assoc :ishare/message-type :poort8/policy
+                                                        :ishare/params (policies/->poort8-policy {:consignment-ref (otm/trip-ref trip)
+                                                                                                  :date            (otm/trip-load-date trip)
+                                                                                                  :subject         subject}))))]
           (if-let [policy-id (get-in response [:ishare/result "policyId"])]
             (append-in response [:store-commands] [[:put! :trip-policies {:id        (otm/trip-ref trip)
                                                                           :policy-id policy-id}]])

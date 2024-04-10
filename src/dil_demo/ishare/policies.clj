@@ -51,16 +51,20 @@
     (date->not-before-not-on-or-after date))})
 
 (defn ->poort8-policy
-  [{:keys [subject consignment-ref]}]
-  {:pre [subject consignment-ref]}
-  {:subjectId       subject
-   :useCase         "iSHARE"
-   :serviceProvider nil
-   :action          "BDI.PICKUP"
-   :resourceId      consignment-ref
-   :type            "consignment-ref"
-   :attribute       "*"
-   :license         license})
+  [{:keys [date subject consignment-ref]}]
+  {:pre [subject date consignment-ref]}
+  (let [{:keys [notBefore notOnOrAfter]} (date->not-before-not-on-or-after date)]
+    {:subjectId       subject
+     :useCase         "iSHARE"
+     :serviceProvider nil
+     :action          "BDI.PICKUP"
+     :resourceId      consignment-ref
+     :type            "consignment-ref"
+     :attribute       "*"
+     :license         license
+     :notBefore       notBefore
+     ;; FEEDBACK: API should use `notOnOrAfter` instead of `expiration`
+     :expiration      notOnOrAfter}))
 
 (defn- mask-target
   ;; FEEDBACK waarom moet ik lege lijst van serviceProviders doorgeven voor masks?
