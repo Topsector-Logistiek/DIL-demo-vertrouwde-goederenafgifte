@@ -5,8 +5,13 @@
     --color-table-border: #ddd;
     --color-main-bg: #fff;
     --color-button-border: #ccc;
-    --color-green: #b1f4b0;
-    --color-red: #f4b1b0;
+
+    --color-flash-success: #384d37;
+    --color-flash-success-bg: #b1f4b0;
+    --color-flash-error: #4d3837;
+    --color-flash-error-bg: #f4b1b0;
+    --color-flash-warning: #4d4b37;
+    --color-flash-warning-bg: #f4f0b0;
 }
 
 html {
@@ -213,12 +218,19 @@ pre {
     margin-bottom: 1rem;
     text-align: center;
     font-size: larger;
+    box-shadow: .2em .2em .2em rgba(0, 0, 0, .1);
 }
 .flash-success {
-    background: var(--color-green);
+    color: var(--color-flash-success);
+    background: var(--color-flash-success-bg);
 }
 .flash-error {
-    background: var(--color-red);
+    color: var(--color-flash-error);
+    background: var(--color-flash-error-bg);
+}
+.flash-warning {
+    color: var(--color-flash-warning);
+    background: var(--color-flash-warning-bg);
 }
 
 section.trip {

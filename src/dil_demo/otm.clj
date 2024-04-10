@@ -1,12 +1,19 @@
 (ns dil-demo.otm
   (:import [java.util UUID]))
 
-(def statuses {"draft"     "Klad"
-               "requested" "Ingediend"
-               "confirmed" "Bevestigd"
-               "inTransit" "In Transit"
-               "completed" "Afgerond"
-               "cancelled" "Geannuleerd"})
+(def status-draft "draft")
+(def status-requested "requested")
+(def status-confirmed "confirmed")
+(def status-in-transit "inTransit")
+(def status-completed "completed")
+(def status-cancelled "cancelled")
+
+(def statuses {status-draft     "Klad"
+               status-requested "Ingediend"
+               status-confirmed "Bevestigd"
+               status-in-transit "In Transit"
+               status-completed "Afgerond"
+               status-cancelled "Geannuleerd"})
 
 
 

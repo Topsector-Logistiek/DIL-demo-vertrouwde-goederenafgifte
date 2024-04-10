@@ -77,10 +77,14 @@
       [:a.button {:href "."} "Annuleren"]]]))
 
 (defn publish-consignment [consignment {:keys [carriers]}]
-  (let [{:keys [id ref load-date load-location load-remarks unload-date unload-location unload-remarks goods carrier-eori]}
+  (let [{:keys [id status ref load-date load-location load-remarks unload-date unload-location unload-remarks goods carrier-eori]}
         (otm/consignment->map consignment)]
     [:form {:method "POST"}
      (w/anti-forgery-input)
+
+     (when (not= otm/status-draft status)
+       [:div.flash.flash-warning
+        "Let op!  Deze opdracht is al verzonden!"])
 
      [:section.details
       [:dl
