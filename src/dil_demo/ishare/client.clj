@@ -4,7 +4,8 @@
             [babashka.json :as json]
             [dil-demo.ishare.jwt :as jwt]
             [buddy.core.keys :as keys]
-            [clojure.string :as string]))
+            [clojure.string :as string])
+  (:import java.net.URI))
 
 (defn private-key
   "Read private key from file."
@@ -126,18 +127,15 @@ When bearer token is not needed, provide a `nil` token"
                  (swap! log-interceptor-atom conj r))
                r)})
 
-(defn normalize-uri
-  "Normalize the uri's path.
-
-  See java.net.URI#normalize"
-  [u]
-  (str (.normalize (java.net.URI. u))))
-
 (def build-uri-interceptor
   {:name ::build-uri-interceptor
    :request (fn [{:keys [path ishare/endpoint] :as request}]
               (if (and path endpoint)
-                (assoc request :uri (normalize-uri (str endpoint path)))
+                (assoc request :uri (-> endpoint
+                                        (URI.)
+                                        (.resolve (URI. path))
+                                        (.normalize)
+                                        (str)))
                 request))})
 
 (defmulti ishare->http-request
