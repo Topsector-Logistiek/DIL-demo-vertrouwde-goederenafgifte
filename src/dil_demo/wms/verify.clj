@@ -42,9 +42,11 @@
 
 (defn verify! [client-data transport-order params]
   (binding [ishare-client/log-interceptor-atom (atom [])]
-    {:owner-rejections   (verify-owner client-data transport-order params)
-     :carrier-rejections (verify-carrier client-data transport-order params)
-     :ishare-log         @ishare-client/log-interceptor-atom}))
+    (let [owner-rejections (verify-owner client-data transport-order params)]
+      {:owner-rejections   owner-rejections
+       :carrier-rejections (when-not owner-rejections
+                             (verify-carrier client-data transport-order params))
+       :ishare-log         @ishare-client/log-interceptor-atom})))
 
 (defn permitted? [{:keys [owner-rejections carrier-rejections]}]
   (and (empty? owner-rejections)

@@ -110,6 +110,10 @@
                                   policies)
         rules             (mapcat :rules matching-policies)]
     (cond-> []
+      (and (seq rules)
+           (not= rules [{:effect "Permit"}]))
+      (conj (str "Geen toepasbare regels gevonden: " (pr-str rules)))
+
       (< now (:notBefore delegation-evidence))
       (conj (str "Mag niet voor " (epoch->str (:notBefore delegation-evidence))) )
 
@@ -118,10 +122,6 @@
 
       (empty? matching-policies) ;; FEEDBACK: should not happen?
       (conj (str "Geen toepasbare policies gevonden: " (pr-str policies)))
-
-      (and (seq rules)
-           (not= rules [{:effect "Permit"}]))
-      (conj (str "Geen toepasbare regels gevonden: " (pr-str rules)))
 
       :finally
       (seq))))
