@@ -2,6 +2,7 @@
   (:require [compojure.core :refer [routes GET]]
             [compojure.route :refer [resources]]
             [ring.middleware.defaults :refer [site-defaults wrap-defaults]]
+            [ring.middleware.stacktrace :refer [wrap-stacktrace]]
             [ring.util.response :refer [content-type not-found redirect]]
             [nl.jomco.ring-session-ttl-memory :refer [ttl-memory-store]]
             [dil-demo.erp :as erp]
@@ -67,4 +68,5 @@
       (wrap-carriers config)
       (store/wrap (config :store))
       (wrap-defaults (assoc-in site-defaults
-                               [:session :store] (ttl-memory-store)))))
+                               [:session :store] (ttl-memory-store)))
+      (wrap-stacktrace)))
