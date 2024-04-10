@@ -14,6 +14,8 @@
 
 Het lijkt onmogelijk om een policy in te trekken.
 
+De policy zijn maar korte tijd beschikbaar in het AR, ongeacht de waarden van `notBefore` en `notOnOrAfter`.  Dit heeft waarschijnlijk te maken met het JWT token waarin dit policy gecodeerd staat en is voor M2M use cases niet altijd een probleem.  Voor deze use case echter wel en daarom is de huidige implementatie van het iSHARE AR niet geschikt.
+
 ## Authorization Register (Poort8)
 
 - Geeft bij verkeerd gebruik "500 Internal Server Error" terug ipv meer informatieve "400 Bad Request" met uitleg.

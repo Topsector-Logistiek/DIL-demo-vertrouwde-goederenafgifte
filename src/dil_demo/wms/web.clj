@@ -88,7 +88,10 @@
                :required true})
 
      [:div.actions
-      [:button.button-primary {:type "submit"} "Veriferen"]
+      [:button.button-primary
+       {:type "submit"
+        :onclick "return confirm('Kloppen de chauffeur ID cijfers en het kenteken?')"}
+       "Veriferen"]
       [:a.button {:href "."} "Annuleren"]]]))
 
 (defn accepted-transport-order [transport-order
