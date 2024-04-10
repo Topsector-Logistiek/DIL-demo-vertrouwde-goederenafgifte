@@ -1,5 +1,6 @@
 (ns dil-demo.wms.web
-  (:require [compojure.core :refer [defroutes DELETE GET POST]]
+  (:require [clojure.string :as string]
+            [compojure.core :refer [defroutes DELETE GET POST]]
             [dil-demo.otm :as otm]
             [dil-demo.web-utils :as w]
             [dil-demo.wms.verify :as verify]
@@ -42,9 +43,10 @@
       [:div
        [:dt "Ophaaldatum"]
        [:dd load-date]]
-      [:div
-       [:dt "Opmerkingen"]
-       [:dd [:blockquote.remarks load-remarks]]]]
+      (when-not (string/blank? load-remarks)
+        [:div
+         [:dt "Opmerkingen"]
+         [:dd [:blockquote.remarks load-remarks]]])]
      [:div.actions
       [:a.button.button-primary {:href (str "verify-" id)} "Veriferen"]
       [:a.button {:href "."} "Annuleren"]]]))
@@ -67,7 +69,8 @@
      (w/anti-forgery-input)
 
      (w/field {:label "Opdracht nr.", :value ref, :disabled true})
-     (w/field {:label "Opmerkingen", :value load-remarks, :type "textarea", :disabled true})
+     (when-not (string/blank? load-remarks)
+       (w/field {:label "Opmerkingen", :value load-remarks, :type "textarea", :disabled true}))
 
 
      [:div.actions
