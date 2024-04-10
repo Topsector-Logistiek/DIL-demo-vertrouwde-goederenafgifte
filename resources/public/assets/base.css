@@ -6,12 +6,12 @@
     --color-main-bg: #fff;
     --color-button-border: #ccc;
 
-    --color-flash-success: #384d37;
-    --color-flash-success-bg: #b1f4b0;
-    --color-flash-error: #4d3837;
-    --color-flash-error-bg: #f4b1b0;
-    --color-flash-warning: #4d4b37;
-    --color-flash-warning-bg: #f4f0b0;
+    --color-success: #384d37;
+    --color-success-bg: #b1f4b0;
+    --color-error: #4d3837;
+    --color-error-bg: #f4b1b0;
+    --color-warning: #4d4b37;
+    --color-warning-bg: #f4f0b0;
 }
 
 html {
@@ -221,16 +221,16 @@ pre {
     box-shadow: .2em .2em .2em rgba(0, 0, 0, .1);
 }
 .flash-success {
-    color: var(--color-flash-success);
-    background: var(--color-flash-success-bg);
+    color: var(--color-success);
+    background: var(--color-success-bg);
 }
 .flash-error {
-    color: var(--color-flash-error);
-    background: var(--color-flash-error-bg);
+    color: var(--color-error);
+    background: var(--color-error-bg);
 }
 .flash-warning {
-    color: var(--color-flash-warning);
-    background: var(--color-flash-warning-bg);
+    color: var(--color-warning);
+    background: var(--color-warning-bg);
 }
 
 section.trip {

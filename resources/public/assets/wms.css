@@ -8,14 +8,14 @@ h2.verification {
     padding: 1em;
 }
 h2.verification-accepted {
-    background: var(--color-green);
+    background: var(--color-success-bg);
 }
 h2.verification-accepted:before {
     content: '✔ ';
 }
 
 h2.verification-rejected {
-    background: var(--color-red);
+    background: var(--color-error-bg);
 }
 h2.verification-rejected:before {
     content: '❌ ';
