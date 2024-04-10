@@ -2,10 +2,10 @@
   (:require [babashka.http-client :as http]
             [babashka.http-client.interceptors :as interceptors]
             [babashka.json :as json]
-            [dil-demo.ishare.jwt :as jwt]
             [buddy.core.keys :as keys]
-            [clojure.string :as string])
-  (:import java.net.URI))
+            [clojure.string :as string]
+            [dil-demo.ishare.jwt :as jwt])
+  (:import (java.net URI)))
 
 (defn private-key
   "Read private key from file."
@@ -127,15 +127,21 @@ When bearer token is not needed, provide a `nil` token"
                  (swap! log-interceptor-atom conj r))
                r)})
 
+(defn resolve-uri [endpoint path]
+  (let [endpoint (if (string/ends-with? endpoint "/")
+                   endpoint
+                   (str endpoint "/"))]
+    (-> endpoint
+        (URI.)
+        (.resolve (URI. path))
+        (.normalize)
+        (str))))
+
 (def build-uri-interceptor
   {:name ::build-uri-interceptor
    :request (fn [{:keys [path ishare/endpoint] :as request}]
               (if (and path endpoint)
-                (assoc request :uri (-> endpoint
-                                        (URI.)
-                                        (.resolve (URI. path))
-                                        (.normalize)
-                                        (str)))
+                (assoc request :uri (resolve-uri endpoint path))
                 request))})
 
 (defmulti ishare->http-request
@@ -180,7 +186,7 @@ When bearer token is not needed, provide a `nil` token"
   [{:ishare/keys [client-id] :as request}]
   {:pre [client-id]}
   (assoc request
-         :path          "/connect/token"
+         :path          "connect/token"
          :method       :post
          :as           :json
          :ishare/bearer-token nil
@@ -202,7 +208,7 @@ When bearer token is not needed, provide a `nil` token"
   [{:ishare/keys [params] :as request}]
   (assoc request
          :method       :get
-         :path          "/parties"
+         :path          "parties"
          :as           :json
          :query-params  params
          :ishare/unsign-token "parties_token"
@@ -213,7 +219,7 @@ When bearer token is not needed, provide a `nil` token"
   [{:ishare/keys [party-id] :as request}]
   (assoc request
          :method       :get
-         :path         (str "/parties/" party-id)
+         :path         (str "parties/" party-id)
          :as           :json
          :ishare/unsign-token "party_token"
          :ishare/lens [:body "party_token"]))
@@ -222,7 +228,7 @@ When bearer token is not needed, provide a `nil` token"
   [request]
   (assoc request
          :method       :get
-         :path         "/trusted_list"
+         :path         "trusted_list"
          :as           :json
          :ishare/unsign-token "trusted_list_token"
          :ishare/lens         [:body "trusted_list_token"]))
@@ -231,7 +237,7 @@ When bearer token is not needed, provide a `nil` token"
   [request]
   (assoc request
          :method       :get
-         :path         "/capabilities"
+         :path         "capabilities"
          :as           :json
          :ishare/unsign-token "capabilities_token"
          :ishare/lens         [:body "capabilities_token"]))
@@ -241,7 +247,7 @@ When bearer token is not needed, provide a `nil` token"
   {:pre [delegation-evidence]}
   (assoc request
          :method       :post
-         :path         "/policy"
+         :path         "policy"
          :as           :json
          :json-params  delegation-evidence
          :ishare/unsign-token "policy_token"
@@ -252,7 +258,7 @@ When bearer token is not needed, provide a `nil` token"
   [{params :ishare/params :as request}]
   (assoc request
          :method :post
-         :path "/../policies"
+         :path "../policies"
          :as :json
          :json-params (assoc params
                              :useCase "iSHARE")
@@ -263,7 +269,7 @@ When bearer token is not needed, provide a `nil` token"
   {:pre [delegation-mask]}
   (assoc request
          :method       :post
-         :path         "/delegation"
+         :path         "delegation"
          :as           :json
          :json-params  delegation-mask
          :ishare/unsign-token "delegation_token"
@@ -275,7 +281,7 @@ When bearer token is not needed, provide a `nil` token"
 
 (defn satellite-request [request]
   (assoc request
-         :ishare/endpoint    "https://dilsat1-mw.pg.bdinetwork.org"
+         :ishare/endpoint    "https://dilsat1-mw.pg.bdinetwork.org/"
          :ishare/server-id   "EU.EORI.NLDILSATTEST1"))
 
 (defn satellite-party [client-data party-id]
@@ -352,7 +358,7 @@ When bearer token is not needed, provide a `nil` token"
      :ishare/private-key (private-key "credentials/EU.EORI.NLSMARTPHON.pem")})
 
   (def poort8-ar-request
-    {:ishare/endpoint    "https://tsl-ishare-dataspace-coremanager-preview.azurewebsites.net/api/ishare"
+    {:ishare/endpoint    "https://tsl-ishare-dataspace-coremanager-preview.azurewebsites.net/api/ishare/"
      :ishare/server-id   "EU.EORI.NLP8TSLAR1"
      :ishare/client-id   "EU.EORI.NLPRECIOUSG"
      :ishare/x5c         (x5c "credentials/EU.EORI.NLPRECIOUSG.crt")
