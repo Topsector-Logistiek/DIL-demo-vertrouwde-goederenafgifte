@@ -7,23 +7,38 @@
   "Ask AR of owner if carrier is allowed to pickup order."
   [client-data transport-order {:keys [carrier-eori]}]
   (try
-    (let [owner-eori   (otm/transport-order-owner-eori transport-order)
-          owner-target (policies/->carrier-delegation-target (otm/transport-order-ref transport-order))
-          owner-mask   (policies/->delegation-mask {:issuer  owner-eori
-                                                    :subject carrier-eori
-                                                    :target  owner-target})]
+    (let [owner-eori (otm/transport-order-owner-eori transport-order)
+          target     (policies/->delegation-target (otm/transport-order-ref transport-order))
+          mask       (policies/->delegation-mask {:issuer  owner-eori
+                                                  :subject carrier-eori
+                                                  :target  target})]
       (-> client-data
-          (ishare-client/ar-delegation-evidence owner-mask
+          (ishare-client/ar-delegation-evidence mask
                                                 {:party-eori   owner-eori
                                                  :dataspace-id ishare-client/dil-demo-dataspace-id})
-          (policies/rejection-reasons owner-target)))
+          (policies/rejection-reasons target)))
     (catch Throwable ex
       [(str "Technische fout opgetreden: " (.getMessage ex))])))
 
 (defn verify-carrier
   "Ask AR of carrier if driver is allowed to pickup order."
-  [client-data transport-order {:keys [driver-id-digits license-plate]}]
-  nil)
+  [client-data transport-order {:keys [driver-id-digits license-plate carrier-eori]}]
+
+  (try
+    (let [target       (policies/->delegation-target (otm/transport-order-ref transport-order))
+          mask         (policies/->delegation-mask {:subject (str driver-id-digits "|" license-plate)
+                                                    ;; TODO: use function for subject
+                                                    :target  target
+                                                    ;; FEEDBACK: Kunnen we er vanuit gaan dat issuer
+                                                    ;; en dataspace id samen de AR bepalen?
+                                                    :issuer  carrier-eori})]
+      (-> client-data
+          (ishare-client/ar-delegation-evidence mask
+                                                {:party-eori   carrier-eori
+                                                 :dataspace-id ishare-client/dil-demo-dataspace-id})
+          (policies/rejection-reasons target)))
+    (catch Throwable ex
+      [(str "Technische fout opgetreden: " (.getMessage ex))])))
 
 (defn verify! [client-data transport-order params]
   (binding [ishare-client/log-interceptor-atom (atom [])]

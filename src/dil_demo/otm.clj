@@ -165,6 +165,11 @@
       (transport-order-consignment)
       (consignment-owner-eori)))
 
+(defn transport-order-carrier-eori [transport-order]
+  (-> transport-order
+      (transport-order-consignment)
+      (consignment-carrier-eori)))
+
 
 
 ;; OTM Trip for TMS

@@ -86,7 +86,7 @@
      [:script (h/raw
                (str "new QRCode(document.getElementById(" (json-str id) "), " (json-str text) ")"))]]))
 
-(defn assigned-trip [trip]
+(defn assigned-trip [trip {:keys [ishare-log]}]
   (let [{:keys [ref driver-id-digits license-plate carrier-eori]} (otm/trip->map trip)]
     [:div
      [:section
@@ -105,7 +105,8 @@
         [:ul [:li "Klantorder nr."] [:li "Chauffeur ID (laatste 4 cijfers)"] [:li "Kenteken"]]]
        [:li
         [:h3 "OTM Trip"]
-        [:pre.json (w/to-json trip)]]]]]))
+        [:pre.json (w/to-json trip)]]
+       (w/ishare-log-intercept-to-hiccup ishare-log)]]]))
 
 
 
@@ -129,7 +130,7 @@
             (list-trips (get-trips store))
             flash))
 
-  (DELETE "/trip-:id" {:keys [store]
+  (DELETE "/trip-:id" {:keys        [store]
                        {:keys [id]} :params}
     (when (get-trip store id)
       (-> "."
@@ -137,14 +138,14 @@
           (assoc :flash {:success "Transportopdracht verwijderd"})
           (assoc :store-commands [[:delete! :trips id]]))))
 
-  (GET "/assign-:id" {:keys [flash store]
+  (GET "/assign-:id" {:keys        [flash store]
                       {:keys [id]} :params}
     (when-let [trip (get-trip store id)]
       (render (str "Transportopdracht: " (otm/trip-ref trip))
               (assign-trip trip)
               flash)))
 
-  (POST "/assign-:id" {:keys [store]
+  (POST "/assign-:id" {:keys                                       [store]
                        {:keys [id driver-id-digits license-plate]} :params}
     (when-let [trip (get-trip store id)]
       (-> (str "assigned-" id)
@@ -154,9 +155,10 @@
                                                     (otm/trip-driver-id-digits! driver-id-digits)
                                                     (otm/trip-license-plate! license-plate))]]))))
 
-  (GET "/assigned-:id" {:keys [flash store]
-                        {:keys [id]} :params}
+  (GET "/assigned-:id" {:keys                [flash store]
+                        {:keys [id]}         :params
+                        {:keys [ishare-log]} :flash}
     (when-let [trip (get-trip store id)]
       (render (str "Transportopdracht toegewezen")
-              (assigned-trip trip)
+              (assigned-trip trip {:ishare-log ishare-log})
               flash))))

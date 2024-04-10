@@ -5,7 +5,7 @@
 ;; https://ishare.eu/licenses/
 (def license "ISHARE.0001") ;; FEEDBACK waarom deze "Re-sharing with Adhering Parties only"?
 
-(defn ->carrier-delegation-target ;; TODO rename
+(defn ->delegation-target
   [consignment-ref]
   {:resource    {:type        "consignment-ref"
                  :identifiers [consignment-ref]

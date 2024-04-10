@@ -236,8 +236,6 @@ When bearer token is not needed, provide a `nil` token"
          :ishare/unsign-token "capabilities_token"
          :ishare/lens         [:body "capabilities_token"]))
 
-
-
 (defmethod ishare->http-request :ishare/policy ;; ishare AR specific
   [{delegation-evidence :ishare/params :as request}]
   {:pre [delegation-evidence]}
