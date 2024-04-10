@@ -1,12 +1,9 @@
 (ns dil-demo.tms.web
-  (:require [clojure.data.json :refer [json-str]]
-            [clojure.string :as string]
+  (:require [clojure.string :as string]
             [compojure.core :refer [defroutes DELETE GET POST]]
             [dil-demo.otm :as otm]
             [dil-demo.web-utils :as w]
-            [hiccup2.core :as h]
-            [ring.util.response :refer [content-type redirect response]])
-  (:import (java.util UUID)))
+            [ring.util.response :refer [content-type redirect response]]))
 
 (defn list-trips [trips]
   [:table
@@ -38,13 +35,20 @@
         [:a.button.button-secondary {:href (str "assign-" id)} "Openen"]
         (w/delete-button (str "trip-" id))]])]])
 
+(defn qr-code-dil-demo [{:keys [carrier-eori driver-id-digits license-plate]}]
+  (w/qr-code (str ":dil-demo:" carrier-eori ":" driver-id-digits ":" license-plate)))
+
 (defn assign-trip [trip]
-  (let [{:keys [ref load-date load-location load-remarks unload-date unload-location unload-remarks driver-id-digits license-plate]}
+  (let [{:keys [ref carrier-eori load-date load-location load-remarks unload-date unload-location unload-remarks driver-id-digits license-plate]
+         :as   params}
         (otm/trip->map trip)]
     [:form {:method "POST"}
      (w/anti-forgery-input)
 
      [:section.details
+      (when (and carrier-eori driver-id-digits license-plate)
+        (qr-code-dil-demo params))
+
       [:dl
        [:div
         [:dt "Klantorder nr."]
@@ -54,50 +58,42 @@
         [:dd load-date]]
        [:div
         [:dt "Afleverdatum"]
-        [:dd unload-date]]]
-      [:section.trip
-       [:fieldset.load-location
-        [:legend "Ophaaladres"]
-        [:h3 load-location]
-        (when-let [address (get w/locations load-location)]
-          [:pre address])
-        (when-not (string/blank? load-remarks)
-          [:blockquote.remarks ])]
-       [:fieldset.unload-location
-        [:legend "Afleveradres"]
-        [:h3 unload-location]
-        (when-let [address (get w/locations unload-location)]
-          [:pre address])
-        (when-not (string/blank? unload-remarks)
-          [:blockquote.remarks unload-remarks])]]
+        [:dd unload-date]]]]
 
-      (w/field {:name "driver-id-digits", :value driver-id-digits
-                :label "Chauffeur ID", :placeholder "Laatste 4 cijfers"
-                :type "text", :pattern "\\d{4}", :required true})
-      (w/field {:name "license-plate", :value license-plate
-                :label "Kenteken",
-                :type "text", :required true})
+     [:section.trip
+      [:fieldset.load-location
+       [:legend "Ophaaladres"]
+       [:h3 load-location]
+       (when-let [address (get w/locations load-location)]
+         [:pre address])
+       (when-not (string/blank? load-remarks)
+         [:blockquote.remarks ])]
+      [:fieldset.unload-location
+       [:legend "Afleveradres"]
+       [:h3 unload-location]
+       (when-let [address (get w/locations unload-location)]
+         [:pre address])
+       (when-not (string/blank? unload-remarks)
+         [:blockquote.remarks unload-remarks])]]
 
-      [:div.actions
-       [:button.button-primary {:type "submit"} "Toewijzen"]
-       [:a.button {:href "."} "Annuleren"]]]]))
+     (w/field {:name  "driver-id-digits", :value       driver-id-digits
+               :label "Chauffeur ID",     :placeholder "Laatste 4 cijfers"
+               :type  "text",             :pattern     "\\d{4}", :required true})
+     (w/field {:name  "license-plate", :value    license-plate
+               :label "Kenteken",
+               :type  "text",          :required true})
 
-(defn qr-code [text]
-  (let [id (str "qrcode-" (UUID/randomUUID))]
-    [:div.qr-code-container
-     [:script {:src "/assets/qrcode.js"}] ;; https://davidshimjs.github.io/qrcodejs/
-
-     [:div.qr-code {:id id}]
-     [:script (h/raw
-               (str "new QRCode(document.getElementById(" (json-str id) "), " (json-str text) ")"))]]))
+     [:div.actions
+      [:button.button-primary {:type "submit"} "Toewijzen"]
+      [:a.button {:href "."} "Annuleren"]]]))
 
 (defn assigned-trip [trip {:keys [ishare-log]}]
-  (let [{:keys [ref driver-id-digits license-plate carrier-eori]} (otm/trip->map trip)]
+  (let [{:keys [ref driver-id-digits license-plate carrier-eori] :as params} (otm/trip->map trip)]
     [:div
      [:section
       [:p "Transportopdracht " [:q ref] " toegewezen."]
 
-      (qr-code (str ":dil-demo:" carrier-eori ":" driver-id-digits ":" license-plate))
+      (qr-code-dil-demo params)
 
       [:div.actions
        [:a.button {:href "."} "Terug naar overzicht"]]]

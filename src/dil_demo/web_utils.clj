@@ -85,6 +85,19 @@
    [:input {:type "hidden", :name "_method", :value "DELETE"}]
    [:button {:type "submit", :onclick "return confirm('Zeker weten?')"} "Verwijderen"]])
 
+(defn qr-code [text]
+  (let [id (str "qrcode-" (UUID/randomUUID))]
+    [:div.qr-code-container
+     [:script {:src "/assets/qrcode.js"}] ;; https://davidshimjs.github.io/qrcodejs/
+
+     [:div.qr-code {:id id}]
+     [:script (hiccup/raw
+               (str "new QRCode(document.getElementById("
+                    (json/json-str id)
+                    "), "
+                    (json/json-str text)
+                    ")"))]]))
+
 (defn format-date [date]
   (.format (SimpleDateFormat. "yyyy-MM-dd") date))
 
