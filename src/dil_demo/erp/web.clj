@@ -152,7 +152,7 @@
 
 
 (defn get-consignments [store]
-  (->> store :consignments vals (sort-by :ref) (reverse)))
+  (->> store :consignments vals (sort-by :creation-date) (reverse)))
 
 (defn get-consignment [store id]
   (get-in store [:consignments id]))
@@ -201,10 +201,11 @@
           (redirect :see-other)
           (assoc :flash {:success "Klantorder aangemaakt"})
           (assoc :store-commands [[:put! :consignments
-                                   (otm/map->consignment (assoc params
-                                                                :id id
-                                                                :status "draft"
-                                                                :owner-eori eori))]]))))
+                                   (-> params
+                                       (assoc :id id
+                                              :status otm/status-draft
+                                              :owner-eori eori)
+                                       (otm/map->consignment))]]))))
 
   (GET "/consignment-:id" {:keys [carriers flash store] {:keys [id]} :params}
     (let [consignment (get-consignment store id)]
@@ -217,9 +218,10 @@
     (-> "."
         (redirect :see-other)
         (assoc :flash {:success "Klantorder aangepast"})
-        (assoc :store-commands [[:put! :consignments (-> params
-                                                         (otm/map->consignment)
-                                                         (assoc :owner-eori eori))]])))
+        (assoc :store-commands [[:put! :consignments
+                                 (-> params
+                                     (assoc :owner-eori eori)
+                                     (otm/map->consignment))]])))
 
   (DELETE "/consignment-:id" {:keys        [store]
                               {:keys [id]} :params}

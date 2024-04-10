@@ -116,7 +116,7 @@
 
 
 (defn get-trips [store]
-  (->> store :trips vals (sort-by :ref) (reverse)))
+  (->> store :trips vals (sort-by :creation-date) (reverse)))
 
 (defn get-trip [store id]
   (get-in store [:trips id]))

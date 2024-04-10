@@ -1,5 +1,7 @@
 (ns dil-demo.otm
-  (:import [java.util UUID]))
+  (:import java.util.UUID
+           java.time.LocalDateTime
+           java.time.format.DateTimeFormatter))
 
 (def status-draft "draft")
 (def status-requested "requested")
@@ -17,49 +19,59 @@
 
 
 
+(defn time-stamp [obj]
+  (let [now (.format (LocalDateTime/now) DateTimeFormatter/ISO_LOCAL_DATE_TIME)]
+    (cond-> obj
+      (not (:creation-date obj))
+      (assoc :creation-date now)
+
+      :always
+      (assoc :last-modified now))))
+
 ;; OTM Consignment for ERP
 
 (defn map->consignment
   [{:keys [id ref status goods carrier-eori load-date load-location load-remarks unload-date unload-location unload-remarks owner-eori]}]
-  {:id                  id
-   :external-attributes {:ref ref}
-   :status              status
+  (time-stamp
+   {:id                  id
+    :external-attributes {:ref ref}
+    :status              status
 
-   :goods
-   [{:association-type "inline"
-     :entity           {:description goods}}]
+    :goods
+    [{:association-type "inline"
+      :entity           {:description goods}}]
 
-   :actors
-   [{:association-type "inline"
-     :roles            #{"carrier"}
-     :entity
-     {:contact-details [{:type  "eori"
-                         :value carrier-eori}]}}
-    {:association-type "inline"
-     :roles            #{"owner"}
-     :entity
-     {:contact-details [{:type  "eori"
-                         :value owner-eori}]}}]
+    :actors
+    [{:association-type "inline"
+      :roles            #{"carrier"}
+      :entity
+      {:contact-details [{:type  "eori"
+                          :value carrier-eori}]}}
+     {:association-type "inline"
+      :roles            #{"owner"}
+      :entity
+      {:contact-details [{:type  "eori"
+                          :value owner-eori}]}}]
 
-   :actions
-   [{:association-type "inline"
-     :entity
-     {:action-type "load"
-      :start-time  load-date
-      :location    {:association-type "inline"
-                    :entity           {:name          load-location
-                                       :type          "warehouse"
-                                       :geo-reference {}}}
-      :remarks     load-remarks}}
-    {:association-type "inline"
-     :entity
-     {:action-type "unload"
-      :start-time  unload-date
-      :location    {:association-type "inline"
-                    :entity           {:name          unload-location
-                                       :type          "warehouse"
-                                       :geo-reference {}}}
-      :remarks     unload-remarks}}]})
+    :actions
+    [{:association-type "inline"
+      :entity
+      {:action-type "load"
+       :start-time  load-date
+       :location    {:association-type "inline"
+                     :entity           {:name          load-location
+                                        :type          "warehouse"
+                                        :geo-reference {}}}
+       :remarks     load-remarks}}
+     {:association-type "inline"
+      :entity
+      {:action-type "unload"
+       :start-time  unload-date
+       :location    {:association-type "inline"
+                     :entity           {:name          unload-location
+                                        :type          "warehouse"
+                                        :geo-reference {}}}
+       :remarks     unload-remarks}}]}))
 
 (defn consignment-ref [{{:keys [ref]} :external-attributes}]
   ref)
@@ -140,18 +152,19 @@
 ;; OTM TransportOrder for WMS
 
 (defn consignment->transport-order [consignment]
-  {:id (str (UUID/randomUUID))
-   :consignments
-   [{:association-type "inline"
-     :entity           (-> consignment
-                           (update :actors
-                                   (fn [actors]
-                                     (filterv #(contains? (:roles %) "owner")
-                                              actors)))
-                           (update :actions
-                                   (fn [actions]
-                                     (filterv #(= "load" (-> % :entity :action-type))
-                                              actions))))}]})
+  (time-stamp
+   {:id (str (UUID/randomUUID))
+    :consignments
+    [{:association-type "inline"
+      :entity           (-> consignment
+                            (update :actors
+                                    (fn [actors]
+                                      (filterv #(contains? (:roles %) "owner")
+                                               actors)))
+                            (update :actions
+                                    (fn [actions]
+                                      (filterv #(= "load" (-> % :entity :action-type))
+                                               actions))))}]}))
 
 (defn transport-order->map [{:keys [id] :as transport-order}]
   (-> transport-order
@@ -182,35 +195,36 @@
 ;; OTM Trip for TMS
 
 (defn consignment->trip [consignment]
-  {:id                  (str (UUID/randomUUID))
-   :external-attributes {:consignment-ref (consignment-ref consignment)}
+  (time-stamp
+   {:id                  (str (UUID/randomUUID))
+    :external-attributes {:consignment-ref (consignment-ref consignment)}
 
-   :actors
-   [{:association-type "inline"
-     :roles #{"carrier"}
-     :entity
-     {:contact-details [{:type "eori"
-                         :value (consignment-carrier-eori consignment)}]}}]
+    :actors
+    [{:association-type "inline"
+      :roles #{"carrier"}
+      :entity
+      {:contact-details [{:type "eori"
+                          :value (consignment-carrier-eori consignment)}]}}]
 
-   :actions
-   [{:association-type "inline"
-     :entity
-     {:action-type "load"
-      :start-time  (consignment-load-date consignment)
-      :location    {:association-type "inline"
-                    :entity           {:name          (consignment-load-location consignment)
-                                       :type          "warehouse"
-                                       :geo-reference {}}}
-      :remarks     (consignment-load-remarks consignment)}}
-    {:association-type "inline"
-     :entity
-     {:action-type "unload"
-      :start-time  (consignment-unload-date consignment)
-      :location    {:association-type "inline"
-                    :entity           {:name          (consignment-unload-location consignment)
-                                       :type          "warehouse"
-                                       :geo-reference {}}}
-      :remarks     (consignment-unload-remarks consignment)}}]})
+    :actions
+    [{:association-type "inline"
+      :entity
+      {:action-type "load"
+       :start-time  (consignment-load-date consignment)
+       :location    {:association-type "inline"
+                     :entity           {:name          (consignment-load-location consignment)
+                                        :type          "warehouse"
+                                        :geo-reference {}}}
+       :remarks     (consignment-load-remarks consignment)}}
+     {:association-type "inline"
+      :entity
+      {:action-type "unload"
+       :start-time  (consignment-unload-date consignment)
+       :location    {:association-type "inline"
+                     :entity           {:name          (consignment-unload-location consignment)
+                                        :type          "warehouse"
+                                        :geo-reference {}}}
+       :remarks     (consignment-unload-remarks consignment)}}]}))
 
 (defn map->trip [{:keys [id ref load-date load-location load-remarks unload-date unload-location unload-remarks carrier-eori driver-id-digits license-plate]}]
   {:id                  id
