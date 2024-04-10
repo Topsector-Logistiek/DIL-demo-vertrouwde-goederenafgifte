@@ -153,12 +153,18 @@
 (defn get-consignment [store id]
   (get-in store [:consignments id]))
 
+(defn min-ref []
+  (-> (java.time.LocalDate/now)
+      (.getYear)
+      (* 100000)
+      (+  31415)))
+
 (defn next-consignment-ref [store]
   (let [refs (->> store
                   (get-consignments)
                   (map otm/consignment-ref)
                   (map #(Integer/parseInt %)))]
-    (str (inc (apply max 20231337 refs)))))
+    (str (inc (apply max (min-ref) refs)))))
 
 
 
