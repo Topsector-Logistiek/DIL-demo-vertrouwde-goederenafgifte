@@ -1,5 +1,6 @@
 (ns dil-demo.store
-  (:require [clojure.java.io :as io]
+  (:require [clojure.tools.logging.readable :as log]
+            [clojure.java.io :as io]
             [clojure.edn :as edn]))
 
 (defmulti commit (fn [_ [cmd & _]] cmd))
@@ -30,6 +31,7 @@
              :as   res} (app req)]
         (when (seq store-commands)
           (doseq [cmd store-commands]
+            (log/debug "committing" cmd)
             (commit store-atom cmd))
           (future (save-store @store-atom file)))
         res))))

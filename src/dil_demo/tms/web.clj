@@ -130,6 +130,7 @@
       (content-type "text/html")))
 
 (defroutes handler
+  ;; TODO: render ishare commands
   (GET "/"  {:keys [flash store]}
     (render "Transportopdrachten"
             (list-trips (get-trips store))

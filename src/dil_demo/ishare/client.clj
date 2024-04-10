@@ -165,8 +165,8 @@ When bearer token is not needed, provide a `nil` token"
    interceptors/query-params
    interceptors/form-params
    json-interceptor ;; should be between decode-body and
-                    ;; throw-on-exceptional-status-code, so that JSON
-                    ;; error messages are decoded
+   ;; throw-on-exceptional-status-code, so that JSON
+   ;; error messages are decoded
    interceptors/decode-body
    interceptors/decompress-body])
 
@@ -176,11 +176,6 @@ When bearer token is not needed, provide a `nil` token"
                        :interceptors interceptors)))
 
 
-
-(defmethod ishare->http-request :default
-  [request]
-  (println "Warning: unknown message passed")
-  request)
 
 (defmethod ishare->http-request :access-token
   [{:ishare/keys [client-id] :as request}]
@@ -253,7 +248,6 @@ When bearer token is not needed, provide a `nil` token"
          :ishare/unsign-token "policy_token"
          :ishare/lens         [:body "policy_token"]))
 
-
 (defmethod ishare->http-request :poort8/policy ;; Poort8 AR specific
   [{params :ishare/params :as request}]
   (assoc request
@@ -262,6 +256,14 @@ When bearer token is not needed, provide a `nil` token"
          :as :json
          :json-params (assoc params
                              :useCase "iSHARE")
+         :ishare/lens [:body]))
+
+(defmethod ishare->http-request :poort8/delete-policy ;; Poort8 AR specific
+  [{params :ishare/params :as request}]
+  (assoc request
+         :method :delete
+         :path (str "../policies/" (:policyId params))
+         :as :json
          :ishare/lens [:body]))
 
 (defmethod ishare->http-request :delegation

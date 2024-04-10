@@ -170,6 +170,10 @@
   [{{:ishare/keys [server-id]} :request}]
   [:span "Delegation Evidence aanmaken in iSHARE Authorisatie Register op " [:q server-id]])
 
+(defmethod ishare-interaction-summary :poort8/delete-policy
+  [{{:ishare/keys [server-id]} :request}]
+  [:span "Policy verwijderen in Poort8 Authorisatie Register op " [:q server-id]])
+
 (defmethod ishare-interaction-summary :poort8/policy
   [{{:ishare/keys [server-id]} :request}]
   [:span "Policy aanmaken in Poort8 Authorisatie Register op " [:q server-id]])

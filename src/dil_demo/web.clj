@@ -1,6 +1,7 @@
 (ns dil-demo.web
   (:require [compojure.core :refer [routes GET]]
             [compojure.route :refer [resources]]
+            [clojure.tools.logging :as log]
             [ring.middleware.defaults :refer [site-defaults wrap-defaults]]
             [ring.middleware.stacktrace :refer [wrap-stacktrace]]
             [ring.util.response :refer [content-type not-found redirect]]
@@ -60,6 +61,13 @@
     (fn carriers-wrapper [req]
       (app (assoc req :carriers carriers)))))
 
+(defn wrap-log
+  [handler]
+  (fn [request]
+    (let [response (handler request)]
+      (log/info (str (:status response) " " (:method request) " " (:uri request)))
+      response)))
+
 (defn make-app [config]
   (-> handler
       (wrap-with-prefix "/erp" (erp/make-handler (config :erp)))
@@ -69,4 +77,5 @@
       (store/wrap (config :store))
       (wrap-defaults (assoc-in site-defaults
                                [:session :store] (ttl-memory-store)))
-      (wrap-stacktrace)))
+      (wrap-stacktrace)
+      (wrap-log)))
