@@ -36,6 +36,13 @@ Het antwoord bij het opvragen van DE is verwarrend vooral in het geval van een a
 
 Omdat het opvoeren van een DE niet gestandaardiseerd is, is het ook niet duidelijk hoe een policy weer ingetrokken moet worden.  Zo lijkt het AR van iSHARE geen mogelijkheid te hebben om een policy in te trekken maar is het theoretisch mogelijk een nieuw DE op te vroegen waar van de rules niet "Permit" maar "Deny" bevatten.  Wat `/delegation` dan teruggeeft is onduidelijk en slaat weer terug op het voorgaande punt over wat er gebeurd als er meerder policies voor een resource target bestaan.
 
+## XACML?
+
+FEEDACK: in hoeverre mogen we de XACML spec als betrouwbare
+documentatie gebruiken? Het lijkt dat het antwoord "helemaal niet" is.
+
+https://ishare-3.gitbook.io/ishare-trust-framework-collection/readme/detailed-descriptions/technical/structure-of-delegation-evidence
+
 ## Resource attributes
 
 Deze zijn niet toepasbaar voor deze use cases.  Het is hier een "actie" op een resource waar het om gaat.
@@ -61,6 +68,27 @@ Het verschil tussen target.environment in de policysets en policies is onduideli
 - Volgens de documentatie is target.environment in deze context optioneel (bron: [Policies](https://dev.ishareworks.org/delegation/policy-sets.html#policies)) echter zowel de iSHARE als de Poort8 implementatie functioneren niet als deze niet gevuld is.  In de iSHARE implementatie wordt een lege lijst toegestaan (`[]`) en bij Poort8 komen we weg met `["Dummy"]`.
 
 - Onduidelijk wat het doel hiervan is.  Moeten systemen zelf checken of ze op de lijst staan?
+
+## resource beschrijving
+
+Resource id is nu een "plat" opdrachtnummer, maar dit zou
+een URN moeten zijn.
+
+https://ishare-3.gitbook.io/ishare-trust-framework-collection/readme/detailed-descriptions/technical/structure-of-delegation-evidence
+
+# iSHARE protocol algemeen
+
+We gebruiken nu voor access subject voor chauffeur ID de
+laatste cijfers van ID + kenteken van trekker.  dit is niet
+compliant met iSHARE spec -- daar zou het altijd een iSHARE
+identifier moeten zijn maar
+
+ 1. ishare identificeert alleen rechtspersonen met een
+    EORI (bedrijven en instellingen)
+
+ 2. ishare deelnemers zijn ook alleen rechtspersonen en iSHARE heeft
+   eigenlijk geen concept van personen die individueel authorisaties
+   krijgen.
 
 # OpenTripModel
 
