@@ -6,6 +6,7 @@
             [ring.middleware.stacktrace :refer [wrap-stacktrace]]
             [ring.util.response :refer [content-type not-found redirect]]
             [nl.jomco.ring-session-ttl-memory :refer [ttl-memory-store]]
+            [dil-demo.data :as d]
             [dil-demo.erp :as erp]
             [dil-demo.tms :as tms]
             [dil-demo.wms :as wms]
@@ -57,7 +58,7 @@
    not-found-handler))
 
 (defn wrap-carriers [app {{carrier-eori :eori} :tms}]
-  (let [carriers {carrier-eori "Precious goods movement BV"}]
+  (let [carriers {carrier-eori d/tms-name}]
     (fn carriers-wrapper [req]
       (app (assoc req :carriers carriers)))))
 

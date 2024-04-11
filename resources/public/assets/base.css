@@ -202,9 +202,10 @@ li:last-child {
 }
 
 blockquote {
-    padding: .5rem;
-    margin: 1rem 0;
+    padding: 1rem;
+    margin: 0;
     font-style: italic;
+    box-shadow: inset 0em 0em .1rem .1rem rgb(0, 0, 0, .1);
 }
 
 pre {

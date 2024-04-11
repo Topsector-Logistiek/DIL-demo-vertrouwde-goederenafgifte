@@ -1,6 +1,7 @@
 (ns dil-demo.tms.web
   (:require [clojure.string :as string]
             [compojure.core :refer [defroutes DELETE GET POST]]
+            [dil-demo.data :as d]
             [dil-demo.otm :as otm]
             [dil-demo.web-utils :as w]
             [ring.util.response :refer [content-type redirect response]]))
@@ -64,14 +65,14 @@
       [:fieldset.load-location
        [:legend "Ophaaladres"]
        [:h3 load-location]
-       (when-let [address (get w/locations load-location)]
+       (when-let [address (get d/locations load-location)]
          [:pre address])
        (when-not (string/blank? load-remarks)
-         [:blockquote.remarks ])]
+         [:blockquote.remarks load-remarks])]
       [:fieldset.unload-location
        [:legend "Afleveradres"]
        [:h3 unload-location]
-       (when-let [address (get w/locations unload-location)]
+       (when-let [address (get d/locations unload-location)]
          [:pre address])
        (when-not (string/blank? unload-remarks)
          [:blockquote.remarks unload-remarks])]]
@@ -136,7 +137,7 @@
 
 
 (defn render [title h flash]
-  (-> (w/render-body "tms" (str "TMS — " title) h
+  (-> (w/render-body "tms" (str title " — " d/tms-name " / TMS") h
                      :flash flash)
       (response)
       (content-type "text/html")))

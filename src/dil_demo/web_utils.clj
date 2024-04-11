@@ -6,32 +6,6 @@
   (:import (java.text SimpleDateFormat)
            (java.util UUID)))
 
-(def locations {"Intel, Schiphol"
-                "Capronilaan 37\n1119 NG  Schiphol-Rijk\nNederland"
-
-                "Nokia, Espoo"
-                "Karakaari 7\n02610 Espoo\nFinland"
-
-                "Bol, Waalwijk"
-                "Mechie Trommelenweg 1\n5145 ND  Waalwijk\nNederland"
-
-                "AH, Pijnacker"
-                "Ackershof 53-60\n2641 DZ  Pijnacker\nNederland"
-
-                "Jumbo, Tilburg"
-                "Stappegoorweg 175\n5022 DD  Tilburg\nNederland"
-
-                "AH Winkel 23, Drachten"
-                "Kiryat Onoplein 87\n9203 KS  Drachten\nNederland"})
-
-(def goods #{"Toiletpapier"
-             "Bananen"
-             "Smartphones"
-             "Cola"
-             "T-shirts"})
-
-(def carriers {"NL0000000000" "De Vries Transport"})
-
 (defn anti-forgery-input []
   [:input {:name "__anti-forgery-token", :value *anti-forgery-token*, :type "hidden"}])
 
@@ -54,7 +28,9 @@
      main]
     [:footer]]])
 
-(defn field [{:keys [name label type value list] :as opts}]
+(defn field [{:keys [name label type value list value-fn]
+              :as opts
+              :or {value-fn val}}]
   (let [list-id (str "list-" (UUID/randomUUID))
         datalist [:datalist {:id list-id} (for [v list] [:option {:value v}])]
         opts (if list (assoc opts :list list-id) opts)]
@@ -68,8 +44,8 @@
        [:select (dissoc opts :label :type :list :value)
         (for [option list]
           (if (vector? option)
-            (let [[k v] option]
-              [:option {:value k, :selected (= k value)} v])
+            (let [[k _] option]
+              [:option {:value k, :selected (= k value)} (value-fn option)])
             [:option {:value option, :selected (= option value)} option]))]
 
        :else

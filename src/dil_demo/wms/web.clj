@@ -1,6 +1,7 @@
 (ns dil-demo.wms.web
   (:require [clojure.string :as string]
             [compojure.core :refer [defroutes DELETE GET POST]]
+            [dil-demo.data :as d]
             [dil-demo.otm :as otm]
             [dil-demo.web-utils :as w]
             [dil-demo.wms.verify :as verify]
@@ -167,7 +168,7 @@
 
 
 (defn render [title h flash]
-  (-> (w/render-body "wms" (str "WMS — " title ) h
+  (-> (w/render-body "wms" (str title " — " d/wms-name " / WMS") h
                      :flash flash)
       (response)
       (content-type "text/html")))

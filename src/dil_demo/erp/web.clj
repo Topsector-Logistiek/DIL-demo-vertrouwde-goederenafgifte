@@ -1,6 +1,7 @@
 (ns dil-demo.erp.web
   (:require [clojure.string :as string]
             [compojure.core :refer [defroutes DELETE GET POST]]
+            [dil-demo.data :as d]
             [dil-demo.otm :as otm]
             [dil-demo.web-utils :as w]
             [ring.util.response :refer [content-type redirect response]])
@@ -55,19 +56,19 @@
       (w/field {:name  "load-date",   :type  "date",
                 :label "Ophaaldatum", :value load-date})
       (w/field {:name  "load-location", :value load-location,
-                :label "Ophaaladres",   :type  "text", :list (keys w/locations), :required true})
+                :label "Ophaaladres",   :type  "select", :list d/warehouses, :required true})
       (w/field {:name  "load-remarks", :value load-remarks,
                 :label "Opmerkingen",  :type  "textarea"})]
      [:section
       (w/field {:name  "unload-date",  :value unload-date,
                 :label "Afleverdatum", :type  "date"})
       (w/field {:name  "unload-location", :value unload-location,
-                :label "Afleveradres",    :type  "text", :list (keys w/locations), :required true})
+                :label "Afleveradres",    :type  "text", :list (keys d/locations), :required true})
       (w/field {:name  "unload-remarks", :value unload-remarks,
                 :label "Opmerkingen",    :type  "textarea"})]
      [:section
       (w/field {:name  "goods",    :value goods,
-                :label "Goederen", :type  "text", :list w/goods, :required true})
+                :label "Goederen", :type  "text", :list d/goods, :required true})
       (w/field {:name  "carrier-eori", :value carrier-eori,
                 :label "Vervoerder",   :type  "select", :list carriers, :required true})]
      [:div.actions
@@ -104,14 +105,14 @@
       [:fieldset.load-location
        [:legend "Ophaaladres"]
        [:h3 load-location]
-       (when-let [address (get w/locations load-location)]
+       (when-let [address (get d/locations load-location)]
          [:pre address])
        (when-not (string/blank? load-remarks)
          [:blockquote.remarks load-remarks])]
       [:fieldset.unload-location
        [:legend "Afleveradres"]
        [:h3 unload-location]
-       (when-let [address (get w/locations unload-location)]
+       (when-let [address (get d/locations unload-location)]
          [:pre address])
        (when-not (string/blank? unload-remarks)
          [:blockquote.remarks unload-remarks])]]
@@ -173,7 +174,7 @@
 
 
 (defn render [title h flash]
-  (-> (w/render-body "erp" (str "ERP — " title ) h
+  (-> (w/render-body "erp" (str title " — " d/erp-name " / ERP") h
                      :flash flash)
       (response)
       (content-type "text/html")))
