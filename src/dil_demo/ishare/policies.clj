@@ -50,6 +50,32 @@
                                  :rules  [{:effect :Permit}]}]}]}
     (date->not-before-not-on-or-after date))})
 
+
+;; FEEDBACK: we gebruiken nu voor access subject voor chauffeur ID de
+;; laatste cijfers van ID + kenteken van trekker.  dit is niet
+;; compliant met iSHARE spec -- daar zou het altijd een iSHARE
+;; identifier moeten zijn maar
+;;
+;; 1. ishare identificeert alleen rechtspersonen met een
+;; EORI (bedrijven en instellingen)
+;;
+;; 2. ishare deelnemers zijn ook alleen rechtspersonen en iSHARE heeft
+;; eigenlijk geen concept van personen die individueel authorisaties
+;; krijgen.
+
+;; FEEDBACK: resource id is nu een "plat" opdrachtnummer, maar dit zou
+;; een URN moeten zijn.
+;;
+;; https://ishare-3.gitbook.io/ishare-trust-framework-collection/readme/detailed-descriptions/technical/structure-of-delegation-evidence
+
+
+;; FEEDACK: in hoeverre mogen we de XACML spec als betrouwbare
+;; documentatie gebruiken? Het lijkt dat het antwoord "helemaal niet"
+;; is.
+;;
+;; https://ishare-3.gitbook.io/ishare-trust-framework-collection/readme/detailed-descriptions/technical/structure-of-delegation-evidence
+
+
 (defn ->poort8-policy
   [{:keys [date subject consignment-ref]}]
   {:pre [subject date consignment-ref]}
