@@ -1,10 +1,16 @@
 # iSHARE
 
+Het is onduidelijk wat de leidende documentatie is van iSHARE.  We maken nu gebruik van 3 bronnen die enkele af en toe tegenspreken:
+
+- https://dev.ishareworks.org/
+- https://ishare-3.gitbook.io/ishare-trust-framework-collection
+- https://app.swaggerhub.com/apis/iSHARE/i-share_satellite/1.0
+
 ## Satellite
 
 - `/connect/token` geeft onverwachte status "202 Accepted" en inhoud "invalid client id" als "client_id" geen EORI is.  Dit zou waarschijnlijk een "400 Bad Request" of "422 Unprocessable Content" status moeten zijn.  Echter, volgens de documentation zou dit een "OpenID Connect 1.0 client ID" moeten toestaan (bron: [Access Token parameters](https://dev.ishareworks.org/common/token.html#parameters))welke ook andere waarden dan een EORI toestaat.
 
-- `/parties/{party_id}` met een niet bestaat ID geeft een "200 OK" met een `party_info` dat leeg is.  Volgens de documentatie is dat niet valide (bron: [Swagger definitie /parties/{party_id}](https://app.swaggerhub.com/apis/iSHARE/i-share_satellite/0.2#/Parties/%2Fparties%2F%7Bparty_id%7D).  Gezien het ID op het pad staat, ligt het voor de hand dat hier een "404 Not Found" response terug wordt gegeven.  In de [dev.ishare](https://dev.ishareworks.org/satellite/parties.html#request) documentatie wordt deze variant van het parties endpoint niet beschreven en het is daarmee onduidelijk welke documentatie leidend is.
+- `/parties/{party_id}` met een niet bestaat ID geeft een "200 OK" met een `party_info` dat leeg is.  Volgens de documentatie is dat niet valide (bron: [Swagger definitie /parties/{party_id}](https://app.swaggerhub.com/apis/iSHARE/i-share_satellite/1.0#/iSHARE%20Satellite/%2Fparties%2F%7Bparty_id%7D).  Gezien het ID op het pad staat, ligt het voor de hand dat hier een "404 Not Found" response terug wordt gegeven.  In de [dev.ishare](https://dev.ishareworks.org/satellite/parties.html#request) documentatie wordt deze variant van het parties endpoint niet beschreven en het is daarmee onduidelijk welke documentatie leidend is.
 
 ## Authorization Register (iSHARE)
 
