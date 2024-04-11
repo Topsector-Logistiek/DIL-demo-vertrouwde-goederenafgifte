@@ -52,7 +52,7 @@
 
 
 ;; FEEDBACK: we gebruiken nu voor access subject voor chauffeur ID de
-;; laatste cijfers van ID + kenteken van trekker.  dit is niet
+;; laatste cijfers van rijbewijs + kenteken van trekker.  dit is niet
 ;; compliant met iSHARE spec -- daar zou het altijd een iSHARE
 ;; identifier moeten zijn maar
 ;;

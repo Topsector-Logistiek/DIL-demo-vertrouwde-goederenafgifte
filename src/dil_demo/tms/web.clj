@@ -13,7 +13,7 @@
      [:th.ref "Klantorder nr."]
      [:th.location "Ophaaladres"]
      [:th.location "Afleveradres"]
-     [:th.id-digits "Chauffeur ID cijfers"]
+     [:th.id-digits "Rijbewijs cijfers"]
      [:th.license-plate "Kenteken"]
      [:th.actions]]]
    [:tbody
@@ -77,7 +77,7 @@
          [:blockquote.remarks unload-remarks])]]
 
      (w/field {:name  "driver-id-digits", :value       driver-id-digits
-               :label "Chauffeur ID",     :placeholder "Laatste 4 cijfers"
+               :label "Rijbewijs",     :placeholder "Laatste 4 cijfers"
                :type  "text",             :pattern     "\\d{4}", :required true})
      (w/field {:name  "license-plate", :value    license-plate
                :label "Kenteken",
@@ -103,7 +103,7 @@
        [:li
         [:h3 "Autoriseer de Chauffeur names de Vervoerder voor de Klantorder vervoerd met Kenteken"]
         [:p "API call naar " [:strong "AR van de Vervoerder"] " om een autorisatie te registeren"]
-        [:ul [:li "Klantorder nr."] [:li "Chauffeur ID (laatste 4 cijfers)"] [:li "Kenteken"]]]
+        [:ul [:li "Klantorder nr."] [:li "Rijbewijs (laatste 4 cijfers)"] [:li "Kenteken"]]]
        [:li
         [:h3 "OTM Trip"]
         [:pre.json (w/to-json trip)]]
@@ -118,9 +118,11 @@
     [:summary "Uitleg"]
     [:ol
      [:li
-      [:h3 "Trek autorisatie van Chauffeur in."]
+      [:h3 "Autorisatie van Chauffeur ingetrokken"]
       [:p "API call naar " [:strong "AR van de Vervoerder"] " om een autorisatie te verwijderen"]
-      [:ul [:li "Klantorder nr."] [:li "Chauffeur ID (laatste 4 cijfers)"] [:li "Kenteken"]]]
+      [:ul [:li "Klantorder nr."]
+       [:li "Rijbewijs (laatste 4 cijfers)"]
+       [:li "Kenteken"]]]
      (w/ishare-log-intercept-to-hiccup ishare-log)]]])
 
 
@@ -159,8 +161,7 @@
               flash))
 
   (GET "/assign-:id" {:keys                [flash store]
-                      {:keys [id]}         :params
-                      {:keys [ishare-log]} :flash}
+                      {:keys [id]}         :params}
     (when-let [trip (get-trip store id)]
       (render (str "Transportopdracht: " (otm/trip-ref trip))
               (assign-trip trip)

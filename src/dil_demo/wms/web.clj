@@ -80,7 +80,7 @@
                :name     "carrier-eori", :label "Vervoerder EORI"
                :required true})
      (w/field {:id          "driver-id-digits"
-               :name        "driver-id-digits",  :label   "Chauffeur ID",
+               :name        "driver-id-digits",  :label   "Rijbewijs",
                :placeholder "Laatste 4 cijfers", :pattern "\\d{4}",
                :required    true})
      (w/field {:id   "license-plate"
@@ -90,7 +90,7 @@
      [:div.actions
       [:button.button-primary
        {:type "submit"
-        :onclick "return confirm('Kloppen de chauffeur ID cijfers en het kenteken?')"}
+        :onclick "return confirm('Kloppen de rijbewijs cijfers en het kenteken?')"}
        "Veriferen"]
       [:a.button {:href "."} "Annuleren"]]]))
 
@@ -105,7 +105,7 @@
      [:q (otm/transport-order-ref transport-order)]
      " goedgekeurd voor vervoerder met EORI "
      [:q carrier-eori]
-     ", chauffeur met ID eindigend op "
+     ", chauffeur met rijbewijs eindigend op "
      [:q driver-id-digits]
      " en kenteken "
      [:q license-plate]
@@ -140,7 +140,7 @@
        [:p
         "Transportopdracht "
         [:q (otm/transport-order-ref transport-order)]
-        " is AFGEKEURD chauffeur met ID eindigend op "
+        " is AFGEKEURD chauffeur met rijbewijs eindigend op "
         [:q driver-id-digits]
         " en kenteken "
         [:q license-plate]
