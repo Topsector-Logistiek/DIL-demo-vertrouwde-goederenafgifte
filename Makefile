@@ -1,6 +1,6 @@
-.PHONY: lint test check clean
+.PHONY: all lint test check clean test-certs
 
-default: target/dil-demo.jar
+all: clean check target/dil-demo.jar
 
 %.crt: %.p12
 	openssl pkcs12 -in $< -chain -nokeys -legacy -out $@
@@ -19,13 +19,50 @@ classes/dil_demo/core.class: src/dil_demo/core.clj
 target/dil-demo.jar: classes/dil_demo/core.class
 	clojure -M:uberjar --main-class dil-demo.core
 
+resources/test/pem/ca.cert.pem:
+	mkdir -p resources/test/pem
+	openssl req \
+		-x509 -newkey rsa:4096 -sha256 -days 365 -noenc \
+		-subj "/CN=TEST-CA" \
+		-keyout resources/test/pem/ca.key.pem \
+		-out resources/test/pem/ca.cert.pem
+
+resources/test/pem/aa.cert.pem: resources/test/pem/ca.cert.pem
+	openssl req \
+		-x509 -newkey rsa:4096 -sha256 -days 365 -noenc \
+		-subj "/CN=Satellite/serialNumber=EU.EORI.AA" \
+		-keyout resources/test/pem/aa.key.pem \
+		-out resources/test/pem/aa.cert.pem \
+		-CA resources/test/pem/ca.cert.pem \
+		-CAkey resources/test/pem/ca.key.pem
+
+resources/test/pem/ar.cert.pem: resources/test/pem/ca.cert.pem
+	openssl req \
+		-x509 -newkey rsa:4096 -sha256 -days 365 -noenc \
+		-subj "/CN=Satellite/serialNumber=EU.EORI.AR" \
+		-keyout resources/test/pem/ar.key.pem \
+		-out resources/test/pem/ar.cert.pem \
+		-CA resources/test/pem/ca.cert.pem \
+		-CAkey resources/test/pem/ca.key.pem
+
+resources/test/pem/client.cert.pem: resources/test/pem/ca.cert.pem
+	openssl req \
+		-x509 -newkey rsa:4096 -sha256 -days 365 -noenc \
+		-keyout resources/test/pem/client.key.pem \
+		-out resources/test/pem/client.cert.pem \
+		-subj "/CN=Satellite/serialNumber=EU.EORI.CLIENT" \
+		-CA resources/test/pem/ca.cert.pem \
+		-CAkey resources/test/pem/ca.key.pem
+
+test-certs: resources/test/pem/ca.cert.pem resources/test/pem/aa.cert.pem resources/test/pem/ar.cert.pem resources/test/pem/client.cert.pem
+
 lint:
 	clojure -M:lint
 
-test:
+test: test-certs
 	clojure -M:test
 
 check: lint test
 
 clean:
-	rm -rf classes target
+	rm -rf classes target resources/test/pem

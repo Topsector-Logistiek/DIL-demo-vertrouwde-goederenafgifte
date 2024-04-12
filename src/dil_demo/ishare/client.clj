@@ -204,9 +204,12 @@ When bearer token is not needed, provide a `nil` token"
    interceptors/decode-body
    interceptors/decompress-body])
 
+(def ^:dynamic http-client nil)
+
 (defn exec
   [request]
   (http/request (assoc request
+                       :client http-client
                        :interceptors interceptors)))
 
 (defn satellite-request
@@ -417,6 +420,8 @@ When bearer token is not needed, provide a `nil` token"
                                                          :serviceProviders []}}}]}]}})
 
   (-> client-data
+      (assoc :ishare/satellite-id (System/getenv "SATELLITE_ID"))
+      (assoc :ishare/satellite-endpoint (System/getenv "SATELLITE_ENDPOINT"))
       (satellite-request)
       (assoc :ishare/message-type :access-token)
       exec

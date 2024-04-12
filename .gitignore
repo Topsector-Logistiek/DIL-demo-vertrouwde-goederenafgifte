@@ -1,5 +1,6 @@
 /classes/
 /target/
 /credentials
-/doc/bevindingen-fase-1.pdf
-/doc/bevindingen-fase-1.tex
+/doc/*.pdf
+/doc/*.tex
+/resources/test/pem/

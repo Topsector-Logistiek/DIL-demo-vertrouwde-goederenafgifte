@@ -223,23 +223,33 @@
   []
   (.getEpochSecond (Instant/now)))
 
-(defn make-client-assertion
-  "Create a signed client assertion for requesting an access token.
+(defn make-jwt
+  [{:keys [iat iss sub aud]
+    :or   {iat (seconds-since-unix-epoch)}
+    :as   claims}
+   private-key x5c]
+  {:pre [iss sub aud]}
+  (jwt/sign (cond-> claims
+              (not (contains? claims :jti))
+              (assoc :jti (UUID/randomUUID))
 
-  The client assertion will be valid for 30 seconds."
+              (not (contains? claims :iat))
+              (assoc :iat iat)
+
+              (not (contains? claims :exp))
+              (assoc :exp (+ iat 30))
+
+              ;; nbf is not required according to the spec, but the
+              ;; Poort8 AR used to require it
+              (not (contains? claims :nbf))
+              (assoc :nbf iat))
+            private-key
+            {:alg    :rs256
+             :header {:x5c x5c
+                      :typ "JWT"}}))
+
+(defn make-client-assertion
+  "Create a signed client assertion for requesting an access token."
   [{:ishare/keys [client-id server-id x5c private-key]}]
   {:pre [client-id server-id x5c private-key]}
-  (let [iat (seconds-since-unix-epoch)
-        exp (+ iat 30)]
-    (jwt/sign {:iss client-id
-               :sub client-id
-               :aud server-id
-               :jti (UUID/randomUUID)
-               :iat iat
-               :nbf iat ;; nbf is not required according to the spec,
-               ;; but the Poort8 AR used to require it
-               :exp exp}
-              private-key
-              {:alg    :rs256
-               :header {:x5c x5c
-                        :typ "JWT"}})))
+  (make-jwt {:iss client-id, :sub client-id, :aud server-id} private-key x5c))
