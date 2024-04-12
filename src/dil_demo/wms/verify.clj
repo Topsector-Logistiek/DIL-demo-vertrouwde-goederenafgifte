@@ -14,8 +14,7 @@
                                                   :target  target})]
       (-> client-data
           (ishare-client/ar-delegation-evidence mask
-                                                {:party-eori   owner-eori
-                                                 :dataspace-id ishare-client/dil-demo-dataspace-id})
+                                                {:party-eori owner-eori})
           (policies/rejection-reasons target)))
     (catch Throwable ex
       [(str "Technische fout opgetreden: " (.getMessage ex))])))
@@ -25,17 +24,16 @@
   [client-data transport-order {:keys [driver-id-digits license-plate carrier-eori]}]
 
   (try
-    (let [target       (policies/->delegation-target (otm/transport-order-ref transport-order))
-          mask         (policies/->delegation-mask {:subject (str driver-id-digits "|" license-plate)
-                                                    ;; TODO: use function for subject
-                                                    :target  target
-                                                    ;; FEEDBACK: Kunnen we er vanuit gaan dat issuer
-                                                    ;; en dataspace id samen de AR bepalen?
-                                                    :issuer  carrier-eori})]
+    (let [target (policies/->delegation-target (otm/transport-order-ref transport-order))
+          mask   (policies/->delegation-mask {:subject (str driver-id-digits "|" license-plate)
+                                              ;; TODO: use function for subject
+                                              :target  target
+                                              ;; FEEDBACK: Kunnen we er vanuit gaan dat issuer
+                                              ;; en dataspace id samen de AR bepalen?
+                                              :issuer  carrier-eori})]
       (-> client-data
           (ishare-client/ar-delegation-evidence mask
-                                                {:party-eori   carrier-eori
-                                                 :dataspace-id ishare-client/dil-demo-dataspace-id})
+                                                {:party-eori carrier-eori})
           (policies/rejection-reasons target)))
     (catch Throwable ex
       [(str "Technische fout opgetreden: " (.getMessage ex))])))

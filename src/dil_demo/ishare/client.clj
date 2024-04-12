@@ -279,8 +279,6 @@ When bearer token is not needed, provide a `nil` token"
 
 
 
-(def dil-demo-dataspace-id "NLDILDEMOGOEDEREN")
-
 (defn satellite-request [request]
   (assoc request
          :ishare/endpoint    "https://dilsat1-mw.pg.bdinetwork.org/"
@@ -296,7 +294,9 @@ When bearer token is not needed, provide a `nil` token"
 
 ;; TODO: use ishare/namespace keys for args
 ;; TODO: turn into interceptor
-(defn satellite-party-authorisation-registry [client-data party-id dataspace-id]
+(defn satellite-party-authorisation-registry
+  [{:ishare/keys [dataspace-id] :as client-data} party-id]
+  {:pre [dataspace-id]}
   (when-let [{:keys [authorizationRegistryName
                      authorizationRegistryID
                      authorizationRegistryUrl
@@ -316,12 +316,11 @@ When bearer token is not needed, provide a `nil` token"
 (defn ar-delegation-evidence
   "Get Delegation Evidence from AR of given party associated with
   dataspace-id using delegation-mask."
-  [client-data delegation-mask {:keys [party-eori dataspace-id]}]
-  {:pre [client-data party-eori delegation-mask dataspace-id]}
+  [client-data delegation-mask {:keys [party-eori]}]
+  {:pre [client-data party-eori delegation-mask (:ishare/dataspace-id client-data)]}
   ;; TODO: turn this into interceptor
   (let [ar-info (satellite-party-authorisation-registry client-data
-                                                        party-eori
-                                                        dil-demo-dataspace-id)]
+                                                        party-eori)]
     ;; FEEDBACK: als subject eori niet bekend wordt er een 404 teruggegeven!?
     (-> client-data
         (merge ar-info)
@@ -333,10 +332,11 @@ When bearer token is not needed, provide a `nil` token"
 
 
 
-(defn ->client-data [{:keys [eori key-file chain-file]}]
-  {:ishare/client-id   eori
-   :ishare/private-key (private-key key-file)
-   :ishare/x5c         (x5c chain-file)})
+(defn ->client-data [{:keys [eori key-file chain-file dataspace-id]}]
+  {:ishare/client-id    eori
+   :ishare/dataspace-id dataspace-id
+   :ishare/private-key  (private-key key-file)
+   :ishare/x5c          (x5c chain-file)})
 
 (defn wrap-client-data
   [app config]
