@@ -175,6 +175,13 @@ When bearer token is not needed, provide a `nil` token"
   (http/request (assoc request
                        :interceptors interceptors)))
 
+(defn satellite-request
+  [{:ishare/keys [satellite-endpoint satellite-id] :as request}]
+  {:pre [satellite-endpoint satellite-id]}
+  (assoc request
+         :ishare/endpoint    satellite-endpoint
+         :ishare/server-id   satellite-id))
+
 
 
 (defmethod ishare->http-request :access-token
@@ -201,32 +208,34 @@ When bearer token is not needed, provide a `nil` token"
 
 (defmethod ishare->http-request :parties
   [{:ishare/keys [params] :as request}]
-  (assoc request
-         :method       :get
-         :path          "parties"
-         :as           :json
-         :query-params  params
-         :ishare/unsign-token "parties_token"
-         ;; NOTE: pagination to be implemented
-         :ishare/lens   [:body "parties_token"]))
+  (-> request
+      (satellite-request)
+      (assoc :method       :get
+             :path          "parties"
+             :as           :json
+             :query-params  params
+             :ishare/unsign-token "parties_token"
+             ;; NOTE: pagination to be implemented
+             :ishare/lens   [:body "parties_token"])))
 
 (defmethod ishare->http-request :party
   [{:ishare/keys [party-id] :as request}]
-  (assoc request
-         :method       :get
-         :path         (str "parties/" party-id)
-         :as           :json
-         :ishare/unsign-token "party_token"
-         :ishare/lens [:body "party_token"]))
+  (-> request
+      (satellite-request)
+      (assoc :method       :get
+             :path         (str "parties/" party-id)
+             :as           :json
+             :ishare/unsign-token "party_token"
+             :ishare/lens [:body "party_token"])))
 
 (defmethod ishare->http-request :trusted-list
   [request]
-  (assoc request
-         :method       :get
-         :path         "trusted_list"
-         :as           :json
-         :ishare/unsign-token "trusted_list_token"
-         :ishare/lens         [:body "trusted_list_token"]))
+  (-> request
+      (assoc :method       :get
+             :path         "trusted_list"
+             :as           :json
+             :ishare/unsign-token "trusted_list_token"
+             :ishare/lens         [:body "trusted_list_token"])))
 
 (defmethod ishare->http-request :capabilities
   [request]
@@ -279,14 +288,8 @@ When bearer token is not needed, provide a `nil` token"
 
 
 
-(defn satellite-request [request]
-  (assoc request
-         :ishare/endpoint    "https://dilsat1-mw.pg.bdinetwork.org/"
-         :ishare/server-id   "EU.EORI.NLDILSATTEST1"))
-
 (defn satellite-party [client-data party-id]
   (-> client-data
-      (satellite-request)
       (assoc :ishare/party-id party-id)
       (assoc :ishare/message-type :party)
       exec
@@ -332,11 +335,14 @@ When bearer token is not needed, provide a `nil` token"
 
 
 
-(defn ->client-data [{:keys [eori key-file chain-file dataspace-id]}]
-  {:ishare/client-id    eori
-   :ishare/dataspace-id dataspace-id
-   :ishare/private-key  (private-key key-file)
-   :ishare/x5c          (x5c chain-file)})
+(defn ->client-data [{:keys [eori key-file chain-file dataspace-id
+                             satellite-id satellite-endpoint]}]
+  {:ishare/client-id          eori
+   :ishare/dataspace-id       dataspace-id
+   :ishare/satellite-id       satellite-id
+   :ishare/satellite-endpoint satellite-endpoint
+   :ishare/private-key        (private-key key-file)
+   :ishare/x5c                (x5c chain-file)})
 
 (defn wrap-client-data
   [app config]
