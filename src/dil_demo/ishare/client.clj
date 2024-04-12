@@ -294,6 +294,8 @@ When bearer token is not needed, provide a `nil` token"
       exec
       :ishare/result))
 
+;; TODO: use ishare/namespace keys for args
+;; TODO: turn into interceptor
 (defn satellite-party-authorisation-registry [client-data party-id dataspace-id]
   (when-let [{:keys [authorizationRegistryName
                      authorizationRegistryID
@@ -306,26 +308,24 @@ When bearer token is not needed, provide a `nil` token"
                       :authregistery)
                   (filter #(= dataspace-id (:dataspaceID %)))
                   first)]
-    {:id             authorizationRegistryID
-     :name           authorizationRegistryName
-     :url            authorizationRegistryUrl
-     :dataspace-id   dataspaceID
-     :dataspace-name dataspaceName}))
+    {:ishare/server-id      authorizationRegistryID
+     :ishare/server-name    authorizationRegistryName
+     :ishare/endpoint       authorizationRegistryUrl}))
 
+;; TODO merge client-data and args
 (defn ar-delegation-evidence
   "Get Delegation Evidence from AR of given party associated with
   dataspace-id using delegation-mask."
   [client-data delegation-mask {:keys [party-eori dataspace-id]}]
   {:pre [client-data party-eori delegation-mask dataspace-id]}
-  (let [{ar-eori :id, ar-url :url}
-        (satellite-party-authorisation-registry client-data
-                                                party-eori
-                                                dil-demo-dataspace-id)]
+  ;; TODO: turn this into interceptor
+  (let [ar-info (satellite-party-authorisation-registry client-data
+                                                        party-eori
+                                                        dil-demo-dataspace-id)]
     ;; FEEDBACK: als subject eori niet bekend wordt er een 404 teruggegeven!?
     (-> client-data
-        (assoc :ishare/endpoint ar-url
-               :ishare/server-id ar-eori
-               :ishare/message-type :delegation
+        (merge ar-info)
+        (assoc :ishare/message-type :delegation
                :ishare/params delegation-mask)
         exec
         :ishare/result
