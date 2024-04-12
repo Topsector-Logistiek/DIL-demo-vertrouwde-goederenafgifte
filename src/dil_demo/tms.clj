@@ -15,12 +15,6 @@
     (when (and id-digits licence-plate)
       (str id-digits "|" licence-plate))))
 
-(defn ->poort8-ar-request
-  [client-data]
-  (assoc client-data
-         :ishare/endpoint    "https://tsl-ishare-dataspace-coremanager-preview.azurewebsites.net/api/ishare"
-         :ishare/server-id   "EU.EORI.NLP8TSLAR1"))
-
 (defn- append-in
   "Insert `coll` into collection at `path` in `m`.
 
@@ -70,7 +64,6 @@
                        (get-in store [:trips (trip-deleted-id response)]))]
       (if-let [policy-id (and trip (get-in store [:trip-policies (otm/trip-ref trip) :policy-id]))]
         (ishare-exec-with-log response (-> client-data
-                                           (->poort8-ar-request)
                                            (assoc :ishare/message-type :poort8/delete-policy
                                                   :ishare/params {:policyId policy-id}
                                                   :throw false ;; ignore HTTP errors
@@ -86,7 +79,6 @@
       (if-let [subject (and trip (driver-licence-ref trip))]
         (let [response (ishare-exec-with-log response
                                              (-> client-data
-                                                 (->poort8-ar-request)
                                                  (assoc :ishare/message-type :poort8/policy
                                                         :ishare/params (policies/->poort8-policy {:consignment-ref (otm/trip-ref trip)
                                                                                                   :date            (otm/trip-load-date trip)

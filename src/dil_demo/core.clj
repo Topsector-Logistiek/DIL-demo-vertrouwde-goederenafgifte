@@ -22,6 +22,8 @@
      :erp   {:eori               erp-eori
              :dataspace-id       dataspace-id
              :satellite-id       satellite-id
+             :ar-id              (get-env "ERP_AR_ID")
+             :ar-endpoint        (get-env "ERP_AR_ENDPOINT")
              :satellite-endpoint satellite-endpoint
              :key-file           (get-env "ERP_KEY_FILE" (str "credentials/" erp-eori ".pem"))
              :chain-file         (get-env "ERP_CHAIN_FILE" (str "credentials/" erp-eori ".crt"))}
@@ -29,6 +31,8 @@
              :dataspace-id       dataspace-id
              :satellite-id       satellite-id
              :satellite-endpoint satellite-endpoint
+             :ar-id              (get-env "TMS_AR_ID")
+             :ar-endpoint        (get-env "TMS_AR_ENDPOINT")
              :key-file           (get-env "TMS_KEY_FILE" (str "credentials/" tms-eori ".pem"))
              :chain-file         (get-env "TMS_CHAIN_FILE" (str "credentials/" tms-eori ".crt"))}
      :wms   {:eori               wms-eori

@@ -246,34 +246,52 @@ When bearer token is not needed, provide a `nil` token"
          :ishare/unsign-token "capabilities_token"
          :ishare/lens         [:body "capabilities_token"]))
 
+(defn own-ar-request
+  "If request has no ishare/endpoint and ishare/server-id,
+  set endpoint and server-id from ishare/authentication-registry-id
+  and ishare/authentication-registry-endpoint"
+  [{:ishare/keys [authentication-registry-id
+                  authentication-registry-endpoint
+                  endpoint
+                  server-id]
+    :as          request}]
+  (if (and endpoint server-id)
+    request
+    (assoc request
+           :ishare/endpoint  authentication-registry-endpoint
+           :ishare/server-id authentication-registry-id)))
+
 (defmethod ishare->http-request :ishare/policy ;; ishare AR specific
   [{delegation-evidence :ishare/params :as request}]
   {:pre [delegation-evidence]}
-  (assoc request
-         :method       :post
-         :path         "policy"
-         :as           :json
-         :json-params  delegation-evidence
-         :ishare/unsign-token "policy_token"
-         :ishare/lens         [:body "policy_token"]))
+  (-> request
+      (own-ar-request)
+      (assoc :method       :post
+             :path         "policy"
+             :as           :json
+             :json-params  delegation-evidence
+             :ishare/unsign-token "policy_token"
+             :ishare/lens         [:body "policy_token"])))
 
 (defmethod ishare->http-request :poort8/policy ;; Poort8 AR specific
   [{params :ishare/params :as request}]
-  (assoc request
-         :method :post
-         :path "../policies"
-         :as :json
-         :json-params (assoc params
-                             :useCase "iSHARE")
-         :ishare/lens [:body]))
+  (-> request
+      (own-ar-request)
+      (assoc :method :post
+             :path "../policies"
+             :as :json
+             :json-params (assoc params
+                                 :useCase "iSHARE")
+             :ishare/lens [:body])))
 
 (defmethod ishare->http-request :poort8/delete-policy ;; Poort8 AR specific
   [{params :ishare/params :as request}]
-  (assoc request
-         :method :delete
-         :path (str "../policies/" (:policyId params))
-         :as :json
-         :ishare/lens [:body]))
+  (-> request
+      (own-ar-request)
+      (assoc :method :delete
+             :path (str "../policies/" (:policyId params))
+             :as :json
+             :ishare/lens [:body])))
 
 (defmethod ishare->http-request :delegation
   [{delegation-mask :ishare/params :as request}]
@@ -336,13 +354,16 @@ When bearer token is not needed, provide a `nil` token"
 
 
 (defn ->client-data [{:keys [eori key-file chain-file dataspace-id
+                             ar-id ar-endpoint
                              satellite-id satellite-endpoint]}]
-  {:ishare/client-id          eori
-   :ishare/dataspace-id       dataspace-id
-   :ishare/satellite-id       satellite-id
-   :ishare/satellite-endpoint satellite-endpoint
-   :ishare/private-key        (private-key key-file)
-   :ishare/x5c                (x5c chain-file)})
+  {:ishare/client-id                        eori
+   :ishare/dataspace-id                     dataspace-id
+   :ishare/satellite-id                     satellite-id
+   :ishare/satellite-endpoint               satellite-endpoint
+   :ishare/authentication-registry-id       ar-id
+   :ishare/authentication-registry-endpoint ar-endpoint
+   :ishare/private-key                      (private-key key-file)
+   :ishare/x5c                              (x5c chain-file)})
 
 (defn wrap-client-data
   [app config]

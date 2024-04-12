@@ -9,10 +9,7 @@
 (defn- ->ishare-ar-policy-request [{:ishare/keys [client-id]
                                     :as          client-data} trip]
   (assoc client-data
-         :ishare/endpoint "https://ar.isharetest.net/"
-         :ishare/server-id "EU.EORI.NL000000004"
          :ishare/message-type :ishare/policy
-
          :ishare/params
          (policies/->delegation-evidence
           {:issuer  client-id
