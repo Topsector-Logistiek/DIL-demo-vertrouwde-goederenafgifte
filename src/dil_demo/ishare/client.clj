@@ -168,7 +168,7 @@ When bearer token is not needed, provide a `nil` token"
                first)]
       (assoc request
              :ishare/server-id authorizationRegistryID
-             :ishare/server-name authorizationRegistryUrl
+             :ishare/server-name authorizationRegistryName
              :ishare/endpoint authorizationRegistryUrl))))
 
 (def fetch-issuer-ar-interceptor

@@ -139,37 +139,43 @@
 
 (defmulti ishare-interaction-summary #(-> % :request :ishare/message-type))
 
+(defn server-description
+  [{:ishare/keys [server-id server-name]}]
+  (if server-name
+    [:span [:q server-id] " (" server-name ")"]
+    [:q server-id]))
+
 (defmethod ishare-interaction-summary :default
   [_]
   [:span "Oeps.."])
 
 (defmethod ishare-interaction-summary :access-token
-  [{{:ishare/keys [server-id]} :request}]
-  [:span "Ophalen access token voor " [:q server-id]])
+  [{:keys [request]}]
+  [:span "Ophalen access token voor " (server-description request)])
 
 (defmethod ishare-interaction-summary :parties
-  [{{:ishare/keys [server-id]} :request}]
-  [:span "Partijen opvragen van " [:q server-id]])
+  [{:keys [request]}]
+  [:span "Partijen opvragen van " (server-description request)])
 
 (defmethod ishare-interaction-summary :party
-  [{{:ishare/keys [server-id party-id]} :request}]
-  [:span "Partij " [:q party-id] " opvragen van satelliet " [:q server-id]])
+  [{{:ishare/keys [party-id] :as request} :request}]
+  [:span "Partij " [:q party-id] " opvragen van satelliet " (server-description request)])
 
 (defmethod ishare-interaction-summary :ishare/policy
-  [{{:ishare/keys [server-id]} :request}]
-  [:span "Delegation Evidence aanmaken in iSHARE Authorisatie Register op " [:q server-id]])
+  [{:keys [request]}]
+  [:span "Delegation Evidence aanmaken in iSHARE Authorisatie Register op " (server-description request)])
 
 (defmethod ishare-interaction-summary :poort8/delete-policy
-  [{{:ishare/keys [server-id]} :request}]
-  [:span "Policy verwijderen in Poort8 Authorisatie Register op " [:q server-id]])
+  [{:keys [request]}]
+  [:span "Policy verwijderen in Poort8 Authorisatie Register op " (server-description request)])
 
 (defmethod ishare-interaction-summary :poort8/policy
-  [{{:ishare/keys [server-id]} :request}]
-  [:span "Policy aanmaken in Poort8 Authorisatie Register op " [:q server-id]])
+  [{:keys [request]}]
+  [:span "Policy aanmaken in Poort8 Authorisatie Register op " (server-description request)])
 
 (defmethod ishare-interaction-summary :delegation
-  [{{:ishare/keys [server-id]} :request}]
-  [:span "Delegation Mask opvragen in Authorisatie Register " [:q server-id]])
+  [{:keys [request]}]
+  [:span "Delegation Mask opvragen in Authorisatie Register " (server-description request)])
 
 (defn ishare-log-intercept-to-hiccup [logs]
   (for [interaction logs]
