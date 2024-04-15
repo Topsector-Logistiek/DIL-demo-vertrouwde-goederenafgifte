@@ -77,6 +77,19 @@
         [:a.button.button-secondary {:href (str "publish-" id)} "Transportopdracht aanmaken"])
       [:a.button {:href "."} "Annuleren"]]]))
 
+(defn deleted-consignment [{:keys [ishare-log]}]
+  [:div
+   [:section
+    [:div.actions
+     [:a.button {:href "."} "Terug naar overzicht"]]]
+   [:details.explanation
+    [:summary "Uitleg"]
+    [:ol
+     [:li
+      [:h3 "Autorisatie van vervoerder ingetrokken"]
+      [:p "API call naar " [:strong "AR van de Verlader"] " om een autorisatie te verwijderen"]]
+     (w/ishare-log-intercept-to-hiccup ishare-log)]]])
+
 (defn publish-consignment [consignment {:keys [carriers]}]
   (let [{:keys [id status ref load-date load-location load-remarks unload-date unload-location unload-remarks goods carrier-eori]}
         (otm/consignment->map consignment)]
@@ -227,10 +240,15 @@
   (DELETE "/consignment-:id" {:keys        [store]
                               {:keys [id]} :params}
     (when (get-consignment store id)
-      (-> "."
+      (-> "deleted"
           (redirect :see-other)
           (assoc :flash {:success "Klantorder verwijderd"})
           (assoc :store-commands [[:delete! :consignments id]]))))
+
+  (GET "/deleted" {{:keys [ishare-log] :as flash} :flash}
+    (render "Transportopdracht verwijderd"
+            (deleted-consignment {:ishare-log ishare-log})
+            flash))
 
   (GET "/publish-:id" {:keys        [carriers flash store]
                        {:keys [id]} :params}

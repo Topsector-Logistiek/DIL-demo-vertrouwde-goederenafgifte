@@ -40,15 +40,15 @@
      :notOnOrAfter (local-date-time->epoch not-on-or-after)}))
 
 (defn ->delegation-evidence
-  [{:keys [date issuer subject target]}]
-  {:pre [date issuer subject target]}
+  [{:keys [date issuer subject target effect]}]
+  {:pre [date issuer subject target (#{"Permit" "Deny"} effect)]}
   {:delegationEvidence
    (merge
     {:policyIssuer issuer
      :target       {:accessSubject subject}
      :policySets   [{:target   {:environment {:licenses [license]}}
                      :policies [{:target target
-                                 :rules  [{:effect :Permit}]}]}]}
+                                 :rules  [{:effect effect}]}]}]}
     (date->not-before-not-on-or-after date))})
 
 

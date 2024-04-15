@@ -35,7 +35,7 @@ De policy zijn maar korte tijd beschikbaar in het AR, ongeacht de waarden van `n
 
 Policies worden overschreven op basis van een identieke `policyIssuer` en `accessSubject`.  We hebben in deze demo gekozen voor de iSHARE AR als AR voor de verlader, een logische waarde voor `accessSubject` zou dan zijn de transporteur EORI zijn, dat betekent echter dat er maar één autorisatie per transporteur per verlader uitgegeven kan worden.  Dat maakt dit AR onbruikbaar voor deze use-case.
 
-Het lijkt onmogelijk om een policy in te trekken.  Het is wel mogelijk een policy te overschreven (zie vorige opmerking).  Dit kan dus als workaround gebruikt worden.
+Het lijkt onmogelijk om een policy in te trekken.  Het is wel mogelijk een policy te overschreven (zie vorige opmerking).  Dit hebben we als workaround gebruikt worden; het inschieten van een regel dat iets *niet* mag.  Echter het AR geeft een status "500 Internal Server Error" als deze weer opgevraagd wordt wat uiteraard niet wenselijk is.
 
 
 ## Authorization Register (Poort8)
