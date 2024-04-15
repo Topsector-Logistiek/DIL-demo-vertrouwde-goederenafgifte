@@ -38,10 +38,11 @@
       (-> client-data
           (assoc :ishare/message-type :delegation
                  :ishare/policy-issuer carrier-eori
-                 :ishare/params mask
-                 ishare-client/exec
-                 :delegationEvidence
-                 (policies/rejection-reasons target))))
+                 :ishare/params mask)
+          ishare-client/exec
+          :ishare/result
+          :delegationEvidence
+          (policies/rejection-reasons target)))
     (catch Throwable ex
       [(str "Technische fout opgetreden: " (.getMessage ex))])))
 
