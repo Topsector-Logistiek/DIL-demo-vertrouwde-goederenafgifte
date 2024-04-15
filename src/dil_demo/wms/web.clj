@@ -206,7 +206,9 @@
   (POST "/verify-:id" {:keys [client-data flash store]
                        {:keys [id] :as params} :params}
     (when-let [transport-order (get-transport-order store id)]
-      (let [result (verify/verify! client-data transport-order params)]
+      (let [params (merge (otm/transport-order->map transport-order)
+                          (select-keys params [:carrier-eori :driver-id-digits :license-plate]))
+            result (verify/verify! client-data transport-order params)]
         (if (verify/permitted? result)
           (render (str "Transportopdracht ("
                        (otm/transport-order-ref transport-order)

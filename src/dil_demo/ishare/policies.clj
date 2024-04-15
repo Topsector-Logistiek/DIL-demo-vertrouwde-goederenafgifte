@@ -1,4 +1,5 @@
 (ns dil-demo.ishare.policies
+  (:require [dil-demo.otm :as otm])
   (:import (java.time Instant LocalDate LocalDateTime ZoneId)
            java.time.format.DateTimeFormatter))
 
@@ -151,3 +152,9 @@
 
       :finally
       (seq))))
+
+(defn ishare-delegation-access-subject
+  "Hack around short coming of iSHARE AR; uniqueness on accessSubject and policyIssuer."
+  [{:keys [carrier-eori ref]}]
+  {:pre [carrier-eori ref]}
+  (str carrier-eori ":" ref))

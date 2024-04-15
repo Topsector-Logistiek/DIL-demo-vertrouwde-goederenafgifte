@@ -13,7 +13,7 @@
          :ishare/params
          (policies/->delegation-evidence
           {:issuer  client-id
-           :subject (otm/trip-carrier-eori trip)
+           :subject (policies/ishare-delegation-access-subject (otm/trip->map trip))
            :target  (policies/->delegation-target (otm/trip-ref trip))
            :date    (otm/trip-load-date trip)})))
 

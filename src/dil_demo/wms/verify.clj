@@ -5,12 +5,12 @@
 
 (defn verify-owner
   "Ask AR of owner if carrier is allowed to pickup order."
-  [client-data transport-order {:keys [carrier-eori]}]
+  [client-data transport-order params]
   (try
     (let [owner-eori (otm/transport-order-owner-eori transport-order)
           target     (policies/->delegation-target (otm/transport-order-ref transport-order))
           mask       (policies/->delegation-mask {:issuer  owner-eori
-                                                  :subject carrier-eori
+                                                  :subject (policies/ishare-delegation-access-subject params)
                                                   :target  target})]
       (-> client-data
           (ishare-client/ar-delegation-evidence mask
