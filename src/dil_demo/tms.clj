@@ -5,16 +5,6 @@
             [dil-demo.ishare.client :as ishare-client]
             [dil-demo.otm :as otm]))
 
-(defn driver-licence-ref
-  "Returns driver+license-plate ref
-
-  Returns nil if driver or license-plate is missing."
-  [trip]
-  (let [id-digits     (otm/trip-driver-id-digits trip)
-        licence-plate (otm/trip-license-plate trip)]
-    (when (and id-digits licence-plate)
-      (str id-digits "|" licence-plate))))
-
 (defn- append-in
   "Insert `coll` into collection at `path` in `m`.
 
@@ -76,7 +66,7 @@
   (fn delegation-wrapper [{:keys [client-data] :as req}]
     (let [response (app req)
           trip     (trip-added response)]
-      (if-let [subject (and trip (driver-licence-ref trip))]
+      (if-let [subject (and trip (policies/poort8-delegation-access-subject (otm/trip->map trip)))]
         (let [response (ishare-exec-with-log response
                                              (-> client-data
                                                  (assoc :ishare/message-type :poort8/policy

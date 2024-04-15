@@ -158,3 +158,9 @@
   [{:keys [carrier-eori ref]}]
   {:pre [carrier-eori ref]}
   (str carrier-eori ":" ref))
+
+(defn poort8-delegation-access-subject
+  "Returns driver ID license-plate access subject."
+  [{:keys [driver-id-digits license-plate]}]
+  {:pre [driver-id-digits license-plate]}
+  (str driver-id-digits "|" license-plate))

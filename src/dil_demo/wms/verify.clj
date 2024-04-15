@@ -26,12 +26,11 @@
 
 (defn verify-carrier
   "Ask AR of carrier if driver is allowed to pickup order."
-  [client-data transport-order {:keys [driver-id-digits license-plate carrier-eori]}]
+  [client-data transport-order {:keys [carrier-eori] :as params}]
 
   (try
     (let [target (policies/->delegation-target (otm/transport-order-ref transport-order))
-          mask   (policies/->delegation-mask {:subject (str driver-id-digits "|" license-plate)
-                                              ;; TODO: use function for subject
+          mask   (policies/->delegation-mask {:subject (policies/poort8-delegation-access-subject params)
                                               :target  target
                                               ;; FEEDBACK: Kunnen we er vanuit gaan dat issuer
                                               ;; en dataspace id samen de AR bepalen?
