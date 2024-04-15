@@ -9,13 +9,13 @@
 (defn anti-forgery-input []
   [:input {:name "__anti-forgery-token", :value *anti-forgery-token*, :type "hidden"}])
 
-(defn template [site title main & {:keys [flash]}]
+(defn template [site main & {:keys [flash title site-name]}]
   [:html
    [:head
     [:meta {:charset "utf-8"}]
     [:meta {:name "viewport", :content "width=device-width,initial-scale=1.0"}]
 
-    [:title title]
+    [:title (str title " — " site-name)]
 
     [:link {:rel "stylesheet", :href (str "/assets/" site ".css")}]
     [:link {:rel "stylesheet", :href "/assets/base.css"}]]
@@ -26,7 +26,8 @@
      (for [[type message] (select-keys flash [:error :success :warning])]
        [:div.flash {:class (str "flash-" (name type))} message])
      main]
-    [:footer]]])
+    [:footer
+     [:div.site-name site-name]]]])
 
 (defn field [{:keys [name label type value list value-fn]
               :as opts
@@ -55,11 +56,11 @@
      (when list
        datalist)]))
 
-(defn delete-button [path]
+(defn delete-button [path & {:keys [label] :or {label "Verwijderen"}}]
   [:form.delete {:method "POST", :action path}
    (anti-forgery-input)
    [:input {:type "hidden", :name "_method", :value "DELETE"}]
-   [:button {:type "submit", :onclick "return confirm('Zeker weten?')"} "Verwijderen"]])
+   [:button {:type "submit", :onclick "return confirm('Zeker weten?')"} label]])
 
 (defn qr-code [text]
   (let [id (str "qrcode-" (UUID/randomUUID))]
@@ -82,8 +83,8 @@
     "—"
     val))
 
-(defn render-body [site title h & {:keys [flash]}]
-  (str "<!DOCTYPE HTML>" (hiccup/html (template site title h :flash flash))))
+(defn render-body [site main & opts]
+  (str "<!DOCTYPE HTML>" (hiccup/html (apply template site main opts))))
 
 (defn camelize
   "Convert key `s` from lispy to jsony style."

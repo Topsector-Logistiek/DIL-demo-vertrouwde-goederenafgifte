@@ -186,9 +186,12 @@
 
 
 
-(defn render [title h flash]
-  (-> (w/render-body "erp" (str title " — " d/erp-name " / ERP") h
-                     :flash flash)
+(defn render [title main flash]
+  (-> (w/render-body "erp"
+                     main
+                     :flash flash
+                     :title title
+                     :site-name d/erp-name)
       (response)
       (content-type "text/html")))
 

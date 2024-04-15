@@ -89,7 +89,7 @@
       [:a.button {:href "."} "Annuleren"]]]))
 
 (defn assigned-trip [trip {:keys [ishare-log]}]
-  (let [{:keys [ref driver-id-digits license-plate carrier-eori] :as params} (otm/trip->map trip)]
+  (let [{:keys [ref] :as params} (otm/trip->map trip)]
     [:div
      [:section
       [:p "Transportopdracht " [:q ref] " toegewezen."]
@@ -136,9 +136,12 @@
 
 
 
-(defn render [title h flash]
-  (-> (w/render-body "tms" (str title " — " d/tms-name " / TMS") h
-                     :flash flash)
+(defn render [title main flash]
+  (-> (w/render-body "tms"
+                     main
+                     :flash flash
+                     :title title
+                     :site-name d/tms-name)
       (response)
       (content-type "text/html")))
 

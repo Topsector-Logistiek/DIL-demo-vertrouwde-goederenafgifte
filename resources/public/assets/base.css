@@ -1,5 +1,5 @@
 :root {
-    --color-back: #000;
+    --color-black: #000;
     --color-white: #fff;
     --color-text-gray: #888;
     --color-table-border: #ddd;
@@ -36,10 +36,13 @@ header, footer {
     background-size: contain;
     background-position: right;
     background-color: var(--color-bg);
-    padding: 2rem;
+    padding: 1rem 2rem;
 }
 header h1 {
     margin: 0;
+}
+footer .site-name {
+    text-align: right;
 }
 nav ul {
     list-style-position: inside;
@@ -70,6 +73,7 @@ section {
 section:last-child {
     margin-bottom: 0;
 }
+
 .field {
     margin-bottom: 1rem;
 }
@@ -114,9 +118,9 @@ div.actions:last-child {
 button, .button, .button-primary, .button-secondary {
     position: relative;
     display: inline-block;
-    padding: 0 1em;
     margin: 0 .5rem 0 0;
-    line-height: 2rem;
+    padding: 0 1em;
+
     color: var(--color-black);
     background: var(--color-white);
     outline: none;
@@ -127,9 +131,11 @@ button, .button, .button-primary, .button-secondary {
     box-shadow: .2em .2em .2em rgba(0, 0, 0, .1);
     border-radius: .5em;
     cursor: pointer;
+
     text-transform: uppercase;
     text-align: center;
     font-size: .9em;
+    line-height: 2rem;
 }
 .button-primary {
     background: var(--color-button-primary);

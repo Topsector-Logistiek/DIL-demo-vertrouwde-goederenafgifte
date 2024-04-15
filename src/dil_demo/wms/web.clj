@@ -10,28 +10,19 @@
   (:import [java.util UUID]))
 
 (defn list-transport-orders [transport-orders]
-  [:table
-   [:thead
-    [:tr
-     [:th.date "Ophaaldatum"]
-     [:th.ref "Opdracht nr."]
-     [:th.goods "Goederen"]
-     [:th.actions]]]
-   [:tbody
-    (when-not (seq transport-orders)
-      [:tr.empty
-       [:td {:colspan 999}
-        "Nog geen transportopdrachten geregistreerd.."]])
-
-    (for [{:keys [id ref load-date goods]}
-          (map otm/transport-order->map transport-orders)]
-      [:tr.transport-order
-       [:td.date load-date]
-       [:td.ref ref]
-       [:td.goods goods]
-       [:td.actions
-        [:a.button.button-secondary {:href (str "transport-order-" id)} "Openen"]
-        (w/delete-button (str "transport-order-" id))]])]])
+  (if (seq transport-orders)
+    [:ul.cards
+     (for [{:keys [id ref load-date goods]}
+           (map otm/transport-order->map transport-orders)]
+       [:li.card.transport-order
+        [:a.button {:href (str "verify-" id)}
+         [:div.date load-date]
+         [:div.ref ref]
+         [:div.goods goods]]
+        (w/delete-button (str "transport-order-" id))])]
+    [:ul.empty
+     [:li
+      "Nog geen transportopdrachten geregistreerd.."]]))
 
 (defn show-transport-order [transport-order]
   (let [{:keys [id ref load-date load-remarks]}
@@ -64,12 +55,14 @@
       "Scan QR"]]))
 
 (defn verify-transport-order [transport-order]
-  (let [{:keys [id ref load-remarks]}
+  (let [{:keys [id ref load-date load-remarks goods]}
         (otm/transport-order->map transport-order)]
     [:form {:method "POST", :action (str "verify-" id)}
      (w/anti-forgery-input)
 
      (w/field {:label "Opdracht nr.", :value ref, :disabled true})
+     (w/field {:label "Datum", :value load-date, :disabled true})
+     (w/field {:label "Goederen", :value goods, :disabled true})
      (when-not (string/blank? load-remarks)
        (w/field {:label "Opmerkingen", :value load-remarks, :type "textarea", :disabled true}))
 
@@ -100,7 +93,7 @@
                                 {:keys [ishare-log]}]
   [:div
    [:section
-    [:h2.verification.verification-accepted "Afgifte akkoord"]
+    [:h3.verification.verification-accepted "Afgifte akkoord"]
     [:p
      "Transportopdracht "
      [:q (otm/transport-order-ref transport-order)]
@@ -124,7 +117,7 @@
                                         carrier-rejections]}]
   [:div
    [:section
-    [:h2.verification.verification-rejected "Afgifte NIET akkoord"]
+    [:h3.verification.verification-rejected "Afgifte NIET akkoord"]
     (when owner-rejections
       [:div.owner-rejections
        [:p
@@ -167,9 +160,12 @@
 
 
 
-(defn render [title h flash]
-  (-> (w/render-body "wms" (str title " — " d/wms-name " / WMS") h
-                     :flash flash)
+(defn render [title main flash]
+  (-> (w/render-body "wms"
+                     main
+                     :flash flash
+                     :title title
+                     :site-name d/wms-name)
       (response)
       (content-type "text/html")))
 
@@ -178,14 +174,6 @@
     (render "Transportopdrachten"
             (list-transport-orders (get-transport-orders store))
             flash))
-
-  (GET "/transport-order-:id" {:keys [flash store]
-                               {:keys [id]} :params}
-    (when-let [transport-order (get-transport-order store id)]
-      (render (str "Transportopdracht: "
-                   (otm/transport-order-ref transport-order))
-              (show-transport-order transport-order)
-              flash)))
 
   (DELETE "/transport-order-:id" {:keys [store]
                                   {:keys [id]} :params}
@@ -198,8 +186,7 @@
   (GET "/verify-:id" {:keys [flash store]
                       {:keys [id]} :params}
     (when-let [transport-order (get-transport-order store id)]
-      (render (str "verificatie Transportopdracht: "
-                   (otm/transport-order-ref transport-order))
+      (render "Verificatie"
               (verify-transport-order transport-order)
               flash)))
 
@@ -210,13 +197,9 @@
                           (select-keys params [:carrier-eori :driver-id-digits :license-plate]))
             result (verify/verify! client-data transport-order params)]
         (if (verify/permitted? result)
-          (render (str "Transportopdracht ("
-                       (otm/transport-order-ref transport-order)
-                       ") geaccepteerd")
+          (render "Transportopdracht geaccepteerd"
                   (accepted-transport-order transport-order params result)
                   flash)
-          (render (str "Transportopdracht ("
-                       (otm/transport-order-ref transport-order)
-                       ") afgewezen")
+          (render "Transportopdracht afgewezen"
                   (rejected-transport-order transport-order params result)
                   flash))))))

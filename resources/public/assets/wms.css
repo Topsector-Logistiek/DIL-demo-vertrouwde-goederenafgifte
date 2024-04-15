@@ -4,19 +4,58 @@
     --color-button-secondary: #a9d6c7;
 }
 
-h2.verification {
+h3.verification {
     padding: 1em;
 }
-h2.verification-accepted {
+h3.verification-accepted {
     background: var(--color-success-bg);
 }
-h2.verification-accepted:before {
+h3.verification-accepted:before {
     content: '✔ ';
 }
 
-h2.verification-rejected {
+h3.verification-rejected {
     background: var(--color-error-bg);
 }
-h2.verification-rejected:before {
+h3.verification-rejected:before {
     content: '❌ ';
+}
+
+ul.cards {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+li.card {
+    position: relative;
+}
+li.card:after {
+    content: '';
+    display: block;
+    clear: both;
+}
+li.card div.date {
+    float: right;
+}
+li.card div.goods {
+    margin-top: 1em;
+    font-style: italic;
+}
+li.card .delete {
+    float: right;
+    font-size: smaller;
+}
+
+li.card > .button {
+    display: block;
+    padding: 1em;
+    margin: 0;
+
+    text-transform: inherit;
+    text-align: inherit;
+    font-size: inherit;
+    line-height: inherit;
+}
+.card-button {
+    display: block;
 }
