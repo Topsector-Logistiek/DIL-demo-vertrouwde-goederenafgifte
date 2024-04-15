@@ -6,6 +6,19 @@ Het is onduidelijk wat de leidende documentatie is van iSHARE.  We maken nu gebr
 - https://ishare-3.gitbook.io/ishare-trust-framework-collection
 - https://app.swaggerhub.com/apis/iSHARE/i-share_satellite/1.0
 
+iShare levert p12-bestanden in verouderd formaat:
+
+```
+Error outputting keys and certificates
+C0218E66F87F0000:error:0308010C:digital envelope routines:inner_evp_generic_fetch:unsupported:crypto/evp/evp_fetch.c:373:Global default library context, Algorithm (RC2-40-CBC : 0), Properties ()
+```
+
+Zie ook: https://www.openssl.org/docs/man3.0/man7/OSSL_PROVIDER-legacy.html
+
+Er wordt waarschijnlijk gebruik gemaakt van het openssl 1.1.1 ipv
+openssl 3.0 (bestaat al sinds december 2021!).
+
+
 ## Satellite
 
 - `/connect/token` geeft onverwachte status "202 Accepted" en inhoud "invalid client id" als "client_id" geen EORI is.  Dit zou waarschijnlijk een "400 Bad Request" of "422 Unprocessable Content" status moeten zijn.  Echter, volgens de documentation zou dit een "OpenID Connect 1.0 client ID" moeten toestaan (bron: [Access Token parameters](https://dev.ishareworks.org/common/token.html#parameters))welke ook andere waarden dan een EORI toestaat.
