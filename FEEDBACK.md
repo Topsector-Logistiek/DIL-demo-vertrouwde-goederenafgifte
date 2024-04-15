@@ -18,9 +18,12 @@ Het is onduidelijk wat de leidende documentatie is van iSHARE.  We maken nu gebr
 
 - `/policy` geeft status "200 OK" bij het succesvol opvoeren van een policy.  Het ligt meer voor de hand dat hier een "201 Created" status teruggegeven wordt.
 
-Het lijkt onmogelijk om een policy in te trekken.
+De policy zijn maar korte tijd beschikbaar in het AR, ongeacht de waarden van `notBefore` en `notOnOrAfter`.  Dit heeft waarschijnlijk te maken met het JWT token waarin dit policy gecodeerd staat en is voor M2M use cases niet altijd een probleem.  Voor deze use case is dat geen probleem.
 
-De policy zijn maar korte tijd beschikbaar in het AR, ongeacht de waarden van `notBefore` en `notOnOrAfter`.  Dit heeft waarschijnlijk te maken met het JWT token waarin dit policy gecodeerd staat en is voor M2M use cases niet altijd een probleem.  Voor deze use case echter wel en daarom is de huidige implementatie van het iSHARE AR niet geschikt.
+Policies worden overschreven op basis van een identieke `policyIssuer` en `accessSubject`.  We hebben in deze demo gekozen voor de iSHARE AR als AR voor de verlader, een logische waarde voor `accessSubject` zou dan zijn de transporteur EORI zijn, dat betekent echter dat er maar één autorisatie per transporteur per verlader uitgegeven kan worden.  Dat maakt dit AR onbruikbaar voor deze use-case.
+
+Het lijkt onmogelijk om een policy in te trekken.  Het is wel mogelijk een policy te overschreven (zie vorige opmerking).  Dit kan dus als workaround gebruikt worden.
+
 
 ## Authorization Register (Poort8)
 
