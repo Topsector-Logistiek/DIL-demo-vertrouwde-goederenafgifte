@@ -7,14 +7,19 @@
   "Ask AR of owner if carrier is allowed to pickup order."
   [client-data transport-order params]
   (try
-    (let [owner-eori (otm/transport-order-owner-eori transport-order)
-          target     (policies/->delegation-target (otm/transport-order-ref transport-order))
-          mask       (policies/->delegation-mask {:issuer  owner-eori
-                                                  :subject (policies/ishare-delegation-access-subject params)
-                                                  :target  target})]
+
+    (let [issuer (otm/transport-order-owner-eori transport-order)
+          target (policies/->delegation-target (otm/transport-order-ref transport-order))
+          mask   (policies/->delegation-mask {:issuer  issuer
+                                              :subject  (policies/ishare-delegation-access-subject params)
+                                              :target  target})]
       (-> client-data
-          (ishare-client/ar-delegation-evidence mask
-                                                {:party-eori owner-eori})
+          (assoc :ishare/message-type :delegation
+                 :ishare/policy-issuer issuer ;; ensures we target the right server (AR)
+                 :ishare/params mask)
+          ishare-client/exec
+          :ishare/result
+          :delegationEvidence
           (policies/rejection-reasons target)))
     (catch Throwable ex
       [(str "Technische fout opgetreden: " (.getMessage ex))])))
@@ -32,9 +37,12 @@
                                               ;; en dataspace id samen de AR bepalen?
                                               :issuer  carrier-eori})]
       (-> client-data
-          (ishare-client/ar-delegation-evidence mask
-                                                {:party-eori carrier-eori})
-          (policies/rejection-reasons target)))
+          (assoc :ishare/message-type :delegation
+                 :ishare/policy-issuer carrier-eori
+                 :ishare/params mask
+                 ishare-client/exec
+                 :delegationEvidence
+                 (policies/rejection-reasons target))))
     (catch Throwable ex
       [(str "Technische fout opgetreden: " (.getMessage ex))])))
 

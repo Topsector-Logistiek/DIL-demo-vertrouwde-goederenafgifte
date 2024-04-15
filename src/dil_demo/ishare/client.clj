@@ -144,6 +144,39 @@ When bearer token is not needed, provide a `nil` token"
                 (assoc request :uri (resolve-uri endpoint path))
                 request))})
 
+
+
+(defn- fetch-issuer-ar
+  "If request contains policy-issuer and no server-id + endpoint, set
+  server-id and endpoint to issuer's authorization registry for dataspace."
+  [{:ishare/keys [policy-issuer dataspace-id server-id endpoint]
+    :as          request}]
+  (if (or (not (and policy-issuer dataspace-id))
+          (and server-id endpoint))
+    request
+    (let [{:keys [authorizationRegistryName
+                  authorizationRegistryID
+                  authorizationRegistryUrl]}
+          (->> (-> request
+                   (assoc :ishare/message-type :party
+                          :ishare/party-id policy-issuer)
+                   exec
+                   :ishare/result
+                   :party_info
+                   :authregistery)
+               (filter #(= dataspace-id (:dataspaceID %)))
+               first)]
+      (assoc request
+             :ishare/server-id authorizationRegistryID
+             :ishare/server-name authorizationRegistryUrl
+             :ishare/endpoint authorizationRegistryUrl))))
+
+(def fetch-issuer-ar-interceptor
+  {:name    ::fetch-issuer-ar
+   :request fetch-issuer-ar})
+
+
+
 (defmulti ishare->http-request
   :ishare/message-type)
 
@@ -153,6 +186,7 @@ When bearer token is not needed, provide a `nil` token"
 
 (def interceptors
   [ishare-interpreter-interactor
+   fetch-issuer-ar-interceptor
    interceptors/throw-on-exceptional-status-code
    log-interceptor
    lens-interceptor
@@ -246,6 +280,20 @@ When bearer token is not needed, provide a `nil` token"
          :ishare/unsign-token "capabilities_token"
          :ishare/lens         [:body "capabilities_token"]))
 
+
+
+(defmethod ishare->http-request :delegation
+  [{delegation-mask :ishare/params :as request}]
+  (assoc request
+         :method               :post
+         :path                 "delegation"
+         :as                   :json
+         :json-params          delegation-mask
+         :ishare/unsign-token  "delegation_token"
+         :ishare/lens          [:body "delegation_token"]))
+
+
+
 (defn own-ar-request
   "If request has no ishare/endpoint and ishare/server-id,
   set endpoint and server-id from ishare/authentication-registry-id
@@ -292,64 +340,6 @@ When bearer token is not needed, provide a `nil` token"
              :path (str "../policies/" (:policyId params))
              :as :json
              :ishare/lens [:body])))
-
-(defmethod ishare->http-request :delegation
-  [{delegation-mask :ishare/params :as request}]
-  {:pre [delegation-mask]}
-  (assoc request
-         :method       :post
-         :path         "delegation"
-         :as           :json
-         :json-params  delegation-mask
-         :ishare/unsign-token "delegation_token"
-         :ishare/lens         [:body "delegation_token"]))
-
-
-
-(defn satellite-party [client-data party-id]
-  (-> client-data
-      (assoc :ishare/party-id party-id)
-      (assoc :ishare/message-type :party)
-      exec
-      :ishare/result))
-
-;; TODO: use ishare/namespace keys for args
-;; TODO: turn into interceptor
-(defn satellite-party-authorisation-registry
-  [{:ishare/keys [dataspace-id] :as client-data} party-id]
-  {:pre [dataspace-id]}
-  (when-let [{:keys [authorizationRegistryName
-                     authorizationRegistryID
-                     authorizationRegistryUrl
-                     dataspaceID
-                     dataspaceName]}
-             (->> (-> client-data
-                      (satellite-party party-id)
-                      :party_info
-                      :authregistery)
-                  (filter #(= dataspace-id (:dataspaceID %)))
-                  first)]
-    {:ishare/server-id      authorizationRegistryID
-     :ishare/server-name    authorizationRegistryName
-     :ishare/endpoint       authorizationRegistryUrl}))
-
-;; TODO merge client-data and args
-(defn ar-delegation-evidence
-  "Get Delegation Evidence from AR of given party associated with
-  dataspace-id using delegation-mask."
-  [client-data delegation-mask {:keys [party-eori]}]
-  {:pre [client-data party-eori delegation-mask (:ishare/dataspace-id client-data)]}
-  ;; TODO: turn this into interceptor
-  (let [ar-info (satellite-party-authorisation-registry client-data
-                                                        party-eori)]
-    ;; FEEDBACK: als subject eori niet bekend wordt er een 404 teruggegeven!?
-    (-> client-data
-        (merge ar-info)
-        (assoc :ishare/message-type :delegation
-               :ishare/params delegation-mask)
-        exec
-        :ishare/result
-        :delegationEvidence)))
 
 
 
@@ -442,6 +432,4 @@ When bearer token is not needed, provide a `nil` token"
       (assoc :ishare/message-type :delegation ;; standardized call
              :ishare/params delegation-mask)
       exec
-      :ishare/result)
-
-  (satellite-party-authorisation-registry client-data "EU.EORI.NLSMARTPHON" "NLDILDEMOGOEDEREN"))
+      :ishare/result))
