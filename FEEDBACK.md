@@ -28,6 +28,8 @@ De policy zijn maar korte tijd beschikbaar in het AR, ongeacht de waarden van `n
 
 - (was) Niet mogelijk om notBefore en notOnOrAfter door te gegeven in nieuwe policy.
 
+- (nu) `expiration` gebruikt bij inschieten voor veld `notOnOrAfter`. Zelfde veldnaam gebruiken is duidelijker en minder foutgevoelig.
+
 - `/delegation` geeft bij afwijzing `notBefore` en `notOnOrAfter` as `-1` terug.  Dat is conform JSON schema (bron: [iSHARE Scheme Specification](https://app.swaggerhub.com/apis/iSHARE/iSHARE_Scheme_Specification/2.0#/jwt_payload_delegation_evidence_token)) maar niet heel nuttig.
 
 # Delegation Evidence
@@ -50,6 +52,25 @@ Deze zijn niet toepasbaar voor deze use cases.  Het is hier een "actie" op een r
 ## JWT geldigheid tov notBefore en notOnOrAfter
 
 Waarom is JWT geldigheid niet gelijk getrokken met notBefore en notOnOrAfter?
+
+## JWT documentatie incorrect
+
+Op  https://dev.ishareworks.org/reference/jwt.html#jwt-payload staat:
+
+    The JWT MUST always contain the iat claim.
+
+    The iss and sub claims MUST contain the valid iSHARE
+    identifier (EORI) of the client.
+
+    The aud claim MUST contain only the valid iSHARE identifier of
+    the server. Including multiple audiences creates a risk of
+    impersonation and is therefore not allowed.
+
+Bovenstaande is niet correct voor JTWs die door server worden afgegeven:
+
+Bij delegation evidence is de `iss` de AR server, en `sub` de data consumer / client.
+
+De `aud` claim bij delegation evidence is dan weer de service provider die de delegation mask aanvraag bij het AR doet -- dat is weer een andere server dan de `iss`, hierboven.
 
 ## target.environment
 
@@ -75,6 +96,18 @@ Resource id is nu een "plat" opdrachtnummer, maar dit zou
 een URN moeten zijn.
 
 https://ishare-3.gitbook.io/ishare-trust-framework-collection/readme/detailed-descriptions/technical/structure-of-delegation-evidence
+
+# iSHARE Parties/Party endpoint 
+
+## Attribuut & parameter namen
+
+Ene keer wordt `under_score` dan weer `camelCase` gebruikt, dit is lelijk en foutgevoelig.
+
+Voorbeelden: `date_datime`, `certified_only`, `adherenceStartDate` en `registrarSatelliteID`.
+
+Ook zit er in het `/party` endpoint resultaat een spelfout: `authregistery`. Dis zit niet in het `/parties` endpoint.
+
+
 
 # iSHARE protocol algemeen
 
