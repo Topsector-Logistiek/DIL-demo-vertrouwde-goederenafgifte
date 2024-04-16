@@ -27,7 +27,11 @@
        [:div.flash {:class (str "flash-" (name type))} message])
      main]
     [:footer
-     [:div.site-name site-name]]]])
+     [:div.site-name site-name]
+     [:div.powered-by
+      [:img {:src "/assets/bdi-logo.png"
+             :title "Powered by BDI — Basic Data Infrastructure"
+             :alt "Powered by BDI — Basic Data Infrastructure"}]]]]])
 
 (defn field [{:keys [name label type value list value-fn]
               :as opts

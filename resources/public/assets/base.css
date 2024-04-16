@@ -25,8 +25,14 @@ body {
 }
 header, footer, main {
     margin: auto;
+}
+main {
     padding: 2rem;
     max-width: 80rem;
+}
+header, footer {
+    padding: 1rem;
+    max-width: 82rem;
 }
 main {
     background: var(--color-main-bg);
@@ -36,13 +42,24 @@ header, footer {
     background-size: contain;
     background-position: right;
     background-color: var(--color-bg);
-    padding: 1rem 2rem;
 }
 header h1 {
     margin: 0;
 }
+footer {
+    display: flex;
+    font-size: small;
+}
+footer > div {
+    vertical-align: middle;
+    min-height: 2rem;
+    line-height: 2rem;
+}
 footer .site-name {
-    text-align: right;
+    flex: 1;
+}
+footer .powered-by img {
+    height: 2rem;
 }
 nav ul {
     list-style-position: inside;
