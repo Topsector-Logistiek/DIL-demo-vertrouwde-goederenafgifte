@@ -1,3 +1,5 @@
+.PHONY: lint test check clean
+
 default: target/dil-demo.jar
 
 %.crt: %.p12
@@ -16,6 +18,14 @@ classes/dil_demo/core.class: src/dil_demo/core.clj
 
 target/dil-demo.jar: classes/dil_demo/core.class
 	clojure -M:uberjar --main-class dil-demo.core
+
+lint:
+	clojure -M:lint
+
+test:
+	clojure -M:test
+
+check: lint test
 
 clean:
 	rm -rf classes target

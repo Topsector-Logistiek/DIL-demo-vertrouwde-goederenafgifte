@@ -57,10 +57,3 @@
 (defn permitted? [{:keys [owner-rejections carrier-rejections]}]
   (and (empty? owner-rejections)
        (empty? carrier-rejections)))
-
-(comment
-  (def store (dil-demo.store/load-store "/tmp/dil-demo.edn"))
-  (def transport-order (-> store :transport-orders first val))
-  (def client-data (-> (dil-demo.core/->config) :wms (ishare-client/->client-data)))
-  (def carrier-eori (-> (dil-demo.core/->config) :tms :eori))
-  )

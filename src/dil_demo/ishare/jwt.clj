@@ -180,7 +180,7 @@
 
 ;; TODO: This is only the case for client-assertions
 (defn iss-equal-to-sub?
-  [{:keys [iss sub] :as payload}]
+  [{:keys [iss sub]}]
   (= iss sub))
 
 (s/def ::payload

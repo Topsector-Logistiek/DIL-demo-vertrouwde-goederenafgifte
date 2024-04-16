@@ -1,5 +1,4 @@
 (ns dil-demo.ishare.policies
-  (:require [dil-demo.otm :as otm])
   (:import (java.time Instant LocalDate LocalDateTime ZoneId)
            java.time.format.DateTimeFormatter))
 

@@ -34,13 +34,13 @@
 
 (defn- trip-added
   "Returns the trip that will stored from the response"
-  [{:keys [store-commands] :as response}]
+  [{:keys [store-commands]}]
   (when-let [cmd (first (filter #(= [:put! :trips] (take 2 %)) store-commands))]
     (nth cmd 2)))
 
 (defn- trip-deleted-id
   "Returns the trip id that will be deleted from the response"
-  [{:keys [store-commands] :as response}]
+  [{:keys [store-commands]}]
   (when-let [cmd (first (filter #(= [:delete! :trips] (take 2 %)) store-commands))]
     (nth cmd 2)))
 
