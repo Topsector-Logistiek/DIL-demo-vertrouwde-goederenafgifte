@@ -1,0 +1,19 @@
+# build.sr.ht
+
+image: alpine/latest
+
+packages:
+  - openssl
+  - openjdk11-jre-headless
+
+sources:
+  - https://git.sr.ht/~jomco/connekt-dil-demo
+
+tasks:
+  - clojure: |
+      curl -L -O https://github.com/clojure/brew-install/releases/latest/download/linux-install.sh
+      sh linux-install.sh -p `pwd`
+  - check: |
+      PATH=$PATH:`pwd`/bin
+      cd connekt-dil-demo
+      make check
