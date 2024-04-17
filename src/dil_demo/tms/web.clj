@@ -4,7 +4,7 @@
             [dil-demo.data :as d]
             [dil-demo.otm :as otm]
             [dil-demo.web-utils :as w]
-            [ring.util.response :refer [content-type redirect response]]))
+            [ring.util.response :refer [redirect]]))
 
 (defn list-trips [trips]
   [:table
@@ -137,13 +137,11 @@
 
 
 (defn render [title main flash]
-  (-> (w/render-body "tms"
-                     main
-                     :flash flash
-                     :title title
-                     :site-name d/tms-name)
-      (response)
-      (content-type "text/html")))
+  (w/render-body "tms"
+                 main
+                 :flash flash
+                 :title title
+                 :site-name d/tms-name))
 
 (defroutes handler
   (GET "/" {:keys [flash store]}

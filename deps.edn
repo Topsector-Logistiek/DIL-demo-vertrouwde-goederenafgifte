@@ -13,7 +13,10 @@
         nl.jomco/ring-session-ttl-memory {:git/url "https://git.sr.ht/~jomco/ring-session-ttl-memory"
                                           :git/sha "0415dedace39e2d28b6dc66fcf1321e8e136ca2c"}
 
+        ;; for tests
+        nl.jomco/clj-http-status-codes   {:mvn/version "0.1"}
         org.clojure/core.async {:mvn/version "1.6.681"}
+        ring/ring-mock {:mvn/version "0.4.0"}
 
         ;; for uberjar
         org.clojure/clojure {:mvn/version "1.11.1"}}

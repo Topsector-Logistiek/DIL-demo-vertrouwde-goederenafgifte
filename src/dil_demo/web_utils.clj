@@ -54,9 +54,9 @@
             [:option {:value option, :selected (= option value)} option]))]
 
        :else
-       [:input (-> opts
-                   (dissoc :label)
-                   (assoc :list list-id))])
+       [:input (cond-> opts
+                 list (assoc :list list-id)
+                 :and (dissoc :label))])
      (when list
        datalist)]))
 
@@ -88,6 +88,7 @@
     val))
 
 (defn render-body [site main & opts]
+  {:pre [(string? site) (coll? main)]}
   (str "<!DOCTYPE HTML>" (hiccup/html (apply template site main opts))))
 
 (defn camelize

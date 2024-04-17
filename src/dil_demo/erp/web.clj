@@ -4,8 +4,8 @@
             [dil-demo.data :as d]
             [dil-demo.otm :as otm]
             [dil-demo.web-utils :as w]
-            [ring.util.response :refer [content-type redirect response]])
-  (:import [java.util UUID Date]))
+            [ring.util.response :refer [redirect]])
+  (:import (java.util Date UUID)))
 
 (defn list-consignments [consignments]
   (let [actions [:a.button.button-primary {:href "consignment-new"} "Nieuw"]]
@@ -187,13 +187,11 @@
 
 
 (defn render [title main flash]
-  (-> (w/render-body "erp"
-                     main
-                     :flash flash
-                     :title title
-                     :site-name d/erp-name)
-      (response)
-      (content-type "text/html")))
+  (w/render-body "erp"
+                 main
+                 :flash flash
+                 :title title
+                 :site-name d/erp-name))
 
 (defroutes handler
   (GET "/" {:keys [flash store]}
@@ -225,7 +223,7 @@
                                        (otm/map->consignment))]]))))
 
   (GET "/consignment-:id" {:keys [carriers flash store] {:keys [id]} :params}
-    (let [consignment (get-consignment store id)]
+    (when-let [consignment (get-consignment store id)]
       (render (str "Klantorder: " (otm/consignment-ref consignment))
               (edit-consignment consignment {:carriers carriers})
               flash)))

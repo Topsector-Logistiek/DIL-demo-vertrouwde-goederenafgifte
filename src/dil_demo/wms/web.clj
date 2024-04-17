@@ -1,13 +1,13 @@
 (ns dil-demo.wms.web
-  (:require [clojure.string :as string]
+  (:require [clojure.data.json :refer [json-str]]
+            [clojure.string :as string]
             [compojure.core :refer [defroutes DELETE GET POST]]
             [dil-demo.data :as d]
             [dil-demo.otm :as otm]
             [dil-demo.web-utils :as w]
             [dil-demo.wms.verify :as verify]
-            [clojure.data.json :refer [json-str]]
-            [ring.util.response :refer [content-type redirect response]])
-  (:import [java.util UUID]))
+            [ring.util.response :refer [redirect]])
+  (:import (java.util UUID)))
 
 (defn list-transport-orders [transport-orders]
   (if (seq transport-orders)
@@ -161,13 +161,11 @@
 
 
 (defn render [title main flash]
-  (-> (w/render-body "wms"
-                     main
-                     :flash flash
-                     :title title
-                     :site-name d/wms-name)
-      (response)
-      (content-type "text/html")))
+  (w/render-body "wms"
+                 main
+                 :flash flash
+                 :title title
+                 :site-name d/wms-name))
 
 (defroutes handler
   (GET "/" {:keys [flash store]}

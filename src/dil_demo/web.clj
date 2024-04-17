@@ -26,7 +26,8 @@
       (let [path (last (re-find url-prefix-re uri))]
         (cond
           path
-          (handler (assoc req :uri path))
+          (or (handler (assoc req :uri path))
+              (app req))
 
           (= uri url-prefix)
           (redirect (str uri "/"))
@@ -35,9 +36,14 @@
           (app req))))))
 
 (def not-found-handler
-  (constantly (-> "Not found"
+  (constantly (-> (w/render-body "dil"
+                                 [:main
+                                  [:p "Deze pagina bestaat niet."]
+                                  [:a.button {:href "/"} "Terug naar het startscherm"]]
+                                 :title "Niet gevonden"
+                                 :site-name "Dil-Demo")
                   (not-found)
-                  (content-type "text/html"))))
+                  (content-type "text/html; charset=utf-8"))))
 
 (defn list-apps []
   [:nav
@@ -52,8 +58,9 @@
   (routes
    (GET "/" {}
      (w/render-body "dil"
-                    "DIL — Demo Vertrouwde Goederenafgifte"
-                    (list-apps)))
+                    (list-apps)
+                    :title "Demo Vertrouwde Goederenafgifte"
+                    :site-name "DIL-Demo"))
    (resources "/")
    not-found-handler))
 
