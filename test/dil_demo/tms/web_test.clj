@@ -1,6 +1,7 @@
 (ns dil-demo.tms.web-test
   (:require [clojure.test :refer [deftest is testing]]
             [dil-demo.tms.web :as sut]
+            [dil-demo.store :as store]
             [nl.jomco.http-status-codes :as http-status]
             [ring.mock.request :refer [request]]))
 
@@ -22,7 +23,7 @@
   (testing "/assign-some-id"
     (let [{:keys [status headers body]}
           (sut/handler (assoc (request :get "/assign-some-id")
-                              :store store))]
+                              ::store/store store))]
       (is (= http-status/ok status))
       (is (= "text/html; charset=utf-8" (get headers "Content-Type")))
       (is (re-find #"<dd>some-ref</dd>" body)))))
