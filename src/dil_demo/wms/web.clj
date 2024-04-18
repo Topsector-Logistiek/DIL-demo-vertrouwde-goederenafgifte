@@ -4,6 +4,7 @@
             [compojure.core :refer [defroutes DELETE GET POST]]
             [dil-demo.data :as d]
             [dil-demo.otm :as otm]
+            [dil-demo.store :as store]
             [dil-demo.web-utils :as w]
             [dil-demo.wms.verify :as verify]
             [ring.util.response :refer [redirect]])
@@ -168,27 +169,30 @@
                  :site-name d/wms-name))
 
 (defroutes handler
-  (GET "/" {:keys [flash store]}
+  (GET "/" {:keys        [flash]
+            ::store/keys [store]}
     (render "Transportopdrachten"
             (list-transport-orders (get-transport-orders store))
             flash))
 
-  (DELETE "/transport-order-:id" {:keys [store]
+  (DELETE "/transport-order-:id" {::store/keys [store]
                                   {:keys [id]} :params}
     (when (get-transport-order store id)
       (-> "."
           (redirect :see-other)
           (assoc :flash {:success "Transportopdracht verwijderd"})
-          (assoc :store-commands [[:delete! :transport-orders id]]))))
+          (assoc ::store/commands [[:delete! :transport-orders id]]))))
 
-  (GET "/verify-:id" {:keys [flash store]
+  (GET "/verify-:id" {:keys        [flash]
+                      ::store/keys [store]
                       {:keys [id]} :params}
     (when-let [transport-order (get-transport-order store id)]
       (render "Verificatie"
               (verify-transport-order transport-order)
               flash)))
 
-  (POST "/verify-:id" {:keys [client-data flash store]
+  (POST "/verify-:id" {:keys                   [client-data flash]
+                       ::store/keys            [store]
                        {:keys [id] :as params} :params}
     (when-let [transport-order (get-transport-order store id)]
       (let [params (merge (otm/transport-order->map transport-order)

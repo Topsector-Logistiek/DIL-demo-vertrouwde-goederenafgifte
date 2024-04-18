@@ -2,6 +2,7 @@
   (:require [dil-demo.tms.web :as web]
             [clojure.tools.logging.readable :as log]
             [dil-demo.ishare.policies :as policies]
+            [dil-demo.store :as store]
             [dil-demo.ishare.client :as ishare-client]
             [dil-demo.otm :as otm]))
 
@@ -34,21 +35,21 @@
 
 (defn- trip-added
   "Returns the trip that will stored from the response"
-  [{:keys [store-commands]}]
-  (when-let [cmd (first (filter #(= [:put! :trips] (take 2 %)) store-commands))]
+  [{::store/keys [commands]}]
+  (when-let [cmd (first (filter #(= [:put! :trips] (take 2 %)) commands))]
     (nth cmd 2)))
 
 (defn- trip-deleted-id
   "Returns the trip id that will be deleted from the response"
-  [{:keys [store-commands]}]
-  (when-let [cmd (first (filter #(= [:delete! :trips] (take 2 %)) store-commands))]
+  [{::store/keys [commands]}]
+  (when-let [cmd (first (filter #(= [:delete! :trips] (take 2 %)) commands))]
     (nth cmd 2)))
 
 (defn- wrap-policy-deletion
   "When a trip is added or deleted, retract existing policies in the AR"
   [app]
   (fn policy-deletion-wrapper
-    [{:keys [client-data store] :as req}]
+    [{:keys [client-data ::store/store] :as req}]
     (let [response (app req)
           trip     (or (trip-added response)
                        (get-in store [:trips (trip-deleted-id response)]))]
@@ -74,8 +75,8 @@
                                                                                                   :date            (otm/trip-load-date trip)
                                                                                                   :subject         subject}))))]
           (if-let [policy-id (get-in response [:ishare/result "policyId"])]
-            (append-in response [:store-commands] [[:put! :trip-policies {:id        (otm/trip-ref trip)
-                                                                          :policy-id policy-id}]])
+            (append-in response [::store/commands] [[:put! :trip-policies {:id        (otm/trip-ref trip)
+                                                                           :policy-id policy-id}]])
             response))
         ;; no valid driver ref, so don't create a policy
         response))))

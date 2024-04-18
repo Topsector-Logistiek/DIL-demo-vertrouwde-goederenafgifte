@@ -2,6 +2,7 @@
   (:require [dil-demo.erp.web :as web]
             [dil-demo.ishare.client :as ishare-client]
             [dil-demo.ishare.policies :as policies]
+            [dil-demo.store :as store]
             [dil-demo.otm :as otm]
             [clojure.tools.logging :as log]
             [dil-demo.web-utils :as web-utils]))
@@ -40,11 +41,11 @@
   "When a trip is added or deleted, retract existing policies in the AR"
   [app]
   (fn policy-deletion-wrapper
-    [{:keys [client-data store] :as req}]
+    [{:keys [client-data ::store/store] :as req}]
 
-    (let [{:keys [store-commands] :as res} (app req)]
+    (let [{::store/keys [commands] :as res} (app req)]
       (if-let [id (-> (filter #(= [:delete! :consignments] (take 2 %))
-                                store-commands)
+                                commands)
                         (first)
                         (nth 2))]
         (let [consignment (get-in store [:consignments id])
@@ -58,8 +59,8 @@
   "Create policies in AR when trips is created."
   [app]
   (fn delegation-wrapper [{:keys [client-data] :as req}]
-    (let [{:keys [store-commands] :as res} (app req)
-          trip (->> store-commands
+    (let [{::store/keys [commands] :as res} (app req)
+          trip (->> commands
                     (filter #(= [:put! :trips] (take 2 %)))
                     (map #(nth % 2))
                     (first))]

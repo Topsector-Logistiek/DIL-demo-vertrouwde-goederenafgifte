@@ -19,19 +19,29 @@
       (edn/read-string (slurp file))
       {})))
 
+;; TODO: race condition with `load-store`.  Make this an atomic file
+;; write + move
 (defn save-store [store filename]
   (spit (io/file filename) (pr-str store)))
 
 (defn wrap
+  "Middleware providing storage.
+
+  Provides :dil-demo.store/store key in request, containing the
+  current state of store (read-only).
+
+  When :dil-demo.store/commands key in response provides a colleciton
+  of commands, those will be committed to the storage."
   [app {:keys [file]}]
   (let [store-atom (atom (load-store file))]
-    (fn store-wrapper [req]
-      (let [req         (assoc req :store @store-atom)
-            {:keys [store-commands]
-             :as   res} (app req)]
-        (when (seq store-commands)
-          (doseq [cmd store-commands]
+    (fn store-wrapper [request]
+      (let [{::keys [commands]
+             :as    response} (-> request
+                                  (assoc ::store @store-atom)
+                                  (app))]
+        (when (seq commands)
+          (doseq [cmd commands]
             (log/debug "committing" cmd)
             (commit store-atom cmd))
           (future (save-store @store-atom file)))
-        res))))
+        response))))

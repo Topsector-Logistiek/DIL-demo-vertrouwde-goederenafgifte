@@ -3,6 +3,7 @@
             [compojure.core :refer [defroutes DELETE GET POST]]
             [dil-demo.data :as d]
             [dil-demo.otm :as otm]
+            [dil-demo.store :as store]
             [dil-demo.web-utils :as w]
             [ring.util.response :refer [redirect]])
   (:import (java.util Date UUID)))
@@ -194,7 +195,7 @@
                  :site-name d/erp-name))
 
 (defroutes handler
-  (GET "/" {:keys [flash store]}
+  (GET "/" {:keys [flash ::store/store]}
     (render "Klantorders"
             (list-consignments (get-consignments store))
             flash))
@@ -215,14 +216,14 @@
       (-> "."
           (redirect :see-other)
           (assoc :flash {:success "Klantorder aangemaakt"})
-          (assoc :store-commands [[:put! :consignments
-                                   (-> params
-                                       (assoc :id id
-                                              :status otm/status-draft
-                                              :owner-eori eori)
-                                       (otm/map->consignment))]]))))
+          (assoc ::store/commands [[:put! :consignments
+                                    (-> params
+                                        (assoc :id id
+                                               :status otm/status-draft
+                                               :owner-eori eori)
+                                        (otm/map->consignment))]]))))
 
-  (GET "/consignment-:id" {:keys [carriers flash store] {:keys [id]} :params}
+  (GET "/consignment-:id" {:keys [carriers flash ::store/store] {:keys [id]} :params}
     (when-let [consignment (get-consignment store id)]
       (render (str "Klantorder: " (otm/consignment-ref consignment))
               (edit-consignment consignment {:carriers carriers})
@@ -233,10 +234,10 @@
     (-> "."
         (redirect :see-other)
         (assoc :flash {:success "Klantorder aangepast"})
-        (assoc :store-commands [[:put! :consignments
-                                 (-> params
-                                     (assoc :owner-eori eori)
-                                     (otm/map->consignment))]])))
+        (assoc ::store/commands [[:put! :consignments
+                                  (-> params
+                                      (assoc :owner-eori eori)
+                                      (otm/map->consignment))]])))
 
   (DELETE "/consignment-:id" {:keys        [store]
                               {:keys [id]} :params}
@@ -244,31 +245,31 @@
       (-> "deleted"
           (redirect :see-other)
           (assoc :flash {:success "Klantorder verwijderd"})
-          (assoc :store-commands [[:delete! :consignments id]]))))
+          (assoc ::store/commands [[:delete! :consignments id]]))))
 
   (GET "/deleted" {{:keys [ishare-log] :as flash} :flash}
     (render "Transportopdracht verwijderd"
             (deleted-consignment {:ishare-log ishare-log})
             flash))
 
-  (GET "/publish-:id" {:keys        [carriers flash store]
+  (GET "/publish-:id" {:keys        [carriers flash ::store/store]
                        {:keys [id]} :params}
     (when-let [consignment (get-consignment store id)]
       (render "Transportopdracht aanmaken"
               (publish-consignment consignment {:carriers carriers})
               flash)))
 
-  (POST "/publish-:id" {:keys        [store]
+  (POST "/publish-:id" {:keys        [::store/store]
                         {:keys [id]} :params}
     (when-let [consignment (get-consignment store id)]
       (-> (str "published-" id)
           (redirect :see-other)
           (assoc :flash {:success "Transportopdracht aangemaakt"})
-          (assoc :store-commands [[:put! :consignments (assoc consignment :status "requested")]
-                                  [:put! :transport-orders (otm/consignment->transport-order consignment)]
-                                  [:put! :trips (otm/consignment->trip consignment)]]))))
+          (assoc ::store/commands [[:put! :consignments (assoc consignment :status "requested")]
+                                   [:put! :transport-orders (otm/consignment->transport-order consignment)]
+                                   [:put! :trips (otm/consignment->trip consignment)]]))))
 
-  (GET "/published-:id" {:keys                [carriers flash store]
+  (GET "/published-:id" {:keys                [carriers flash ::store/store]
                          {:keys [id]}         :params
                          {:keys [ishare-log]} :flash}
     (when-let [consignment (get-consignment store id)]

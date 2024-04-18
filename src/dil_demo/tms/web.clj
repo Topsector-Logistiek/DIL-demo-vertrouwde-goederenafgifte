@@ -3,6 +3,7 @@
             [compojure.core :refer [defroutes DELETE GET POST]]
             [dil-demo.data :as d]
             [dil-demo.otm :as otm]
+            [dil-demo.store :as store]
             [dil-demo.web-utils :as w]
             [ring.util.response :refer [redirect]]))
 
@@ -144,42 +145,46 @@
                  :site-name d/tms-name))
 
 (defroutes handler
-  (GET "/" {:keys [flash store]}
+  (GET "/" {:keys [flash ::store/store]}
     (render "Transportopdrachten"
             (list-trips (get-trips store))
             flash))
 
-  (DELETE "/trip-:id" {:keys        [store]
+  (DELETE "/trip-:id" {::store/keys [store]
                        {:keys [id]} :params}
     (when (get-trip store id)
       (-> "deleted"
           (redirect :see-other)
           (assoc :flash {:success "Transportopdracht verwijderd"})
-          (assoc :store-commands [[:delete! :trips id]]))))
+          (assoc ::store/commands [[:delete! :trips id]]))))
 
   (GET "/deleted" {{:keys [ishare-log] :as flash} :flash}
-      (render "Transportopdracht verwijderd"
-              (deleted-trip {:ishare-log ishare-log})
-              flash))
+    (render "Transportopdracht verwijderd"
+            (deleted-trip {:ishare-log ishare-log})
+            flash))
 
-  (GET "/assign-:id" {:keys                [flash store]
-                      {:keys [id]}         :params}
+  (GET "/assign-:id" {:keys        [flash]
+                      ::store/keys [store]
+                      {:keys [id]} :params}
     (when-let [trip (get-trip store id)]
       (render (str "Transportopdracht: " (otm/trip-ref trip))
               (assign-trip trip)
               flash)))
 
-  (POST "/assign-:id" {:keys                                       [store]
-                       {:keys [id driver-id-digits license-plate]} :params}
+  (POST "/assign-:id" {::store/keys            [store]
+                       {:keys [driver-id-digits
+                               id
+                               license-plate]} :params}
     (when-let [trip (get-trip store id)]
       (-> (str "assigned-" id)
           (redirect :see-other)
           (assoc :flash {:success "Chauffeur en kenteken toegewezen"})
-          (assoc :store-commands [[:put! :trips (-> trip
-                                                    (otm/trip-driver-id-digits! driver-id-digits)
-                                                    (otm/trip-license-plate! license-plate))]]))))
+          (assoc ::store/commands [[:put! :trips (-> trip
+                                                     (otm/trip-driver-id-digits! driver-id-digits)
+                                                     (otm/trip-license-plate! license-plate))]]))))
 
-  (GET "/assigned-:id" {:keys                [flash store]
+  (GET "/assigned-:id" {:keys                [flash]
+                        ::store/keys         [store]
                         {:keys [id]}         :params
                         {:keys [ishare-log]} :flash}
     (when-let [trip (get-trip store id)]
