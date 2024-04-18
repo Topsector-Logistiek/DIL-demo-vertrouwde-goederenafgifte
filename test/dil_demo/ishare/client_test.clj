@@ -43,7 +43,7 @@
 (defn test-get-token [c token]
   (testing "getting an access token"
     (let [{:keys [uri]} (<!! c)]
-      (is (= (str aa-url "/connect/token") uri))
+      (is (= (str aa-url "/connect/token") (str uri)))
 
       (>!! c {:status  200
               :uri     uri
@@ -61,7 +61,7 @@
 
       (testing "getting parties"
         (let [{:keys [uri] :as req} (<!! c)]
-          (is (= (str aa-url "/parties") uri))
+          (is (= (str aa-url "/parties") (str uri)))
           (is (= "Bearer aa-token" (get-in req [:headers "Authorization"])))
 
           (>!! c {:status  200
@@ -89,7 +89,7 @@
 
       (testing "getting parties"
         (let [{:keys [uri] :as req} (<!! c)]
-          (is (= (str aa-url "/parties") uri))
+          (is (= (str aa-url "/parties") (str uri)))
           (is (= "Bearer aa-token" (get-in req [:headers "Authorization"])))
 
           (>!! c {:status  200
@@ -117,7 +117,7 @@
 
       (testing "getting parties"
         (let [{:keys [uri] :as req} (<!! c)]
-          (is (= (str aa-url "/parties") uri))
+          (is (= (str aa-url "/parties") (str uri)))
           (is (= "Bearer aa-token" (-> req :headers (get "Authorization"))))
 
           (>!! c {:status  200
@@ -143,7 +143,7 @@
 
       (testing "getting client"
         (let [{:keys [uri] :as req} (<!! c)]
-          (is (= (str aa-url "/parties/" client-eori) uri))
+          (is (= (str aa-url "/parties/" client-eori) (str uri)))
           (is (= "Bearer aa-token" (-> req :headers (get "Authorization"))))
 
           (>!! c {:status  200
@@ -168,7 +168,7 @@
 
       (testing "get token at AR"
         (let [{:keys [uri]} (<!! c)]
-          (is (= (str ar-url "/connect/token") uri))
+          (is (= (str ar-url "/connect/token") (str uri)))
 
           (>!! c {:status  200
                   :uri     uri
@@ -179,7 +179,7 @@
 
       (testing "delegation call"
         (let [{:keys [uri] :as req} (<!! c)]
-          (is (= (str ar-url "/delegation") uri))
+          (is (= (str ar-url "/delegation") (str uri)))
           (is (= "Bearer ar-token" (get-in req [:headers "Authorization"])))
 
           (>!! c {:status  200
