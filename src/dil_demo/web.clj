@@ -83,7 +83,7 @@
 
   This function accepts `user` named with `user-prefix` and number
   between 1 and `max-accounts`.  When `passwd` matches the number
-  multiplied by `pass-multi` it returns `user`."
+  multiplied by `pass-multi` it returns the user number."
   [{:keys [user-prefix pass-multi max-accounts]}]
   (let [user-re (re-pattern (str "^" (re-quote-replacement user-prefix) "(\\d+)$"))]
     (fn authenticate [user passwd]
@@ -91,7 +91,20 @@
         (let [n (parse-long n-str)]
           (and (<= 1 n max-accounts)
                (= (str (* n pass-multi)) passwd)
-               user))))))
+               n))))))
+
+(defn wrap-user-number
+  "Moves `basic-authentication` request key to `user-number` for
+  clarity.  Needs to be wrapped by `wrap-basic-authentication`
+  middleware."
+  [app]
+  (fn user-number-wrapper [req]
+    (let [{:keys [basic-authentication]} req]
+      (app (if basic-authentication
+             (-> req
+                 (dissoc :basic-authentication)
+                 (assoc :user-number basic-authentication))
+             req)))))
 
 (defn make-app [config]
   (-> handler
@@ -101,7 +114,8 @@
       (wrap-carriers config)
 
       ;; every basic auth user has its own store
-      (store/wrap (-> config :store (assoc :env-key-fn :basic-authentication)))
+      (store/wrap (config :store))
+      (wrap-user-number)
       (wrap-basic-authentication (->authenticate (config :auth)))
 
       (wrap-defaults (assoc-in site-defaults

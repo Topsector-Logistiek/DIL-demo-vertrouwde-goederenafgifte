@@ -6,7 +6,8 @@
             [dil-demo.store :as store]
             [dil-demo.web-utils :as w]
             [ring.util.response :refer [redirect]])
-  (:import (java.util Date UUID)))
+  (:import (java.time LocalDateTime)
+           (java.util Date UUID)))
 
 (defn list-consignments [consignments]
   (let [actions [:a.button.button-primary {:href "consignment-new"} "Nieuw"]]
@@ -172,18 +173,21 @@
 (defn get-consignment [store id]
   (get-in store [:consignments id]))
 
-(defn min-ref []
-  (-> (java.time.LocalDate/now)
-      (.getYear)
-      (* 100000)
-      (+  31415)))
+(defn min-ref [user-number]
+  (let [dt (LocalDateTime/now)]
+    (+ (* user-number
+          100000000)
+       (* (- (.getYear dt) 2000)
+          1000000)
+       (* (.getDayOfYear dt)
+          1000))))
 
-(defn next-consignment-ref [store]
+(defn next-consignment-ref [store user-number]
   (let [refs (->> store
                   (get-consignments)
                   (map otm/consignment-ref)
-                  (map #(Integer/parseInt %)))]
-    (str (inc (apply max (min-ref) refs)))))
+                  (map parse-long))]
+    (str (inc (apply max (min-ref user-number) refs)))))
 
 
 
@@ -200,10 +204,10 @@
             (list-consignments (get-consignments store))
             flash))
 
-  (GET "/consignment-new" {:keys [carriers flash ::store/store]}
+  (GET "/consignment-new" {:keys [carriers flash ::store/store user-number]}
     (render "Nieuwe klantorder"
             (edit-consignment
-             (otm/map->consignment {:ref         (next-consignment-ref store)
+             (otm/map->consignment {:ref         (next-consignment-ref store user-number)
                                     :load-date   (w/format-date (Date.))
                                     :unload-date (w/format-date (Date.))
                                     :status      "draft"})

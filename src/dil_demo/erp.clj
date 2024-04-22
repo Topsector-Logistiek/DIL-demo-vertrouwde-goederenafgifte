@@ -45,7 +45,7 @@
 
     (let [{::store/keys [commands] :as res} (app req)]
       (if-let [id (-> (filter #(= [:delete! :consignments] (take 2 %))
-                                commands)
+                              commands)
                         (first)
                         (nth 2))]
         (let [consignment (get-in store [:consignments id])

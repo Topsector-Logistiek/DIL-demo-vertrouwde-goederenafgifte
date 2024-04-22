@@ -18,7 +18,10 @@
       (is (= "text/html; charset=utf-8" (get headers "Content-Type")))))
 
   (testing "/consignment-new"
-    (let [{:keys [status headers]} (sut/handler (request :get "/consignment-new"))]
+    (let [{:keys [status headers]} (-> :get
+                                       (request "/consignment-new")
+                                       (assoc :user-number 1)
+                                       (sut/handler))]
       (is (= http-status/ok status))
       (is (= "text/html; charset=utf-8" (get headers "Content-Type")))))
 
