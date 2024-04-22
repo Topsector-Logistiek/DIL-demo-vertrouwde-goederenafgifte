@@ -200,7 +200,7 @@
             (list-consignments (get-consignments store))
             flash))
 
-  (GET "/consignment-new" {:keys [carriers flash store]}
+  (GET "/consignment-new" {:keys [carriers flash ::store/store]}
     (render "Nieuwe klantorder"
             (edit-consignment
              (otm/map->consignment {:ref         (next-consignment-ref store)
