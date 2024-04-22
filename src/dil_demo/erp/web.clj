@@ -239,7 +239,7 @@
                                       (assoc :owner-eori eori)
                                       (otm/map->consignment))]])))
 
-  (DELETE "/consignment-:id" {:keys        [store]
+  (DELETE "/consignment-:id" {:keys        [::store/store]
                               {:keys [id]} :params}
     (when (get-consignment store id)
       (-> "deleted"

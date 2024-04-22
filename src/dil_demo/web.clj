@@ -73,7 +73,7 @@
   [handler]
   (fn [request]
     (let [response (handler request)]
-      (log/info (str (:status response) " " (:method request) " " (:uri request)))
+      (log/info (str (:status response) " " (:request-method request) " " (:uri request)))
       response)))
 
 (defn make-app [config]
