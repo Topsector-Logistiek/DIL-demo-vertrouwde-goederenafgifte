@@ -12,6 +12,8 @@ Use the following environment variables to configure this demo:
 
 - `PORT`: the port number to listen for HTTP requests, defaults to `8080`
 - `STORE_FILE`: the file to store state in, defaults to `/tmp/dil-demo.edn`
+- `AUTH_USER_PREFIX`: prefix of user name, defaults to `demo`
+- `AUTH_PASS_MULTI`: number to multiply user number with for password, defaults to `31415`
 - `ERP_EORI`: EORI used by ERP
 - `ERP_KEY_FILE`: the file to read the ERP private key from
 - `ERP_CHAIN_FILE`: the file to read the ERP certificate chain from
@@ -27,6 +29,8 @@ Run the web server with the following:
 ```sh
 clojure -M -m dil-demo.core
 ```
+
+Point a web browser to [http://localhost:8080](http://localhost:8080) and login with user `demo1` with password `31415`.
 
 ## Deploy
 

@@ -19,6 +19,8 @@
         satellite-endpoint (get-env "SATELLITE_ENDPOINT")]
     {:jetty {:port (Integer/parseInt (get-env "PORT" "8080"))}
      :store {:file (get-env "STORE_FILE" "/tmp/dil-demo.edn")}
+     :auth  {:user-prefix (get-env "AUTH_USER_PREFIX" "demo")
+             :pass-multi  (parse-long (get-env "AUTH_PASS_MULTI" "31415"))}
      :erp   {:eori               erp-eori
              :dataspace-id       dataspace-id
              :satellite-id       satellite-id

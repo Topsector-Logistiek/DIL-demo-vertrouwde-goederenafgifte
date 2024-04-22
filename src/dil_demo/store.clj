@@ -3,15 +3,15 @@
             [clojure.java.io :as io]
             [clojure.edn :as edn]))
 
-(defmulti commit (fn [_ [cmd & _]] cmd))
+(defmulti commit (fn [_store-atom _env-key [cmd & _args]] cmd))
 
 (defmethod commit :put!
-  [store-atom [_ table-key {:keys [id] :as value}]]
-  (swap! store-atom assoc-in [table-key id] value))
+  [store-atom env-key [_cmd table-key {:keys [id] :as value}]]
+  (swap! store-atom assoc-in [env-key table-key id] value))
 
 (defmethod commit :delete!
-  [store-atom [_ table-key id]]
-  (swap! store-atom update table-key dissoc id))
+  [store-atom env-key [_cmd table-key id]]
+  (swap! store-atom update-in [env-key table-key] dissoc id))
 
 (defn load-store [filename]
   (let [file (io/file filename)]
@@ -32,16 +32,17 @@
 
   When :dil-demo.store/commands key in response provides a colleciton
   of commands, those will be committed to the storage."
-  [app {:keys [file]}]
+  [app {:keys [file env-key-fn]}]
   (let [store-atom (atom (load-store file))]
     (fn store-wrapper [request]
-      (let [{::keys [commands]
+      (let [env-key (env-key-fn request)
+            {::keys [commands]
              :as    response} (-> request
-                                  (assoc ::store @store-atom)
+                                  (assoc ::store (get @store-atom env-key))
                                   (app))]
         (when (seq commands)
           (doseq [cmd commands]
             (log/debug "committing" cmd)
-            (commit store-atom cmd))
+            (commit store-atom env-key cmd))
           (future (save-store @store-atom file)))
         response))))

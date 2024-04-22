@@ -1,9 +1,11 @@
 (ns dil-demo.web
   (:require [compojure.core :refer [routes GET]]
             [compojure.route :refer [resources]]
+            [clojure.string :refer [re-quote-replacement]]
             [clojure.tools.logging :as log]
             [ring.middleware.defaults :refer [site-defaults wrap-defaults]]
             [ring.middleware.stacktrace :refer [wrap-stacktrace]]
+            [ring.middleware.basic-authentication :refer [wrap-basic-authentication]]
             [ring.util.response :refer [content-type not-found redirect]]
             [nl.jomco.ring-session-ttl-memory :refer [ttl-memory-store]]
             [dil-demo.data :as d]
@@ -76,13 +78,25 @@
       (log/info (str (:status response) " " (:request-method request) " " (:uri request)))
       response)))
 
+(defn ->authenticate [{:keys [user-prefix pass-multi]}]
+  (let [user-re (re-pattern (str "^" (re-quote-replacement user-prefix) "(\\d+)$"))]
+    (fn authenticate [user passwd]
+      (when-let [[_ n-str] (re-matches user-re user)]
+        (and (= (str (* (parse-long n-str) pass-multi))
+                passwd)
+             user)))))
+
 (defn make-app [config]
   (-> handler
       (wrap-with-prefix "/erp" (erp/make-handler (config :erp)))
       (wrap-with-prefix "/tms" (tms/make-handler (config :tms)))
       (wrap-with-prefix "/wms" (wms/make-handler (config :wms)))
       (wrap-carriers config)
-      (store/wrap (config :store))
+
+      ;; every basic auth user has its own store
+      (store/wrap (-> config :store (assoc :env-key-fn :basic-authentication)))
+      (wrap-basic-authentication (->authenticate (config :auth)))
+
       (wrap-defaults (assoc-in site-defaults
                                [:session :store] (ttl-memory-store)))
       (wrap-stacktrace)
