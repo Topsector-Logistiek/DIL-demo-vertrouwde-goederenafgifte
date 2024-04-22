@@ -14,6 +14,7 @@ Use the following environment variables to configure this demo:
 - `STORE_FILE`: the file to store state in, defaults to `/tmp/dil-demo.edn`
 - `AUTH_USER_PREFIX`: prefix of user name, defaults to `demo`
 - `AUTH_PASS_MULTI`: number to multiply user number with for password, defaults to `31415`
+- `AUTH_MAX_ACCOUNTS`: maximum number of user accounts
 - `ERP_EORI`: EORI used by ERP
 - `ERP_KEY_FILE`: the file to read the ERP private key from
 - `ERP_CHAIN_FILE`: the file to read the ERP certificate chain from

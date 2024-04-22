@@ -78,13 +78,20 @@
       (log/info (str (:status response) " " (:request-method request) " " (:uri request)))
       response)))
 
-(defn ->authenticate [{:keys [user-prefix pass-multi]}]
+(defn ->authenticate
+  "Make authentication function.
+
+  This function accepts `user` named with `user-prefix` and number
+  between 1 and `max-accounts`.  When `passwd` matches the number
+  multiplied by `pass-multi` it returns `user`."
+  [{:keys [user-prefix pass-multi max-accounts]}]
   (let [user-re (re-pattern (str "^" (re-quote-replacement user-prefix) "(\\d+)$"))]
     (fn authenticate [user passwd]
       (when-let [[_ n-str] (re-matches user-re user)]
-        (and (= (str (* (parse-long n-str) pass-multi))
-                passwd)
-             user)))))
+        (let [n (parse-long n-str)]
+          (and (<= 1 n max-accounts)
+               (= (str (* n pass-multi)) passwd)
+               user))))))
 
 (defn make-app [config]
   (-> handler
