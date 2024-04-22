@@ -53,6 +53,7 @@
    [:ul
     (for [[path name] [["/erp/" "ERP"]
                        ["/tms/" "TMS"]
+                       ["/tms/chauffeur/" "TMS (chauffeur)"]
                        ["/wms/" "WMS"]]]
       [:li [:a {:href path} name]])]])
 

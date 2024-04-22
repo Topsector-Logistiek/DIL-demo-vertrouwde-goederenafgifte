@@ -5,3 +5,7 @@
     --color-button-secondary: #f9c6c0;
     --color-button-secondary-border: #7f7362;
 }
+
+.trip .qr-code img {
+    width: 100%;
+}

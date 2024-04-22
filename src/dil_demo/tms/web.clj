@@ -40,6 +40,24 @@
 (defn qr-code-dil-demo [{:keys [carrier-eori driver-id-digits license-plate]}]
   (w/qr-code (str ":dil-demo:" carrier-eori ":" driver-id-digits ":" license-plate)))
 
+(defn chauffeur-list-trips [trips]
+  (if (seq trips)
+    [:ul.cards
+     (for [{:keys [id ref load-date]} (map otm/trip->map trips)]
+       [:li.card.trip
+        [:a.button {:href (str "trip-" id)}
+         [:div.date load-date]
+         [:div.ref ref]]])]
+    [:ul.empty
+     [:li
+      "Nog geen transportopdrachten geregistreerd.."]]))
+
+(defn chauffeur-trip [trip]
+  [:div.trip
+   (qr-code-dil-demo (otm/trip->map trip))
+   [:div.actions
+    [:a.button {:href "../chauffeur/"} "Terug naar overzicht"]]])
+
 (defn assign-trip [trip]
   (let [{:keys [ref carrier-eori load-date load-location load-remarks unload-date unload-location unload-remarks driver-id-digits license-plate]
          :as   params}
@@ -149,6 +167,18 @@
     (render "Transportopdrachten"
             (list-trips (get-trips store))
             flash))
+
+  (GET "/chauffeur/" {:keys [flash ::store/store]}
+    (render "Transportopdrachten"
+            (chauffeur-list-trips (get-trips store))
+            flash))
+
+  (GET "/chauffeur/trip-:id" {:keys [flash ::store/store]
+                              {:keys [id]} :params}
+    (when-let [trip (get-trip store id)]
+      (render (otm/trip-ref trip)
+              (chauffeur-trip trip)
+              flash)))
 
   (DELETE "/trip-:id" {::store/keys [store]
                        {:keys [id]} :params}
