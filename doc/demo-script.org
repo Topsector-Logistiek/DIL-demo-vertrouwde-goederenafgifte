@@ -1,0 +1,209 @@
+#+TITLE: Demo script
+#+OPTIONS: ':t toc:nil
+#+LANGUAGE: nl
+
+De demo is hier https://connekt-dil-demo.jomco.nl/ te vinden.  Je kan
+inloggen met één van de volgende accounts:
+
+- demo1 / 31415
+- demo2 / 62830
+- demo3 / 94245
+
+\clearpage
+
+* Overzicht
+
+[[./demo-script/index.png]]
+
+- ERP
+
+  De omgeving van de verlader.  Hierin worden "klantorders" aangemaakt
+  door de verlader om goederen op te halen bij een DC en te bezorgen
+  elders.  Deze opdrachten worden hier toegewezen aan een vervoerder
+  en doorgestuurd naar TMS en WMS (zie onder).
+
+- TMS
+
+  Het Transport Management Systeem van de transporteur.  Hier wordt de
+  transportopdracht ingepland en een chauffeur / vrachtwagen toegewezen.
+
+- TMS (Chauffeur)
+
+  Schermen in het TMS speciaal bedoelt voor chauffeurs voor het laten
+  zien van QR-code.
+
+- WMS
+
+  Het Warehouse Management Systeem op het DC.  Hierin worden
+  "ophaal"-opdrachten geregistreerd en de chauffeur gecontroleerd.
+
+
+\clearpage
+
+* ERP
+
+Ga naar: https://connekt-dil-demo.jomco.nl/erp/
+
+[[./demo-script/erp-index.png]]
+
+Maak een nieuwe opdracht aan met de "NIEUW" knop.
+
+[[./demo-script/erp-new.png]]
+
+Vul hier het "Afleveradres" en de "Goederen" in, bijvoorbeeld "Nokia,
+Espoo" en "Bananen" en sla op met "BEWAREN".  Tip: kies een
+"Afleveradres" uit de suggesties om in latere schermen een volledig
+adres te zien.  Goederen kunnen vrij ingevuld worden.
+
+Let op: voor "Ophaaladres" (het DC) en "Vervoerder" is maar voor
+beiden één keuze mogelijkheid.  Het gaat hier namelijk om de ook
+behandelde WMS en TMS omgevingen.
+
+[[./demo-script/erp-created.png]]
+
+Open de zojuist aangemaakte klantorder opnieuw met de bijbehorende
+"OPENEN" knop.
+
+[[./demo-script/erp-open.png]]
+
+En druk op de "TRANSPORTOPDRACHT AANMAKEN" knop om de order door te
+zetten naar het TMS en WMS van de resp. vervoerder en DC.
+
+[[./demo-script/erp-publish.png]]
+
+Je bevind je nu op een bevestigingsscherm.  Druk "VERSTUREN" voor het
+daadwerkelijke doorzetten van de opdracht.
+
+[[./demo-script/erp-published.png]]
+
+In de uitklapbare "Uitleg" is te zien dat de opdracht verstuurd is
+naar het WMS en het TMS.  Hoe dit precies gebeurd valt buiten de scope
+van deze demo.
+
+[[./demo-script/erp-published-uitleg.png]]
+
+Belangrijk hier is dat de vervoerder, in het netwerk bekend als
+"EU.EORI.NLPRECIOUSG". geregistreerd wordt in het /Autorisatie
+Register/ van de verlader (stappen 3 en 4) voor het ophalen van
+klantorder "124122001".
+
+[[./demo-script/erp-published-uitleg-de.png]]
+
+
+\clearpage
+
+* TMS
+
+De opdracht is nu aangekomen in het TMS.  Ga naar:
+https://connekt-dil-demo.jomco.nl/tms/
+
+[[./demo-script/tms-index.png]]
+
+Open de nieuwe transportopdracht met de bijbehorende "OPENEN" knop.
+
+[[./demo-script/tms-open.png]]
+
+Voer de "Rijbewijs" en "Kenteken" velden in om een chauffeur en
+vrachtwagen toe te wijzen aan deze opdracht, bijvoorbeeld "4321" en
+"ABC12YZ" en druk op "TOEWIJZEN".
+
+[[./demo-script/tms-assigned.png]]
+
+Hier zie je de QR-code die de chauffeur straks moet laten zien bij het
+DC (zie onder bij "TMS (Chauffeur)").
+
+In de uitklapbare "Uitleg" in stap 4 is te zien dat de chauffeur en de
+vrachtwagen in het /Autorisatie Register/ van de vervoerder toegewezen
+zijn.
+
+[[./demo-script/tms-assigned-uitleg.png]]
+
+
+\clearpage
+
+* TMS (Chauffeur)
+
+De QR-code is nu ook beschikbaar voor de chauffeur.  Ga naar:
+https://connekt-dil-demo.jomco.nl/tms/chauffeur/
+
+[[./demo-script/tms-c-index.png]]
+
+Merk op dat dit scherm is geoptimaliseerd voor mobiele apparaten zoals
+tablets en smartphones.  Kies opdracht "124122001" en zie daar de op
+het DC aan te bieden QR-code.
+
+[[./demo-script/tms-c-open.png]]
+
+
+\clearpage
+
+* WMS
+
+De opdracht is ook al in het WMS bekent en kan nu volledig
+geverifieerd worden.  Ga naar: https://connekt-dil-demo.jomco.nl/wms/
+
+[[./demo-script/wms-index.png]]
+
+Merk op dat ook dit scherm is geoptimaliseerd voor mobiele apparaten
+zoals tablets en smartphones.  Kies de opdracht voor het ophalen van
+"Bananen".
+
+[[./demo-script/wms-open.png]]
+
+Hier zijn een "SCAN QR" knop en invoer velden te vinden.  Het scannen
+van een QR-code zorgt dat de "Vervoerder EORI", "Rijbewijs" en
+"Kenteken" velden automatisch ingevuld worden.  Het scannen van een
+QR-code is lastig in een video call het is daarom handiger om deze
+velden met de hand in te vullen:
+
+- "Vervoerder EORI": "EU.EORI.NLPRECIOUSG"
+- "Rijbewijs": "4321"
+- "Kenteken": "ABC12YZ" (let op, dit veld is op dit moment nog
+  hoofdletter gevoelig!)
+
+Druk op "VERIFIEREN", er wordt nu nog extra gevraagd of het rijbewijs
+en kenteken overeenkomen met die van de chauffeur en vrachtwagen.
+
+[[./demo-script/wms-verify-good.png]]
+
+Hier is geverifieerd of de verlader de vervoerder toestaat de zending
+op te halen en of de vervoerder de chauffeur met vrachtwagen toestaat
+de zending aan te nemen.
+
+In de uitklapbare "Uitleg" is te zien dat:
+
+- Stap 1 en 2: het /Associatie Register/ gevraagd wordt naar de
+  locatie van het /Autorisatie Register/ van de verlader (bekent als
+  "EU.EORI.NLSMARTPHON")
+
+  [[./demo-script/wms-verify-good-uitleg-ar-verlader.png]]
+
+- Stap 3 en 4: het /Autorisatie Register/ van de verlader gevraagd
+  wordt of de vervoerder deze opdracht mag uitvoeren
+
+  [[./demo-script/wms-verify-good-uitleg-ar-verlader-permit.png]]
+
+- Stap 5 en 6: het /Associatie Register/ gevraagd wordt naar de
+  locatie van het /Autorisatie Register/ van de vervoerder (bekent als
+  "EU.EURI.NLPRECIOUSG")
+
+  [[./demo-script/wms-verify-good-uitleg-ar-vervoerder.png]]
+
+- Stap 7 en 8: het /Autorisatie Register/ van de vervoerder gevraagd
+  wordt of de chauffeur met vrachtwagen de zending aan mag nemen
+
+  [[./demo-script/wms-verify-good-uitleg-ar-vervoerder-permit.png]]
+
+* Org export configuratie                                          :noexport:
+
+#+LATEX_CLASS_OPTIONS: [a4paper,11pt]
+#+LATEX_HEADER: \setlength\parskip{\medskipamount}
+#+LATEX_HEADER: \setlength\parindent{0pt}
+#+LATEX_HEADER: \usepackage[dutch,shorthands=off]{babel}
+
+# Local Variables:
+# ispell-local-dictionary: "nl"
+# org-export-default-language: "dutch"
+# org-latex-image-default-option: "scale=0.5"
+# org-latex-image-default-width: nil
+# End:
