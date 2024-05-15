@@ -13,6 +13,7 @@
             [dil-demo.tms :as tms]
             [dil-demo.wms :as wms]
             [dil-demo.web-utils :as w]
+            [dil-demo.sites :refer [sites]]
             [dil-demo.store :as store])
   (:import (java.util.regex Pattern)))
 
@@ -51,11 +52,8 @@
   [:nav
    [:p "Lorem ipsum.."]
    [:ul
-    (for [[path name] [["/erp/" "ERP"]
-                       ["/tms/" "TMS"]
-                       ["/tms/chauffeur/" "TMS (chauffeur)"]
-                       ["/wms/" "WMS"]]]
-      [:li [:a {:href path} name]])]])
+    (for [{:keys [path title]} sites]
+      [:li [:a {:href path} title]])]])
 
 (def handler
   (routes

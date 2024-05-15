@@ -1,6 +1,7 @@
 (ns dil-demo.web-utils
   (:require [clojure.data.json :as json]
             [clojure.string :as string]
+            [dil-demo.sites :refer [sites]]
             [hiccup2.core :as hiccup]
             [ring.middleware.anti-forgery :refer [*anti-forgery-token*]])
   (:import (java.text SimpleDateFormat)
@@ -21,6 +22,10 @@
     [:link {:rel "stylesheet", :href "/assets/base.css"}]]
 
    [:body
+    [:nav {:class "top"}
+     [:ul
+      (for [{:keys [slug path title]} sites]
+        [:li [:a {:href path, :class (when (= slug site) "current")} title]])]]
     [:header [:h1 title]]
     [:main
      (for [[type message] (select-keys flash [:error :success :warning])]

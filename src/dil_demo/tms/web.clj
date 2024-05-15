@@ -155,8 +155,8 @@
 
 
 
-(defn render [title main flash]
-  (w/render-body "tms"
+(defn render [title main flash & {:keys [site]}]
+  (w/render-body (or site "tms")
                  main
                  :flash flash
                  :title title
@@ -171,14 +171,16 @@
   (GET "/chauffeur/" {:keys [flash ::store/store]}
     (render "Transportopdrachten"
             (chauffeur-list-trips (get-trips store))
-            flash))
+            flash
+            :site "tms-chauffeur"))
 
   (GET "/chauffeur/trip-:id" {:keys [flash ::store/store]
                               {:keys [id]} :params}
     (when-let [trip (get-trip store id)]
       (render (otm/trip-ref trip)
               (chauffeur-trip trip)
-              flash)))
+              flash
+              :site "tms-chauffeur")))
 
   (DELETE "/trip-:id" {::store/keys [store]
                        {:keys [id]} :params}
