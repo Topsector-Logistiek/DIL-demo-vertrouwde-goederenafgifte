@@ -81,6 +81,7 @@ java -jar target/dil-demo.jar
 ## Copying
 
 Copyright (C) 2024 Jomco B.V.
+
 Copyright (C) 2024 Topsector Logistiek
 
 [AGPL-3.0-or-later](LICENSES/AGPL-3.0-or-later.txt)
