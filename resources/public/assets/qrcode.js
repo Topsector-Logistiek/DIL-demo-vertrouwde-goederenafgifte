@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2012 davidshimjs
+//
+// SPDX-License-Identifier: MIT
+
 /**
  * @fileoverview
  * - Using the 'QRCode for Javascript library'
