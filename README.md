@@ -78,6 +78,11 @@ This jar-file is runnable with:
 java -jar target/dil-demo.jar
 ```
 
+## Architecture documentation
+
+Documentation on the architecture of this demo can be found at
+[doc/architecture/architecture-description.md](doc/architecture/architecture-description.md).
+
 ## Copying
 
 Copyright (C) 2024 Jomco B.V.

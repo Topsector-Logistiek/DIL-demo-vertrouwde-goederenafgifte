@@ -1,0 +1,35 @@
+' SPDX-FileCopyrightText: 2024 Jomco B.V.
+' SPDX-FileCopyrightText: 2024 Topsector Logistiek
+' SPDX-FileContributor: Joost Diepenmaat <joost@jomco.nl>
+' SPDX-FileContributor: Remco van 't Veer <remco@jomco.nl>
+'
+' SPDX-License-Identifier: AGPL-3.0-or-later
+
+@startuml
+rectangle "BDI Network" {
+        rectangle "Assocation Registry" as asr
+}
+
+rectangle "Poort8 Network" {
+        rectangle "Authorization Registry" as ar1
+}
+
+rectangle "Jomco Network" {
+        rectangle "WMS"
+        rectangle "TMS"
+        rectangle "ERP"
+}
+
+rectangle "iSHARE Network" {
+        rectangle "Authorization Registry" as ar2
+}
+
+WMS ---> asr
+WMS ---> ar1
+WMS ---> ar2
+TMS ---> asr
+ERP ---> ar2
+TMS ---> ar1
+ar1 -> asr
+ar2 -> asr
+@enduml
