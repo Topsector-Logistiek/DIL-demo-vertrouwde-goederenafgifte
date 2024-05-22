@@ -64,6 +64,7 @@ resources/test/pem/client.cert.pem: resources/test/pem/ca.cert.pem
 test-certs: resources/test/pem/ca.cert.pem resources/test/pem/aa.cert.pem resources/test/pem/ar.cert.pem resources/test/pem/client.cert.pem
 
 lint:
+	reuse lint
 	clojure -M:lint
 
 test: test-certs
