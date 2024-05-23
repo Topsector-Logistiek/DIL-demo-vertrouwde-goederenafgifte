@@ -78,6 +78,15 @@ This jar-file is runnable with:
 java -jar target/dil-demo.jar
 ```
 
+## Docker builds
+
+To build and run a docker image locally, with the configuration environment vars in a `.env` file, and keys and certificates in `./credentials`, do
+
+```sh
+docker build . -t my-image
+docker run --env-file=.env --mount="type=bind,source=${PWD}/credentials,destination=/credentials" -p8080:8080 my-image
+```
+
 ## Architecture documentation
 
 Documentation on the architecture of this demo can be found at
