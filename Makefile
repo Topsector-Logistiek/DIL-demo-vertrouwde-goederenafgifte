@@ -24,7 +24,7 @@ classes/dil_demo/core.class: src/dil_demo/core.clj
 	clojure -M -e "(compile 'dil-demo.core)"
 
 target/dil-demo.jar: classes/dil_demo/core.class
-	clojure -M:uberjar --main-class dil-demo.core
+	clojure -M:uberjar --main-class dil-demo.core --target $@
 
 resources/test/pem/ca.cert.pem:
 	mkdir -p resources/test/pem
