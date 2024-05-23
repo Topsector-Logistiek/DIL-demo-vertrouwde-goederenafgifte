@@ -17,6 +17,14 @@ Dit document beschrijft de software architectuur van de "Vertrouwde
 Goederenuitgifte Demo". Functioneel toont deze demo een autorisatie
 workflow tussen meerdere partijen, gebaseerd op het iSHARE protocol.
 
+# Toepassing
+
+Bij de Vertrouwde goederenafgifte wisselen verladers, transporteurs en
+distributiecentra alle gegevens digitaal met elkaar uit. Elke
+betrokken organisatie en persoon beschikt over een geverifieerde,
+digitale identiteit. Daarmee kan data rechtstreeks vanuit het eigen
+systeem beschikbaar worden gesteld aan gemachtigde ketenpartners.
+
 # Overzicht
 
 ![](architecture.svg)
@@ -63,6 +71,6 @@ zijn dit:
 
 ![](deployment.svg)
 
-# Use case
+# Use case sequence diagram
 
 ![](20240215_DIL_Vertrouwde_goederenafgifte.svg)
