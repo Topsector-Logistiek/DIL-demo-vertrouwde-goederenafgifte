@@ -11,6 +11,6 @@
             [dil-demo.wms.web :as web]))
 
 (defn make-handler [config]
-  (-> web/handler
+  (-> (web/make-handler config)
       (web-utils/wrap-config config)
       (ishare-client/wrap-client-data config)))

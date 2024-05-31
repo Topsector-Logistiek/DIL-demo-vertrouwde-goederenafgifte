@@ -20,18 +20,20 @@
      [{:association-type "inline"
        :entity {:external-attributes {:ref "some-ref"}}}]}}})
 
+(def sut-handler (sut/make-handler {:id :wms, :site-name "WMS"}))
+
 (deftest handler
   (testing "/"
-    (let [{:keys [status headers]} (sut/handler (request :get "/"))]
+    (let [{:keys [status headers]} (sut-handler (request :get "/"))]
       (is (= http-status/ok status))
       (is (= "text/html; charset=utf-8" (get headers "Content-Type")))))
 
   (testing "/verify-not-found"
-    (is (nil? (sut/handler (request :get "/verify-not-found")))))
+    (is (nil? (sut-handler (request :get "/verify-not-found")))))
 
   (testing "/verify-some-id"
     (let [{:keys [status headers body]}
-          (sut/handler (assoc (request :get "/verify-some-id")
+          (sut-handler (assoc (request :get "/verify-some-id")
                               ::store/store store))]
       (is (= http-status/ok status))
       (is (= "text/html; charset=utf-8" (get headers "Content-Type")))

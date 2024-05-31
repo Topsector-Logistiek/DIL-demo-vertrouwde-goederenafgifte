@@ -140,6 +140,8 @@
 (defn consignment-owner-eori [consignment]
   (consignment-actor-eori consignment "owner"))
 
+(def consignment-warehouse-eori consignment-load-location) ;; TODO maybe use EORI keys in OTM?
+
 (defn consignment->map [consignment]
   {:id              (:id consignment)
    :ref             (consignment-ref consignment)

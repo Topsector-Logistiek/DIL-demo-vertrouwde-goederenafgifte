@@ -10,15 +10,19 @@
             [clojure.java.io :as io]
             [clojure.tools.logging.readable :as log]))
 
-(defmulti commit (fn [_store-atom _user-number [cmd & _args]] cmd))
+(defmulti commit (fn [_store-atom _user-number _eori [cmd & _args]] cmd))
 
-(defmethod commit :put!
-  [store-atom user-number [_cmd table-key {:keys [id] :as value}]]
-  (swap! store-atom assoc-in [user-number table-key id] value))
+(defmethod commit :put! ;; put data in own database
+  [store-atom user-number eori [_cmd table-key {:keys [id] :as value}]]
+  (swap! store-atom assoc-in [user-number eori table-key id] value))
+
+(defmethod commit :publish! ;; put data in other database
+  [store-atom user-number _eori [_cmd table-key eori {:keys [id] :as value}]]
+  (swap! store-atom assoc-in [user-number eori table-key id] value))
 
 (defmethod commit :delete!
-  [store-atom user-number [_cmd table-key id]]
-  (swap! store-atom update-in [user-number table-key] dissoc id))
+  [store-atom user-number eori [_cmd table-key id]]
+  (swap! store-atom update-in [user-number eori table-key] dissoc id))
 
 (defn load-store [filename]
   (let [file (io/file filename)]
@@ -31,24 +35,32 @@
 (defn save-store [store filename]
   (spit (io/file filename) (pr-str store)))
 
+(defn get-store-atom
+  "Return a store atom loaded with data from `filename` (EDN format) and
+  automatically stored to that file on changes."
+  [filename]
+  (let [store-atom (atom (load-store filename))]
+    (add-watch store-atom nil
+               (fn [_ _ old-store new-store]
+                 (when (not= old-store new-store)
+                   (future (save-store new-store filename)))))))
+
 (defn wrap
   "Middleware providing storage.
 
   Provides :dil-demo.store/store key in request, containing the
   current state of store (read-only).
 
-  When :dil-demo.store/commands key in response provides a colleciton
+  When :dil-demo.store/commands key in response provides a collection
   of commands, those will be committed to the storage."
-  [app {:keys [file]}]
-  (let [store-atom (atom (load-store file))]
-    (fn store-wrapper [{:keys [user-number] :as request}]
-      (let [{::keys [commands]
-             :as    response} (-> request
-                                  (assoc ::store (get @store-atom user-number))
-                                  (app))]
-        (when (seq commands)
-          (doseq [cmd commands]
-            (log/debug "committing" cmd)
-            (commit store-atom user-number cmd))
-          (future (save-store @store-atom file)))
-        response))))
+  [app store-atom eori]
+  (fn store-wrapper [{:keys [user-number] :as request}]
+    (let [{::keys [commands]
+           :as    response} (-> request
+                                (assoc ::store (get-in @store-atom [user-number eori]))
+                                (app))]
+      (when (seq commands)
+        (doseq [cmd commands]
+          (log/debug "committing" cmd)
+          (commit store-atom user-number eori cmd)))
+      response)))

@@ -72,10 +72,19 @@
    (resources "/")
    not-found-handler))
 
-(defn wrap-carriers [app {{carrier-eori :eori} :tms}]
-  (let [carriers {carrier-eori d/tms-name}]
+(defn wrap-data [app config]
+  (let [carriers   (->> d/carriers
+                      (map #(vector (get-in config [% :eori])
+                                    (get-in config [% :site-name])))
+                      (into {}))
+        warehouses (->> d/warehouses
+                        (map #(vector (get-in config [% :eori])
+                                      (get-in config [% :site-name])))
+                        (into {}))]
     (fn carriers-wrapper [req]
-      (app (assoc req :carriers carriers)))))
+      (app (assoc req
+                  :carriers carriers
+                  :warehouses warehouses)))))
 
 (defn wrap-log
   [handler]
@@ -112,19 +121,27 @@
                  (assoc :user-number basic-authentication))
              req)))))
 
+(defn wrap-app [app id config store make-handler]
+  (let [{:keys [eori] :as config} (-> config (get id) (assoc :id id))
+        handler                   (make-handler config)]
+    (wrap-with-prefix app
+                      (str "/" (name id))
+                      (store/wrap handler store eori))))
+
 (defn make-app [config]
-  (-> handler
-      (wrap-with-prefix "/erp" (erp/make-handler (config :erp)))
-      (wrap-with-prefix "/tms" (tms/make-handler (config :tms)))
-      (wrap-with-prefix "/wms" (wms/make-handler (config :wms)))
-      (wrap-carriers config)
+  (let [store (store/get-store-atom (-> config :store :file))]
+    (-> handler
+        (wrap-app :erp config store erp/make-handler)
+        (wrap-app :wms config store wms/make-handler)
+        (wrap-app :tms-1 config store tms/make-handler)
+        (wrap-app :tms-2 config store tms/make-handler)
 
-      ;; every basic auth user has its own store
-      (store/wrap (config :store))
-      (wrap-user-number)
-      (wrap-basic-authentication (->authenticate (config :auth)))
+        (wrap-data config)
 
-      (wrap-defaults (assoc-in site-defaults
-                               [:session :store] (ttl-memory-store)))
-      (wrap-stacktrace)
-      (wrap-log)))
+        (wrap-user-number)
+        (wrap-basic-authentication (->authenticate (config :auth)))
+
+        (wrap-defaults (assoc-in site-defaults
+                                 [:session :store] (ttl-memory-store)))
+        (wrap-stacktrace)
+        (wrap-log))))

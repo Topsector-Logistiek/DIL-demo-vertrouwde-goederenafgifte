@@ -7,14 +7,14 @@
 
 (ns dil-demo.tms.web
   (:require [clojure.string :as string]
-            [compojure.core :refer [defroutes DELETE GET POST]]
+            [compojure.core :refer [routes DELETE GET POST]]
             [dil-demo.data :as d]
             [dil-demo.otm :as otm]
             [dil-demo.store :as store]
             [dil-demo.web-utils :as w]
             [ring.util.response :refer [redirect]]))
 
-(defn list-trips [trips]
+(defn list-trips [trips {:keys [warehouses]}]
   [:table
    [:thead
     [:tr
@@ -36,7 +36,7 @@
       [:tr.trip
        [:td.date load-date]
        [:td.ref ref]
-       [:td.location load-location]
+       [:td.location (get warehouses load-location)]
        [:td.location unload-location]
        [:td.id-digits (w/or-em-dash driver-id-digits)]
        [:td.license-plate (w/or-em-dash license-plate)]
@@ -47,14 +47,19 @@
 (defn qr-code-dil-demo [{:keys [carrier-eori driver-id-digits license-plate]}]
   (w/qr-code (str ":dil-demo:" carrier-eori ":" driver-id-digits ":" license-plate)))
 
-(defn chauffeur-list-trips [trips]
+(defn chauffeur-list-trips [trips {:keys [warehouses]}]
   (if (seq trips)
     [:ul.cards
-     (for [{:keys [id ref load-date]} (map otm/trip->map trips)]
+     (for [{:keys [id ref load-location load-date unload-location]} (map otm/trip->map trips)]
        [:li.card.trip
         [:a.button {:href (str "trip-" id)}
          [:div.date load-date]
-         [:div.ref ref]]])]
+         [:div.trip
+          [:span.ref ref]
+          " / "
+          [:span.load-location (get warehouses load-location)]
+          " → "
+          [:span.unload-location unload-location]]]])]
     [:ul.empty
      [:li
       "Nog geen transportopdrachten geregistreerd.."]]))
@@ -65,7 +70,7 @@
    [:div.actions
     [:a.button {:href "../chauffeur/"} "Terug naar overzicht"]]])
 
-(defn assign-trip [trip]
+(defn assign-trip [trip {:keys [warehouses]}]
   (let [{:keys [ref carrier-eori load-date load-location load-remarks unload-date unload-location unload-remarks driver-id-digits license-plate]
          :as   params}
         (otm/trip->map trip)]
@@ -90,7 +95,7 @@
      [:section.trip
       [:fieldset.load-location
        [:legend "Ophaaladres"]
-       [:h3 load-location]
+       [:h3 (get warehouses load-location)]
        (when-let [address (get d/locations load-location)]
          [:pre address])
        (when-not (string/blank? load-remarks)
@@ -162,71 +167,77 @@
 
 
 
-(defn render [title main flash & {:keys [site]}]
-  (w/render-body (or site "tms")
-                 main
-                 :flash flash
-                 :title title
-                 :site-name d/tms-name))
+(def ^:dynamic *slug* nil)
 
-(defroutes handler
-  (GET "/" {:keys [flash ::store/store]}
-    (render "Transportopdrachten"
-            (list-trips (get-trips store))
-            flash))
+(defn make-handler [{:keys [id site-name]}]
+  (let [slug   (name id)
+        render (fn render [title main flash & {:keys [slug-postfix]}]
+                 (w/render-body (str slug slug-postfix)
+                                main
+                                :flash flash
+                                :title title
+                                :site-name site-name))]
+    (routes
+     (GET "/" {:keys [flash ::store/store]
+               :as   req}
+       (render "Transportopdrachten"
+               (list-trips (get-trips store) req)
+               flash))
 
-  (GET "/chauffeur/" {:keys [flash ::store/store]}
-    (render "Transportopdrachten"
-            (chauffeur-list-trips (get-trips store))
-            flash
-            :site "tms-chauffeur"))
+     (GET "/chauffeur/" {:keys [flash ::store/store]
+                         :as   req}
+       (render "Transportopdrachten"
+               (chauffeur-list-trips (get-trips store) req)
+               flash
+               :slug-postfix "-chauffeur"))
 
-  (GET "/chauffeur/trip-:id" {:keys [flash ::store/store]
-                              {:keys [id]} :params}
-    (when-let [trip (get-trip store id)]
-      (render (otm/trip-ref trip)
-              (chauffeur-trip trip)
-              flash
-              :site "tms-chauffeur")))
+     (GET "/chauffeur/trip-:id" {:keys        [flash ::store/store]
+                                 {:keys [id]} :params}
+       (when-let [trip (get-trip store id)]
+         (render (otm/trip-ref trip)
+                 (chauffeur-trip trip)
+                 flash
+                 :slug-postfix "-chauffeur")))
 
-  (DELETE "/trip-:id" {::store/keys [store]
-                       {:keys [id]} :params}
-    (when (get-trip store id)
-      (-> "deleted"
-          (redirect :see-other)
-          (assoc :flash {:success "Transportopdracht verwijderd"})
-          (assoc ::store/commands [[:delete! :trips id]]))))
+     (DELETE "/trip-:id" {::store/keys [store]
+                          {:keys [id]} :params}
+       (when (get-trip store id)
+         (-> "deleted"
+             (redirect :see-other)
+             (assoc :flash {:success "Transportopdracht verwijderd"})
+             (assoc ::store/commands [[:delete! :trips id]]))))
 
-  (GET "/deleted" {{:keys [ishare-log] :as flash} :flash}
-    (render "Transportopdracht verwijderd"
-            (deleted-trip {:ishare-log ishare-log})
-            flash))
+     (GET "/deleted" {{:keys [ishare-log] :as flash} :flash}
+       (render "Transportopdracht verwijderd"
+               (deleted-trip {:ishare-log ishare-log})
+               flash))
 
-  (GET "/assign-:id" {:keys        [flash]
-                      ::store/keys [store]
-                      {:keys [id]} :params}
-    (when-let [trip (get-trip store id)]
-      (render (str "Transportopdracht: " (otm/trip-ref trip))
-              (assign-trip trip)
-              flash)))
+     (GET "/assign-:id" {:keys        [flash]
+                         ::store/keys [store]
+                         {:keys [id]} :params
+                         :as          req}
+       (when-let [trip (get-trip store id)]
+         (render (str "Transportopdracht: " (otm/trip-ref trip))
+                 (assign-trip trip req)
+                 flash)))
 
-  (POST "/assign-:id" {::store/keys            [store]
-                       {:keys [driver-id-digits
-                               id
-                               license-plate]} :params}
-    (when-let [trip (get-trip store id)]
-      (-> (str "assigned-" id)
-          (redirect :see-other)
-          (assoc :flash {:success "Chauffeur en kenteken toegewezen"})
-          (assoc ::store/commands [[:put! :trips (-> trip
-                                                     (otm/trip-driver-id-digits! driver-id-digits)
-                                                     (otm/trip-license-plate! license-plate))]]))))
+     (POST "/assign-:id" {::store/keys            [store]
+                          {:keys [driver-id-digits
+                                  id
+                                  license-plate]} :params}
+       (when-let [trip (get-trip store id)]
+         (-> (str "assigned-" id)
+             (redirect :see-other)
+             (assoc :flash {:success "Chauffeur en kenteken toegewezen"})
+             (assoc ::store/commands [[:put! :trips (-> trip
+                                                        (otm/trip-driver-id-digits! driver-id-digits)
+                                                        (otm/trip-license-plate! license-plate))]]))))
 
-  (GET "/assigned-:id" {:keys                [flash]
-                        ::store/keys         [store]
-                        {:keys [id]}         :params
-                        {:keys [ishare-log]} :flash}
-    (when-let [trip (get-trip store id)]
-      (render (str "Transportopdracht toegewezen")
-              (assigned-trip trip {:ishare-log ishare-log})
-              flash))))
+     (GET "/assigned-:id" {:keys                [flash]
+                           ::store/keys         [store]
+                           {:keys [id]}         :params
+                           {:keys [ishare-log]} :flash}
+       (when-let [trip (get-trip store id)]
+         (render (str "Transportopdracht toegewezen")
+                 (assigned-trip trip {:ishare-log ishare-log})
+                 flash))))))

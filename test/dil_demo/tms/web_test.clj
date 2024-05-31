@@ -18,18 +18,20 @@
     {:id "some-id"
      :external-attributes {:consignment-ref "some-ref"}}}})
 
+(def sut-handler (sut/make-handler {:id :tms, :site-name "TMS"}))
+
 (deftest handler
   (testing "/"
-    (let [{:keys [status headers]} (sut/handler (request :get "/"))]
+    (let [{:keys [status headers]} (sut-handler (request :get "/"))]
       (is (= http-status/ok status))
       (is (= "text/html; charset=utf-8" (get headers "Content-Type")))))
 
   (testing "/assign-not-found"
-    (is (nil? (sut/handler (request :get "/assign-not-found")))))
+    (is (nil? (sut-handler (request :get "/assign-not-found")))))
 
   (testing "/assign-some-id"
     (let [{:keys [status headers body]}
-          (sut/handler (assoc (request :get "/assign-some-id")
+          (sut-handler (assoc (request :get "/assign-some-id")
                               ::store/store store))]
       (is (= http-status/ok status))
       (is (= "text/html; charset=utf-8" (get headers "Content-Type")))

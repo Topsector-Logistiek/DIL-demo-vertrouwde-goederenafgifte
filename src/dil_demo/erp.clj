@@ -68,8 +68,8 @@
   (fn delegation-wrapper [{:keys [client-data] :as req}]
     (let [{::store/keys [commands] :as res} (app req)
           trip (->> commands
-                    (filter #(= [:put! :trips] (take 2 %)))
-                    (map #(nth % 2))
+                    (filter #(= [:publish! :trips] (take 2 %)))
+                    (map #(nth % 3))
                     (first))]
       (if trip
         (let [[result log] (ishare-ar! client-data "Permit" (otm/trip->map trip))]
@@ -78,7 +78,7 @@
         res))))
 
 (defn make-handler [config]
-  (-> web/handler
+  (-> (web/make-handler config)
       (web-utils/wrap-config config)
       (wrap-policy-deletion)
       (wrap-delegation)

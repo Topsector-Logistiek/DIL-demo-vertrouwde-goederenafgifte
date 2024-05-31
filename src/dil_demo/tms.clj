@@ -40,7 +40,7 @@
                            (assoc-in [:flash :error] (str "Fout bij uitvoeren van iShare commando " (:ishare/message-type ex)))))))]
     response))
 
-(defn- trip-added
+(defn- trip-stored
   "Returns the trip that will stored from the response"
   [{::store/keys [commands]}]
   (when-let [cmd (first (filter #(= [:put! :trips] (take 2 %)) commands))]
@@ -58,7 +58,7 @@
   (fn policy-deletion-wrapper
     [{:keys [client-data ::store/store] :as req}]
     (let [response (app req)
-          trip     (or (trip-added response)
+          trip     (or (trip-stored response)
                        (get-in store [:trips (trip-deleted-id response)]))]
       (if-let [policy-id (and trip (get-in store [:trip-policies (otm/trip-ref trip) :policy-id]))]
         (ishare-exec-with-log response (-> client-data
@@ -69,11 +69,11 @@
         response))))
 
 (defn- wrap-delegation
-  "Create policies in AR when trips is created."
+  "Create policies in AR when trips is stored."
   [app]
   (fn delegation-wrapper [{:keys [client-data] :as req}]
     (let [response (app req)
-          trip     (trip-added response)]
+          trip     (trip-stored response)]
       (if-let [subject (and trip (policies/poort8-delegation-access-subject (otm/trip->map trip)))]
         (let [response (ishare-exec-with-log response
                                              (-> client-data
@@ -89,7 +89,7 @@
         response))))
 
 (defn make-handler [config]
-  (-> web/handler
+  (-> (web/make-handler config)
       (wrap-policy-deletion)
       (wrap-delegation)
       (ishare-client/wrap-client-data config)))
