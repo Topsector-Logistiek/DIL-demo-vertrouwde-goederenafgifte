@@ -14,27 +14,37 @@
 
 (def store
   {:transport-orders
-   {"some-id"
-    {:id "some-id"
+   {"31415"
+    {:id "31415"
      :consignments
      [{:association-type "inline"
-       :entity {:external-attributes {:ref "some-ref"}}}]}}})
+       :entity {:external-attributes {:ref "31415"}}}]}}})
 
-(def sut-handler (sut/make-handler {:id :wms, :site-name "WMS"}))
+(defn do-request [method path & [params]]
+  ((sut/make-handler {:id :wms, :site-name "WMS"})
+   (assoc (request method path params)
+          ::store/store store
+          :user-number 1)))
 
 (deftest handler
-  (testing "/"
-    (let [{:keys [status headers]} (sut-handler (request :get "/"))]
+  (testing "GET /"
+    (let [{:keys [status headers]} (do-request :get "/")]
       (is (= http-status/ok status))
       (is (= "text/html; charset=utf-8" (get headers "Content-Type")))))
 
-  (testing "/verify-not-found"
-    (is (nil? (sut-handler (request :get "/verify-not-found")))))
+  (testing "DELETE /transport-order-31415"
+    (let [{:keys [status ::store/commands]} (do-request :delete "/transport-order-31415")]
+      (is (= http-status/see-other status))
+      (is (= [:delete! :transport-orders] (->> commands first (take 2))))))
 
-  (testing "/verify-some-id"
-    (let [{:keys [status headers body]}
-          (sut-handler (assoc (request :get "/verify-some-id")
-                              ::store/store store))]
+  (testing "GET /verify-not-found"
+    (is (nil? (do-request :get "/verify-not-found"))))
+
+  (testing "GET /verify-31415"
+    (let [{:keys [status headers body]} (do-request :get "/verify-31415")]
       (is (= http-status/ok status))
       (is (= "text/html; charset=utf-8" (get headers "Content-Type")))
-      (is (re-find #"<input [^>]*\bvalue=\"some-ref\"[^>]*>" body)))))
+      (is (re-find #"<input [^>]*\bvalue=\"31415\"[^>]*>" body))))
+
+  (testing "POST /verify-31415"
+    "TODO, this calls out to satellite and ARs"))

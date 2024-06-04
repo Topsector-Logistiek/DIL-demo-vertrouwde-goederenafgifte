@@ -83,8 +83,9 @@
                         (into {}))]
     (fn carriers-wrapper [req]
       (app (assoc req
-                  :carriers carriers
-                  :warehouses warehouses)))))
+                  :data {:carriers carriers
+                         :warehouses warehouses
+                         :warehouse-addresses (constantly "Kerkstraat 1\n1234 AZ  Nergenshuizen\nNederland")})))))
 
 (defn wrap-log
   [handler]

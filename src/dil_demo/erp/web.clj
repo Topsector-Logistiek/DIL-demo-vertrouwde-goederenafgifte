@@ -42,10 +42,10 @@
         [:tr.consignment
          [:td.ref ref]
          [:td.date load-date]
-         [:td.location (get warehouses load-location)]
+         [:td.location (warehouses load-location)]
          [:td.location unload-location]
          [:td.goods goods]
-         [:td.carrier (get carriers carrier-eori)]
+         [:td.carrier (carriers carrier-eori)]
          [:td.status (otm/statuses status)]
          [:td.actions
           [:ul
@@ -104,7 +104,7 @@
       [:p "API call naar " [:strong "AR van de Verlader"] " om een autorisatie te verwijderen"]]
      (w/ishare-log-intercept-to-hiccup ishare-log)]]])
 
-(defn publish-consignment [consignment {:keys [carriers warehouses]}]
+(defn publish-consignment [consignment {:keys [carriers warehouses warehouse-addresses]}]
   (let [{:keys [status ref load-date load-location load-remarks unload-date unload-location unload-remarks goods carrier-eori]}
         (otm/consignment->map consignment)]
     [:form {:method "POST"}
@@ -127,19 +127,19 @@
         [:dd unload-date]]
        [:div
         [:dt "Vervoerder"]
-        [:dd (get carriers carrier-eori)]]]]
+        [:dd (carriers carrier-eori)]]]]
      [:section.trip
       [:fieldset.load-location
        [:legend "Ophaaladres"]
-       [:h3 (get warehouses load-location)]
-       (when-let [address (get d/locations load-location)]
+       [:h3 (warehouses load-location)]
+       (when-let [address (warehouse-addresses load-location)]
          [:pre address])
        (when-not (string/blank? load-remarks)
          [:blockquote.remarks load-remarks])]
       [:fieldset.unload-location
        [:legend "Afleveradres"]
        [:h3 unload-location]
-       (when-let [address (get d/locations unload-location)]
+       (when-let [address (d/locations unload-location)]
          [:pre address])
        (when-not (string/blank? unload-remarks)
          [:blockquote.remarks unload-remarks])]]
@@ -160,9 +160,9 @@
     [:div
      [:section
       [:p "Transportopdracht verstuurd naar locatie "
-       [:q (get warehouses load-location)]
+       [:q (warehouses load-location)]
        " en vervoerder "
-       [:q (get carriers carrier-eori)]
+       [:q (carriers carrier-eori)]
        "."]
       [:div.actions
        [:a.button {:href "."} "Terug naar overzicht"]]]
@@ -219,19 +219,19 @@
                                   (assoc :owner-eori eori)
                                   (otm/map->consignment)))]
     (routes
-     (GET "/" {:keys [flash ::store/store] :as req}
+     (GET "/" {:keys [data flash ::store/store]}
        (render "Klantorders"
-               (list-consignments (get-consignments store) req)
+               (list-consignments (get-consignments store) data)
                flash))
 
-     (GET "/consignment-new" {:keys [flash ::store/store user-number] :as req}
+     (GET "/consignment-new" {:keys [data flash ::store/store user-number]}
        (render "Nieuwe klantorder"
                (edit-consignment
                 (otm/map->consignment {:ref         (next-consignment-ref store user-number)
                                        :load-date   (w/format-date (Date.))
                                        :unload-date (w/format-date (Date.))
                                        :status      "draft"})
-                req)
+                data)
                flash))
 
      (POST "/consignment-new" {:keys [params]}
@@ -245,12 +245,11 @@
                                                   :status otm/status-draft)
                                            (params->consignment))]]))))
 
-     (GET "/consignment-:id" {:keys        [flash ::store/store]
-                              {:keys [id]} :params
-                              :as          req}
+     (GET "/consignment-:id" {:keys        [data flash ::store/store]
+                              {:keys [id]} :params}
        (when-let [consignment (get-consignment store id)]
          (render (str "Klantorder: " (otm/consignment-ref consignment))
-                 (edit-consignment consignment req)
+                 (edit-consignment consignment data)
                  flash)))
 
      (POST "/consignment-:id" {:keys [params]}
@@ -273,12 +272,11 @@
                (deleted-consignment {:ishare-log ishare-log})
                flash))
 
-     (GET "/publish-:id" {:keys        [flash ::store/store]
-                          {:keys [id]} :params
-                          :as          req}
+     (GET "/publish-:id" {:keys        [data flash ::store/store]
+                          {:keys [id]} :params}
        (when-let [consignment (get-consignment store id)]
          (render "Transportopdracht aanmaken"
-                 (publish-consignment consignment req)
+                 (publish-consignment consignment data)
                  flash)))
 
      (POST "/publish-:id" {:keys        [::store/store]
@@ -298,10 +296,9 @@
                                        (otm/consignment-carrier-eori consignment)
                                        (otm/consignment->trip consignment)]]))))
 
-     (GET "/published-:id" {:keys        [flash ::store/store]
-                            {:keys [id]} :params
-                            :as          req}
+     (GET "/published-:id" {:keys        [data flash ::store/store]
+                            {:keys [id]} :params}
        (when-let [consignment (get-consignment store id)]
          (render "Transportopdracht aangemaakt"
-                 (published-consignment consignment req)
+                 (published-consignment consignment data)
                  flash))))))

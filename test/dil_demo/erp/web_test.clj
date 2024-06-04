@@ -14,33 +14,69 @@
 
 (def store
   {:consignments
-   {"some-id"
-    {:id "some-id"
-     :external-attributes {:ref "some-ref"}}}})
+   {"31415"
+    {:id                  "31415"
+     :ref                 1
+     :external-attributes {:ref "31415"}}}})
 
-(def sut-handler (sut/make-handler {:id :erp, :site-name "ERP"}))
+(defn do-request [method path & [params]]
+  ((sut/make-handler {:id :erp, :site-name "ERP"})
+   (assoc (request method path params)
+          ::store/store store
+          :user-number 1
+          :data {:warehouses {}
+                 :warehouse-addresses {}
+                 :carriers {}})))
 
 (deftest handler
-  (testing "/"
-    (let [{:keys [status headers]} (sut-handler (request :get "/"))]
-      (is (= http-status/ok status))
-      (is (= "text/html; charset=utf-8" (get headers "Content-Type")))))
-
-  (testing "/consignment-new"
-    (let [{:keys [status headers]} (-> :get
-                                       (request "/consignment-new")
-                                       (assoc :user-number 1)
-                                       (sut-handler))]
-      (is (= http-status/ok status))
-      (is (= "text/html; charset=utf-8" (get headers "Content-Type")))))
-
-  (testing "/consignment-not-found"
-    (is (nil? (sut-handler (request :get "/consignment-not-found")))))
-
-  (testing "/consignment-some-id"
-    (let [{:keys [status headers body]}
-          (sut-handler (assoc (request :get "/consignment-some-id")
-                              ::store/store store))]
+  (testing "GET /"
+    (let [{:keys [status headers body]} (do-request :get "/")]
       (is (= http-status/ok status))
       (is (= "text/html; charset=utf-8" (get headers "Content-Type")))
-      (is (re-find #"<input [^>]*\bvalue=\"some-ref\"[^>]*>" body)))))
+      (is (re-find #"\b31415\b" body))))
+
+  (testing "GET /consignment-new"
+    (let [{:keys [status headers]} (do-request :get "/consignment-new")]
+      (is (= http-status/ok status))
+      (is (= "text/html; charset=utf-8" (get headers "Content-Type")))))
+
+  (testing "POST /consignment-new"
+    (let [{:keys [status ::store/commands]} (do-request :post "/consignment-new")]
+      (is (= http-status/see-other status))
+      (is (= [:put! :consignments] (->> commands first (take 2))))))
+
+  (testing "GET /consignment-not-found"
+    (is (nil? (do-request :get "/consignment-not-found"))))
+
+  (testing "GET /consignment-31415"
+    (let [{:keys [status headers body]} (do-request :get "/consignment-31415")]
+      (is (= http-status/ok status))
+      (is (= "text/html; charset=utf-8" (get headers "Content-Type")))
+      (is (re-find #"\b31415\b" body))))
+
+  (testing "POST /consignment-31415"
+    (let [{:keys [status ::store/commands]} (do-request :post "/consignment-31415")]
+      (is (= http-status/see-other status))
+      (is (= [:put! :consignments] (->> commands first (take 2))))))
+
+  (testing "DELETE /consignment-31415"
+    (let [{:keys [status ::store/commands]} (do-request :delete "/consignment-31415")]
+      (is (= http-status/see-other status))
+      (is (= [:delete! :consignments] (->> commands first (take 2))))))
+
+  (testing "GET /publish-31415"
+    (let [{:keys [status headers body]} (do-request :get "/publish-31415")]
+      (is (= http-status/ok status))
+      (is (= "text/html; charset=utf-8" (get headers "Content-Type")))
+      (is (re-find #"\b31415\b" body))))
+
+  (testing "POST /publish-31415"
+    (let [{:keys [status ::store/commands]} (do-request :post "/publish-31415")]
+      (is (= http-status/see-other status))
+      (is (= #{:put! :publish!} (->> commands (map first) set)))))
+
+  (testing "GET /published-31415"
+    (let [{:keys [status headers body]} (do-request :get "/publish-31415")]
+      (is (= http-status/ok status))
+      (is (= "text/html; charset=utf-8" (get headers "Content-Type")))
+      (is (re-find #"\b31415\b" body)))))

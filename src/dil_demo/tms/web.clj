@@ -36,7 +36,7 @@
       [:tr.trip
        [:td.date load-date]
        [:td.ref ref]
-       [:td.location (get warehouses load-location)]
+       [:td.location (warehouses load-location)]
        [:td.location unload-location]
        [:td.id-digits (w/or-em-dash driver-id-digits)]
        [:td.license-plate (w/or-em-dash license-plate)]
@@ -58,7 +58,7 @@
          [:div.trip
           [:span.ref ref]
           " / "
-          [:span.load-location (get warehouses load-location)]
+          [:span.load-location (warehouses load-location)]
           " → "
           [:span.unload-location unload-location]]]])]
     [:ul.empty
@@ -71,7 +71,7 @@
    [:div.actions
     [:a.button {:href "../chauffeur/"} "Terug naar overzicht"]]])
 
-(defn assign-trip [trip {:keys [warehouses]}]
+(defn assign-trip [trip {:keys [warehouses warehouse-addresses]}]
   (let [{:keys [ref carrier-eori load-date load-location load-remarks unload-date unload-location unload-remarks driver-id-digits license-plate]
          :as   params}
         (otm/trip->map trip)]
@@ -96,8 +96,8 @@
      [:section.trip
       [:fieldset.load-location
        [:legend "Ophaaladres"]
-       [:h3 (get warehouses load-location)]
-       (when-let [address (get d/locations load-location)]
+       [:h3 (warehouses load-location)]
+       (when-let [address (warehouse-addresses load-location)]
          [:pre address])
        (when-not (string/blank? load-remarks)
          [:blockquote.remarks load-remarks])]
@@ -179,16 +179,14 @@
                                 :title title
                                 :site-name site-name))]
     (routes
-     (GET "/" {:keys [flash ::store/store]
-               :as   req}
+     (GET "/" {:keys [data flash ::store/store]}
        (render "Transportopdrachten"
-               (list-trips (get-trips store) req)
+               (list-trips (get-trips store) data)
                flash))
 
-     (GET "/chauffeur/" {:keys [flash ::store/store]
-                         :as   req}
+     (GET "/chauffeur/" {:keys [data flash ::store/store]}
        (render "Transportopdrachten"
-               (chauffeur-list-trips (get-trips store) req)
+               (chauffeur-list-trips (get-trips store) data)
                flash
                :slug-postfix "-chauffeur"))
 
@@ -213,18 +211,17 @@
                (deleted-trip {:ishare-log ishare-log})
                flash))
 
-     (GET "/assign-:id" {:keys        [flash]
+     (GET "/assign-:id" {:keys        [data flash]
                          ::store/keys [store]
-                         {:keys [id]} :params
-                         :as          req}
+                         {:keys [id]} :params}
        (when-let [trip (get-trip store id)]
          (render (str "Transportopdracht: " (otm/trip-ref trip))
-                 (assign-trip trip req)
+                 (assign-trip trip data)
                  flash)))
 
      (POST "/assign-:id" {::store/keys            [store]
-                          {:keys [driver-id-digits
-                                  id
+                          {:keys [id
+                                  driver-id-digits
                                   license-plate]} :params}
        (when-let [trip (get-trip store id)]
          (-> (str "assigned-" id)
