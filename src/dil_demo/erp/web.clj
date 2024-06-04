@@ -16,6 +16,8 @@
   (:import (java.time LocalDateTime)
            (java.util Date UUID)))
 
+(def publishable-status? #{otm/status-draft})
+
 (defn list-consignments [consignments {:keys [carriers warehouses]}]
   (let [actions [:a.button.button-primary {:href "consignment-new"} "Nieuw"]]
     [:table
@@ -46,14 +48,17 @@
          [:td.carrier (get carriers carrier-eori)]
          [:td.status (otm/statuses status)]
          [:td.actions
-          [:a.button.button-secondary {:href (str "consignment-" id)} "Openen"]
-          (w/delete-button (str "consignment-" id))]])]
+          [:ul
+           [:li [:a.button.button-secondary {:href (str "consignment-" id)} "Openen"]]
+           (when (publishable-status? status)
+             [:li [:a.button.button-primary {:href (str "publish-" id)} "Versturen"]])
+           [:li (w/delete-button (str "consignment-" id))]]]])]
      [:tfoot
       [:tr
        [:td.actions {:colspan 999} actions]]]]))
 
 (defn edit-consignment [consignment {:keys [carriers warehouses]}]
-  (let [{:keys [id status ref load-date load-location load-remarks unload-location unload-date unload-remarks goods carrier-eori]}
+  (let [{:keys [status ref load-date load-location load-remarks unload-location unload-date unload-remarks goods carrier-eori]}
         (otm/consignment->map consignment)]
     [:form {:method "POST"}
      (w/anti-forgery-input)
@@ -84,8 +89,6 @@
                 :label "Vervoerder",   :type  "select", :list carriers, :required true})]
      [:div.actions
       [:button.button.button-primary {:type "submit"} "Bewaren"]
-      (when id
-        [:a.button.button-secondary {:href (str "publish-" id)} "Transportopdracht aanmaken"])
       [:a.button {:href "."} "Annuleren"]]]))
 
 (defn deleted-consignment [{:keys [ishare-log]}]
@@ -102,7 +105,7 @@
      (w/ishare-log-intercept-to-hiccup ishare-log)]]])
 
 (defn publish-consignment [consignment {:keys [carriers warehouses]}]
-  (let [{:keys [id status ref load-date load-location load-remarks unload-date unload-location unload-remarks goods carrier-eori]}
+  (let [{:keys [status ref load-date load-location load-remarks unload-date unload-location unload-remarks goods carrier-eori]}
         (otm/consignment->map consignment)]
     [:form {:method "POST"}
      (w/anti-forgery-input)
@@ -148,7 +151,7 @@
       [:button.button-primary {:type    "submit"
                                :onclick "return confirm('Zeker weten?')"}
        "Versturen"]
-      [:a.button {:href (str "consignment-" id)} "Annuleren"]]]))
+      [:a.button {:href "."} "Annuleren"]]]))
 
 (defn published-consignment [consignment
                              {:keys                [carriers warehouses]

@@ -8,11 +8,7 @@
  */
 
 :root {
-    --color-bg: #eeb45f;
-    --color-button-primary: #f4f9c0;
-    --color-button-primary-border: #bbbf93;
-    --color-button-secondary: #f9c6c0;
-    --color-button-secondary-border: #7f7362;
+    --color-bg: #faedcd;
 }
 
 .trip .qr-code img {

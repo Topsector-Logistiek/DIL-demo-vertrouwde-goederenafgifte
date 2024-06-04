@@ -41,8 +41,9 @@
        [:td.id-digits (w/or-em-dash driver-id-digits)]
        [:td.license-plate (w/or-em-dash license-plate)]
        [:td.actions
-        [:a.button.button-secondary {:href (str "assign-" id)} "Openen"]
-        (w/delete-button (str "trip-" id))]])]])
+        [:ul
+         [:li [:a.button.button-secondary {:href (str "assign-" id)} "Openen"]]
+         [:li (w/delete-button (str "trip-" id))]]]])]])
 
 (defn qr-code-dil-demo [{:keys [carrier-eori driver-id-digits license-plate]}]
   (w/qr-code (str ":dil-demo:" carrier-eori ":" driver-id-digits ":" license-plate)))
