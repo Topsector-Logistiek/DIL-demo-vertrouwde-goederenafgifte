@@ -8,7 +8,7 @@
 (ns dil-demo.tms.web
   (:require [clojure.string :as string]
             [compojure.core :refer [routes DELETE GET POST]]
-            [dil-demo.data :as d]
+            [dil-demo.master-data :as d]
             [dil-demo.otm :as otm]
             [dil-demo.store :as store]
             [dil-demo.web-utils :as w]
@@ -179,14 +179,14 @@
                                 :title title
                                 :site-name site-name))]
     (routes
-     (GET "/" {:keys [data flash ::store/store]}
+     (GET "/" {:keys [flash master-data ::store/store]}
        (render "Transportopdrachten"
-               (list-trips (get-trips store) data)
+               (list-trips (get-trips store) master-data)
                flash))
 
-     (GET "/chauffeur/" {:keys [data flash ::store/store]}
+     (GET "/chauffeur/" {:keys [flash master-data ::store/store]}
        (render "Transportopdrachten"
-               (chauffeur-list-trips (get-trips store) data)
+               (chauffeur-list-trips (get-trips store) master-data)
                flash
                :slug-postfix "-chauffeur"))
 
@@ -211,12 +211,12 @@
                (deleted-trip {:ishare-log ishare-log})
                flash))
 
-     (GET "/assign-:id" {:keys        [data flash]
+     (GET "/assign-:id" {:keys        [flash master-data]
                          ::store/keys [store]
                          {:keys [id]} :params}
        (when-let [trip (get-trip store id)]
          (render (str "Transportopdracht: " (otm/trip-ref trip))
-                 (assign-trip trip data)
+                 (assign-trip trip master-data)
                  flash)))
 
      (POST "/assign-:id" {::store/keys            [store]

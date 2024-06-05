@@ -5,7 +5,7 @@
 ;;;
 ;;; SPDX-License-Identifier: AGPL-3.0-or-later
 
-(ns dil-demo.data)
+(ns dil-demo.master-data)
 
 (def owners [:erp])
 (def warehouses [:wms])
@@ -35,3 +35,6 @@
 
    "Nokia, Espoo"
    "Karakaari 7\n02610 Espoo\nFinland"})
+
+(def warehouse-address
+  "Kerkstraat 1\n1234 AZ  Nergenshuizen\nNederland")

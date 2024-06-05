@@ -15,7 +15,7 @@
             [ring.middleware.basic-authentication :refer [wrap-basic-authentication]]
             [ring.util.response :refer [content-type not-found redirect]]
             [nl.jomco.ring-session-ttl-memory :refer [ttl-memory-store]]
-            [dil-demo.data :as d]
+            [dil-demo.master-data :as d]
             [dil-demo.erp :as erp]
             [dil-demo.tms :as tms]
             [dil-demo.wms :as wms]
@@ -72,7 +72,7 @@
    (resources "/")
    not-found-handler))
 
-(defn wrap-data [app config]
+(defn wrap-master-data [app config]
   (let [carriers   (->> d/carriers
                       (map #(vector (get-in config [% :eori])
                                     (get-in config [% :site-name])))
@@ -83,9 +83,10 @@
                         (into {}))]
     (fn carriers-wrapper [req]
       (app (assoc req
-                  :data {:carriers carriers
-                         :warehouses warehouses
-                         :warehouse-addresses (constantly "Kerkstraat 1\n1234 AZ  Nergenshuizen\nNederland")})))))
+                  :master-data
+                  {:carriers carriers
+                   :warehouses warehouses
+                   :warehouse-addresses (constantly d/warehouse-address)})))))
 
 (defn wrap-log
   [handler]
@@ -137,7 +138,7 @@
         (wrap-app :tms-1 config store tms/make-handler)
         (wrap-app :tms-2 config store tms/make-handler)
 
-        (wrap-data config)
+        (wrap-master-data config)
 
         (wrap-user-number)
         (wrap-basic-authentication (->authenticate (config :auth)))

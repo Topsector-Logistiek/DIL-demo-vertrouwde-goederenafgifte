@@ -8,7 +8,7 @@
 (ns dil-demo.erp.web
   (:require [clojure.string :as string]
             [compojure.core :refer [routes DELETE GET POST]]
-            [dil-demo.data :as d]
+            [dil-demo.master-data :as d]
             [dil-demo.otm :as otm]
             [dil-demo.store :as store]
             [dil-demo.web-utils :as w]
@@ -219,19 +219,19 @@
                                   (assoc :owner-eori eori)
                                   (otm/map->consignment)))]
     (routes
-     (GET "/" {:keys [data flash ::store/store]}
+     (GET "/" {:keys [flash master-data ::store/store]}
        (render "Klantorders"
-               (list-consignments (get-consignments store) data)
+               (list-consignments (get-consignments store) master-data)
                flash))
 
-     (GET "/consignment-new" {:keys [data flash ::store/store user-number]}
+     (GET "/consignment-new" {:keys [flash master-data ::store/store user-number]}
        (render "Nieuwe klantorder"
                (edit-consignment
                 (otm/map->consignment {:ref         (next-consignment-ref store user-number)
                                        :load-date   (w/format-date (Date.))
                                        :unload-date (w/format-date (Date.))
                                        :status      "draft"})
-                data)
+                master-data)
                flash))
 
      (POST "/consignment-new" {:keys [params]}
@@ -245,11 +245,11 @@
                                                   :status otm/status-draft)
                                            (params->consignment))]]))))
 
-     (GET "/consignment-:id" {:keys        [data flash ::store/store]
+     (GET "/consignment-:id" {:keys        [flash master-data ::store/store]
                               {:keys [id]} :params}
        (when-let [consignment (get-consignment store id)]
          (render (str "Klantorder: " (otm/consignment-ref consignment))
-                 (edit-consignment consignment data)
+                 (edit-consignment consignment master-data)
                  flash)))
 
      (POST "/consignment-:id" {:keys [params]}
@@ -272,11 +272,11 @@
                (deleted-consignment {:ishare-log ishare-log})
                flash))
 
-     (GET "/publish-:id" {:keys        [data flash ::store/store]
+     (GET "/publish-:id" {:keys        [flash master-data ::store/store]
                           {:keys [id]} :params}
        (when-let [consignment (get-consignment store id)]
          (render "Transportopdracht aanmaken"
-                 (publish-consignment consignment data)
+                 (publish-consignment consignment master-data)
                  flash)))
 
      (POST "/publish-:id" {:keys        [::store/store]
@@ -296,9 +296,9 @@
                                        (otm/consignment-carrier-eori consignment)
                                        (otm/consignment->trip consignment)]]))))
 
-     (GET "/published-:id" {:keys        [data flash ::store/store]
+     (GET "/published-:id" {:keys        [flash master-data ::store/store]
                             {:keys [id]} :params}
        (when-let [consignment (get-consignment store id)]
          (render "Transportopdracht aangemaakt"
-                 (published-consignment consignment data)
+                 (published-consignment consignment master-data)
                  flash))))))

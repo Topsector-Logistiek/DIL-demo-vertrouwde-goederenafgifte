@@ -6,7 +6,7 @@
 ;;; SPDX-License-Identifier: AGPL-3.0-or-later
 
 (ns dil-demo.tms
-  (:require [dil-demo.tms.web :as web]
+  (:require [dil-demo.tms.web :as tms.web]
             [clojure.tools.logging.readable :as log]
             [dil-demo.ishare.policies :as policies]
             [dil-demo.store :as store]
@@ -41,19 +41,19 @@
     response))
 
 (defn- trip-stored
-  "Returns the trip that will stored from the response"
+  "Returns the trip that will be stored from the response."
   [{::store/keys [commands]}]
   (when-let [cmd (first (filter #(= [:put! :trips] (take 2 %)) commands))]
     (nth cmd 2)))
 
 (defn- trip-deleted-id
-  "Returns the trip id that will be deleted from the response"
+  "Returns the trip id that will be deleted from the response."
   [{::store/keys [commands]}]
   (when-let [cmd (first (filter #(= [:delete! :trips] (take 2 %)) commands))]
     (nth cmd 2)))
 
 (defn- wrap-policy-deletion
-  "When a trip is added or deleted, retract existing policies in the AR"
+  "When a trip is added or deleted, retract existing policies in the AR."
   [app]
   (fn policy-deletion-wrapper
     [{:keys [client-data ::store/store] :as req}]
@@ -69,7 +69,7 @@
         response))))
 
 (defn- wrap-delegation
-  "Create policies in AR when trips is stored."
+  "Create policies in AR when trip is stored."
   [app]
   (fn delegation-wrapper [{:keys [client-data] :as req}]
     (let [response (app req)
@@ -89,7 +89,7 @@
         response))))
 
 (defn make-handler [config]
-  (-> (web/make-handler config)
+  (-> (tms.web/make-handler config)
       (wrap-policy-deletion)
       (wrap-delegation)
       (ishare-client/wrap-client-data config)))

@@ -10,19 +10,19 @@
             [clojure.java.io :as io]
             [clojure.tools.logging.readable :as log]))
 
-(defmulti commit (fn [_store-atom _user-number _eori [cmd & _args]] cmd))
+(defmulti commit (fn [_store-atom _user-number _own-eori [cmd & _args]] cmd))
 
 (defmethod commit :put! ;; put data in own database
-  [store-atom user-number eori [_cmd table-key {:keys [id] :as value}]]
-  (swap! store-atom assoc-in [user-number eori table-key id] value))
+  [store-atom user-number own-eori [_cmd table-key {:keys [id] :as value}]]
+  (swap! store-atom assoc-in [user-number own-eori table-key id] value))
 
 (defmethod commit :publish! ;; put data in other database
-  [store-atom user-number _eori [_cmd table-key eori {:keys [id] :as value}]]
-  (swap! store-atom assoc-in [user-number eori table-key id] value))
+  [store-atom user-number _own-eori [_cmd table-key target-eori {:keys [id] :as value}]]
+  (swap! store-atom assoc-in [user-number target-eori table-key id] value))
 
 (defmethod commit :delete!
-  [store-atom user-number eori [_cmd table-key id]]
-  (swap! store-atom update-in [user-number eori table-key] dissoc id))
+  [store-atom user-number own-eori [_cmd table-key id]]
+  (swap! store-atom update-in [user-number own-eori table-key] dissoc id))
 
 (defn load-store [filename]
   (let [file (io/file filename)]
@@ -53,14 +53,14 @@
 
   When :dil-demo.store/commands key in response provides a collection
   of commands, those will be committed to the storage."
-  [app store-atom eori]
+  [app store-atom own-eori]
   (fn store-wrapper [{:keys [user-number] :as request}]
     (let [{::keys [commands]
            :as    response} (-> request
-                                (assoc ::store (get-in @store-atom [user-number eori]))
+                                (assoc ::store (get-in @store-atom [user-number own-eori]))
                                 (app))]
       (when (seq commands)
         (doseq [cmd commands]
           (log/debug "committing" cmd)
-          (commit store-atom user-number eori cmd)))
+          (commit store-atom user-number own-eori cmd)))
       response)))

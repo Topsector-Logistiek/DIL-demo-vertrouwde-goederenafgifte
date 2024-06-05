@@ -6,7 +6,7 @@
 ;;; SPDX-License-Identifier: AGPL-3.0-or-later
 
 (ns dil-demo.erp
-  (:require [dil-demo.erp.web :as web]
+  (:require [dil-demo.erp.web :as erp.web]
             [dil-demo.ishare.client :as ishare-client]
             [dil-demo.ishare.policies :as policies]
             [dil-demo.store :as store]
@@ -63,7 +63,7 @@
         res))))
 
 (defn wrap-delegation
-  "Create policies in AR when trips is created."
+  "Create policies in AR when trip is published."
   [app]
   (fn delegation-wrapper [{:keys [client-data] :as req}]
     (let [{::store/keys [commands] :as res} (app req)
@@ -78,7 +78,7 @@
         res))))
 
 (defn make-handler [config]
-  (-> (web/make-handler config)
+  (-> (erp.web/make-handler config)
       (web-utils/wrap-config config)
       (wrap-policy-deletion)
       (wrap-delegation)
