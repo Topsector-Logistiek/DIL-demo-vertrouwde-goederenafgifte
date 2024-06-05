@@ -14,23 +14,57 @@
 
 (def store
   {:trips
-   {"some-id"
-    {:id "some-id"
-     :external-attributes {:consignment-ref "some-ref"}}}})
+   {"31415"
+    {:id "31415"
+     :external-attributes {:consignment-ref "31415"}}}})
+
+(defn do-request [method path & [params]]
+  ((sut/make-handler {:id :tms, :site-name "TMS"})
+   (assoc (request method path params)
+          ::store/store store
+          :user-number 1
+          :master-data {:warehouses {}
+                        :warehouse-addresses {}})))
 
 (deftest handler
-  (testing "/"
-    (let [{:keys [status headers]} (sut/handler (request :get "/"))]
-      (is (= http-status/ok status))
-      (is (= "text/html; charset=utf-8" (get headers "Content-Type")))))
-
-  (testing "/assign-not-found"
-    (is (nil? (sut/handler (request :get "/assign-not-found")))))
-
-  (testing "/assign-some-id"
-    (let [{:keys [status headers body]}
-          (sut/handler (assoc (request :get "/assign-some-id")
-                              ::store/store store))]
+  (testing "GET /"
+    (let [{:keys [status headers body]} (do-request :get "/")]
       (is (= http-status/ok status))
       (is (= "text/html; charset=utf-8" (get headers "Content-Type")))
-      (is (re-find #"<dd>some-ref</dd>" body)))))
+      (is (re-find #"\b31415\b" body))))
+
+  (testing "DELETE /trip-31415"
+    (let [{:keys [status ::store/commands]} (do-request :delete "/trip-31415")]
+      (is (= http-status/see-other status))
+      (is (= [[:delete! :trips "31415"]] commands))))
+
+  (testing "GET /assign-not-found"
+    (is (nil? (do-request :get "/assign-not-found"))))
+
+  (testing "GET /assign-31415"
+    (let [{:keys [status headers body]} (do-request :get "/assign-31415")]
+      (is (= http-status/ok status))
+      (is (= "text/html; charset=utf-8" (get headers "Content-Type")))
+      (is (re-find #"\b31415\b" body))))
+
+  (testing "POST /assign-31415"
+    (let [{:keys [status ::store/commands]} (do-request :post "/assign-31415"
+                                                        {:driver-id-digits "1234"
+                                                         :license-plate "AB-01-ABC"})]
+      (is (= http-status/see-other status))
+      (is (= [:put! :trips] (->> commands first (take 2))))))
+
+  (testing "GET /chauffeur/"
+    (let [{:keys [status headers body]} (do-request :get "/chauffeur/")]
+      (is (= http-status/ok status))
+      (is (= "text/html; charset=utf-8" (get headers "Content-Type")))
+      (is (re-find #"\b31415\b" body))))
+
+  (testing "GET /chauffeur/trip-not-found"
+    (is (nil? (do-request :get "/assign-not-found"))))
+
+  (testing "GET /chauffeur/trip-31415"
+    (let [{:keys [status headers body]} (do-request :get "/chauffeur/trip-31415")]
+      (is (= http-status/ok status))
+      (is (= "text/html; charset=utf-8" (get headers "Content-Type")))
+      (is (re-find #"\b31415\b" body)))))

@@ -12,8 +12,10 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 This code simulates the following environments:
 
 - [erp](http://localhost:8080/erp/)
-- [tms](http://localhost:8080/tms/)
 - [wms](http://localhost:8080/wms/)
+- [tms-1](http://localhost:8080/tms-1/)
+- [tms-2](http://localhost:8080/tms-2/)
+
 
 ## Run
 
@@ -42,19 +44,27 @@ ERP:
 - `ERP_AR_ID`: EORI of the ERP authorization register
 - `ERP_AR_ENDPOINT`: URL to the ERP authorization register
 
-TMS:
-
-- `TMS_EORI`: EORI used by TMS
-- `TMS_KEY_FILE`: the file to read the TMS private key from
-- `TMS_CHAIN_FILE`: the file to read the TMS certificate chain from
-- `TMS_AR_ID`: EORI of the TMS authorization register
-- `TMS_AR_ENDPOINT`: URL to the TMS authorization register
-
 WMS:
 
 - `WMS_EORI`: EORI used by WMS
 - `WMS_KEY_FILE`: the file to read the WMS private key from
 - `WMS_CHAIN_FILE`: the file to read the WMS certificate chain from
+
+TMS 1:
+
+- `TMS1_EORI`: EORI used by TMS 1
+- `TMS1_KEY_FILE`: the file to read the TMS 1 private key from
+- `TMS1_CHAIN_FILE`: the file to read the TMS 1 certificate chain from
+- `TMS1_AR_ID`: EORI of the TMS 1 authorization register
+- `TMS1_AR_ENDPOINT`: URL to the TMS 1 authorization register
+
+TMS 2:
+
+- `TMS2_EORI`: EORI used by TMS 2
+- `TMS2_KEY_FILE`: the file to read the TMS 2 private key from
+- `TMS2_CHAIN_FILE`: the file to read the TMS 2 certificate chain from
+- `TMS2_AR_ID`: EORI of the TMS 2 authorization register
+- `TMS2_AR_ENDPOINT`: URL to the TMS 2 authorization register
 
 Run the web server with the following:
 

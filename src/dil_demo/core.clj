@@ -20,7 +20,8 @@
 (defn ->config []
   (let [erp-eori           (get-env "ERP_EORI")
         wms-eori           (get-env "WMS_EORI")
-        tms-eori           (get-env "TMS_EORI")
+        tms-1-eori         (get-env "TMS1_EORI")
+        tms-2-eori         (get-env "TMS2_EORI")
         dataspace-id       (get-env "DATASPACE_ID")
         satellite-id       (get-env "SATELLITE_ID")
         satellite-endpoint (get-env "SATELLITE_ENDPOINT")]
@@ -30,6 +31,7 @@
              :pass-multi   (parse-long (get-env "AUTH_PASS_MULTI" "31415"))
              :max-accounts (parse-long (get-env "AUTH_MAX_ACCOUNTS" "42"))}
      :erp   {:eori               erp-eori
+             :site-name          (get-env "ERP_NAME" "Smartphone Shop")
              :dataspace-id       dataspace-id
              :satellite-id       satellite-id
              :ar-id              (get-env "ERP_AR_ID")
@@ -37,20 +39,31 @@
              :satellite-endpoint satellite-endpoint
              :key-file           (get-env "ERP_KEY_FILE" (str "credentials/" erp-eori ".pem"))
              :chain-file         (get-env "ERP_CHAIN_FILE" (str "credentials/" erp-eori ".crt"))}
-     :tms   {:eori               tms-eori
-             :dataspace-id       dataspace-id
-             :satellite-id       satellite-id
-             :satellite-endpoint satellite-endpoint
-             :ar-id              (get-env "TMS_AR_ID")
-             :ar-endpoint        (get-env "TMS_AR_ENDPOINT")
-             :key-file           (get-env "TMS_KEY_FILE" (str "credentials/" tms-eori ".pem"))
-             :chain-file         (get-env "TMS_CHAIN_FILE" (str "credentials/" tms-eori ".crt"))}
      :wms   {:eori               wms-eori
+             :site-name          (get-env "WMS_NAME" "Secure Storage Warehousing")
              :dataspace-id       dataspace-id
              :satellite-id       satellite-id
              :satellite-endpoint satellite-endpoint
              :key-file           (get-env "WMS_KEY_FILE" (str "credentials/" wms-eori ".pem"))
-             :chain-file         (get-env "WMS_CHAIN_FILE" (str "credentials/" wms-eori ".crt"))}}))
+             :chain-file         (get-env "WMS_CHAIN_FILE" (str "credentials/" wms-eori ".crt"))}
+     :tms-1 {:eori               tms-1-eori
+             :site-name          (get-env "TMS1_NAME" "Precious Goods Transport")
+             :dataspace-id       dataspace-id
+             :satellite-id       satellite-id
+             :satellite-endpoint satellite-endpoint
+             :ar-id              (get-env "TMS1_AR_ID")
+             :ar-endpoint        (get-env "TMS1_AR_ENDPOINT")
+             :key-file           (get-env "TMS1_KEY_FILE" (str "credentials/" tms-1-eori ".pem"))
+             :chain-file         (get-env "TMS1_CHAIN_FILE" (str "credentials/" tms-1-eori ".crt"))}
+     :tms-2 {:eori               tms-2-eori
+             :site-name          (get-env "TMS2_NAME" "Flex Transport")
+             :dataspace-id       dataspace-id
+             :satellite-id       satellite-id
+             :satellite-endpoint satellite-endpoint
+             :ar-id              (get-env "TMS2_AR_ID")
+             :ar-endpoint        (get-env "TMS2_AR_ENDPOINT")
+             :key-file           (get-env "TMS2_KEY_FILE" (str "credentials/" tms-2-eori ".pem"))
+             :chain-file         (get-env "TMS2_CHAIN_FILE" (str "credentials/" tms-2-eori ".crt"))}}))
 
 (defonce server-atom (atom nil))
 

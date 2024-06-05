@@ -9,6 +9,8 @@
 
 (def sites
   [{:slug "erp", :path "/erp/", :title "ERP"}
-   {:slug "tms", :path "/tms/", :title "TMS"}
-   {:slug "tms-chauffeur", :path "/tms/chauffeur/", :title "TMS (chauffeur)"}
-   {:slug "wms", :path "/wms/", :title "WMS"}])
+   {:slug "wms", :path "/wms/", :title "WMS"}
+   {:slug "tms-1", :path "/tms-1/", :title "TMS-1"}
+   {:slug "tms-1-chauffeur", :path "/tms-1/chauffeur/", :title "TMS-1 (chauffeur)"}
+   {:slug "tms-2", :path "/tms-2/", :title "TMS-2"}
+   {:slug "tms-2-chauffeur", :path "/tms-2/chauffeur/", :title "TMS-2 (chauffeur)"}])

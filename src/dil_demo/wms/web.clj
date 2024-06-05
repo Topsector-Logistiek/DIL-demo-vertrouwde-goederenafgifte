@@ -8,8 +8,7 @@
 (ns dil-demo.wms.web
   (:require [clojure.data.json :refer [json-str]]
             [clojure.string :as string]
-            [compojure.core :refer [defroutes DELETE GET POST]]
-            [dil-demo.data :as d]
+            [compojure.core :refer [routes DELETE GET POST]]
             [dil-demo.otm :as otm]
             [dil-demo.store :as store]
             [dil-demo.web-utils :as w]
@@ -168,47 +167,48 @@
 
 
 
-(defn render [title main flash]
-  (w/render-body "wms"
-                 main
-                 :flash flash
-                 :title title
-                 :site-name d/wms-name))
+(defn make-handler [{:keys [id site-name]}]
+  (let [slug   (name id)
+        render (fn render [title main flash & {:keys [slug-postfix]}]
+                 (w/render-body (str slug slug-postfix)
+                                main
+                                :flash flash
+                                :title title
+                                :site-name site-name))]
+    (routes
+     (GET "/" {:keys        [flash]
+               ::store/keys [store]}
+       (render "Transportopdrachten"
+               (list-transport-orders (get-transport-orders store))
+               flash))
 
-(defroutes handler
-  (GET "/" {:keys        [flash]
-            ::store/keys [store]}
-    (render "Transportopdrachten"
-            (list-transport-orders (get-transport-orders store))
-            flash))
+     (DELETE "/transport-order-:id" {::store/keys [store]
+                                     {:keys [id]} :params}
+       (when (get-transport-order store id)
+         (-> "."
+             (redirect :see-other)
+             (assoc :flash {:success "Transportopdracht verwijderd"})
+             (assoc ::store/commands [[:delete! :transport-orders id]]))))
 
-  (DELETE "/transport-order-:id" {::store/keys [store]
-                                  {:keys [id]} :params}
-    (when (get-transport-order store id)
-      (-> "."
-          (redirect :see-other)
-          (assoc :flash {:success "Transportopdracht verwijderd"})
-          (assoc ::store/commands [[:delete! :transport-orders id]]))))
+     (GET "/verify-:id" {:keys        [flash]
+                         ::store/keys [store]
+                         {:keys [id]} :params}
+       (when-let [transport-order (get-transport-order store id)]
+         (render "Verificatie"
+                 (verify-transport-order transport-order)
+                 flash)))
 
-  (GET "/verify-:id" {:keys        [flash]
-                      ::store/keys [store]
-                      {:keys [id]} :params}
-    (when-let [transport-order (get-transport-order store id)]
-      (render "Verificatie"
-              (verify-transport-order transport-order)
-              flash)))
-
-  (POST "/verify-:id" {:keys                   [client-data flash]
-                       ::store/keys            [store]
-                       {:keys [id] :as params} :params}
-    (when-let [transport-order (get-transport-order store id)]
-      (let [params (merge (otm/transport-order->map transport-order)
-                          (select-keys params [:carrier-eori :driver-id-digits :license-plate]))
-            result (verify/verify! client-data transport-order params)]
-        (if (verify/permitted? result)
-          (render "Transportopdracht geaccepteerd"
-                  (accepted-transport-order transport-order params result)
-                  flash)
-          (render "Transportopdracht afgewezen"
-                  (rejected-transport-order transport-order params result)
-                  flash))))))
+     (POST "/verify-:id" {:keys                   [client-data flash]
+                          ::store/keys            [store]
+                          {:keys [id] :as params} :params}
+       (when-let [transport-order (get-transport-order store id)]
+         (let [params (merge (otm/transport-order->map transport-order)
+                             (select-keys params [:carrier-eori :driver-id-digits :license-plate]))
+               result (verify/verify! client-data transport-order params)]
+           (if (verify/permitted? result)
+             (render "Transportopdracht geaccepteerd"
+                     (accepted-transport-order transport-order params result)
+                     flash)
+             (render "Transportopdracht afgewezen"
+                     (rejected-transport-order transport-order params result)
+                     flash))))))))

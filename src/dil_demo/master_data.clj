@@ -5,14 +5,11 @@
 ;;;
 ;;; SPDX-License-Identifier: AGPL-3.0-or-later
 
-(ns dil-demo.data)
+(ns dil-demo.master-data)
 
-(def wms-name "Secure Storage Warehousing")
-(def tms-name "Precious Goods Transport")
-(def erp-name "Smartphone Shop")
-
-;; NOTE: these have a WMS as demoed here
-(def warehouses [wms-name])
+(def owners [:erp])
+(def warehouses [:wms])
+(def carriers [:tms-1 :tms-2])
 
 (def goods #{"Toiletpapier"
              "Bananen"
@@ -30,9 +27,6 @@
    "Bol, Waalwijk"
    "Mechie Trommelenweg 1\n5145 ND  Waalwijk\nNederland"
 
-   wms-name
-   "Kerkstraat 1\n1234 AZ  Nergenshuizen\nNederland"
-
    "Intel, Schiphol"
    "Capronilaan 37\n1119 NG  Schiphol-Rijk\nNederland"
 
@@ -41,3 +35,6 @@
 
    "Nokia, Espoo"
    "Karakaari 7\n02610 Espoo\nFinland"})
+
+(def warehouse-address
+  "Kerkstraat 1\n1234 AZ  Nergenshuizen\nNederland")
