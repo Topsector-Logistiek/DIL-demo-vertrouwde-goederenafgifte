@@ -282,19 +282,19 @@
      (POST "/publish-:id" {:keys        [::store/store]
                            {:keys [id]} :params}
        (when-let [consignment (get-consignment store id)]
-         (-> (str "published-" id)
-             (redirect :see-other)
-             (assoc :flash {:success "Transportopdracht aangemaakt"})
-             (assoc ::store/commands [[:put! :consignments
-                                       (assoc consignment :status "requested")]
-                                      [:publish! ;; to warehouse WMS
-                                       :transport-orders
-                                       (otm/consignment-warehouse-eori consignment)
-                                       (otm/consignment->transport-order consignment)]
-                                      [:publish! ;; to carrier TMS
-                                       :trips
-                                       (otm/consignment-carrier-eori consignment)
-                                       (otm/consignment->trip consignment)]]))))
+         (let [consignment (otm/consignment-status! consignment otm/status-requested)]
+           (-> (str "published-" id)
+               (redirect :see-other)
+               (assoc :flash {:success "Transportopdracht aangemaakt"})
+               (assoc ::store/commands [[:put! :consignments consignment]
+                                        [:publish! ;; to warehouse WMS
+                                         :transport-orders
+                                         (otm/consignment-warehouse-eori consignment)
+                                         (otm/consignment->transport-order consignment)]
+                                        [:publish! ;; to carrier TMS
+                                         :trips
+                                         (otm/consignment-carrier-eori consignment)
+                                         (otm/consignment->trip consignment)]])))))
 
      (GET "/published-:id" {:keys        [flash master-data ::store/store]
                             {:keys [id]} :params}

@@ -48,11 +48,35 @@
       (is (re-find #"\b31415\b" body))))
 
   (testing "POST /assign-31415"
-    (let [{:keys [status ::store/commands]} (do-request :post "/assign-31415"
-                                                        {:driver-id-digits "1234"
-                                                         :license-plate "AB-01-ABC"})]
+    (let [{:keys [status
+                  headers
+                  ::store/commands]} (do-request :post "/assign-31415"
+                                                 {:driver-id-digits "1234"
+                                                  :license-plate "AB-01-ABC"})]
       (is (= http-status/see-other status))
+      (is (= "assigned-31415" (get headers "Location")))
       (is (= [:put! :trips] (->> commands first (take 2))))))
+
+  (testing "GET /outsource-31415"
+    (let [{:keys [status headers body]} (do-request :get "/outsource-31415")]
+      (is (= http-status/ok status))
+      (is (= "text/html; charset=utf-8" (get headers "Content-Type")))
+      (is (re-find #"\b31415\b" body))))
+
+  (testing "POST /outsource-31415"
+    (let [{:keys [status
+                  headers
+                  ::store/commands]} (do-request :post "/outsource-31415"
+                                                 {:carrier-eori "EU.EORI.OTHER"})]
+      (is (= http-status/see-other status))
+      (is (= "outsourced-31415" (get headers "Location")))
+      (is (= [:put! :trips] (->> commands first (take 2))))))
+
+  (testing "GET /outsourced-31415"
+    (let [{:keys [status headers body]} (do-request :get "/outsourced-31415")]
+      (is (= http-status/ok status))
+      (is (= "text/html; charset=utf-8" (get headers "Content-Type")))
+      (is (re-find #"\b31415\b" body))))
 
   (testing "GET /chauffeur/"
     (let [{:keys [status headers body]} (do-request :get "/chauffeur/")]
