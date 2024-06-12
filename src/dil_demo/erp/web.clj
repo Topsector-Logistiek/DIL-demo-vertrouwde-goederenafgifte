@@ -154,8 +154,8 @@
       [:a.button {:href "."} "Annuleren"]]]))
 
 (defn published-consignment [consignment
-                             {:keys                [carriers warehouses]
-                              {:keys [ishare-log]} :flash}]
+                             {:keys [carriers warehouses]}
+                             {:keys [ishare-log]}]
   (let [{:keys [load-location carrier-eori]} (otm/consignment->map consignment)]
     [:div
      [:section
@@ -300,5 +300,5 @@
                             {:keys [id]} :params}
        (when-let [consignment (get-consignment store id)]
          (render "Transportopdracht aangemaakt"
-                 (published-consignment consignment master-data)
+                 (published-consignment consignment master-data flash)
                  flash))))))
