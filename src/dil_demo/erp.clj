@@ -19,7 +19,7 @@
   {:pre [client-id effect ref load-date]}
   (policies/->delegation-evidence
    {:issuer  client-id
-    :subject (policies/ishare-delegation-access-subject m)
+    :subject (policies/outsource-pickup-access-subject m)
     :target  (policies/->delegation-target ref)
     :date    load-date
     :effect  effect}))
@@ -53,8 +53,8 @@
     (let [{::store/keys [commands] :as res} (app req)]
       (if-let [id (-> (filter #(= [:delete! :consignments] (take 2 %))
                               commands)
-                        (first)
-                        (nth 2))]
+                      (first)
+                      (nth 2))]
         (let [consignment (get-in store [:consignments id])
               [result log] (ishare-ar! client-data "Deny" (otm/consignment->map consignment))]
           (cond-> (assoc-in res [:flash :ishare-log] log)

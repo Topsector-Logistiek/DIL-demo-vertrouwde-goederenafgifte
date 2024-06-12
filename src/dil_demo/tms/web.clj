@@ -49,8 +49,14 @@
            [:li [:a.button.button-secondary {:href (str "outsource-" id)} "Outsource"]])
          [:li (w/delete-button (str "trip-" id))]]]])]])
 
-(defn qr-code-dil-demo [{:keys [carrier-eori driver-id-digits license-plate]}]
-  (w/qr-code (str ":dil-demo:" carrier-eori ":" driver-id-digits ":" license-plate)))
+(defn qr-code-dil-demo [trip]
+  (let [carrier-eori-list (otm/trip-carrier-eori-list trip)
+        driver-id-digits (otm/trip-driver-id-digits trip)
+        license-plate (otm/trip-license-plate trip)]
+    (w/qr-code (str ":dil-demo"
+                    ":" (string/join "," carrier-eori-list)
+                    ":" driver-id-digits
+                    ":" license-plate))))
 
 (defn chauffeur-list-trips [trips {:keys [warehouses]}]
   (if (seq trips)
@@ -71,7 +77,7 @@
 
 (defn chauffeur-trip [trip]
   [:div.trip
-   (qr-code-dil-demo (otm/trip->map trip))
+   (qr-code-dil-demo trip)
    [:div.actions
     [:a.button {:href "../chauffeur/"} "Terug naar overzicht"]]])
 
@@ -108,13 +114,13 @@
          [:blockquote.remarks unload-remarks])]]]))
 
 (defn assign-trip [trip master-data]
-  (let [{:keys [carrier-eori driver-id-digits license-plate] :as params}
+  (let [{:keys [carrier-eori driver-id-digits license-plate]}
         (otm/trip->map trip)]
     [:form {:method "POST"}
      (w/anti-forgery-input)
 
      (when (and carrier-eori driver-id-digits license-plate)
-       (qr-code-dil-demo params))
+       (qr-code-dil-demo trip))
 
      (trip-details trip master-data)
 
@@ -130,26 +136,25 @@
       [:a.button {:href "."} "Annuleren"]]]))
 
 (defn assigned-trip [trip {:keys [ishare-log]}]
-  (let [{:keys [ref] :as params} (otm/trip->map trip)]
-    [:div
-     [:section
-      [:p "Transportopdracht " [:q ref] " toegewezen."]
+  [:div
+   [:section
+    [:p "Transportopdracht " [:q (otm/trip-ref trip)] " toegewezen."]
 
-      (qr-code-dil-demo params)
+    (qr-code-dil-demo trip)
 
-      [:div.actions
-       [:a.button {:href "."} "Terug naar overzicht"]]]
-     [:details.explanation
-      [:summary "Uitleg"]
-      [:ol
-       [:li
-        [:h3 "Autoriseer de Chauffeur names de Vervoerder voor de Klantorder vervoerd met Kenteken"]
-        [:p "API call naar " [:strong "AR van de Vervoerder"] " om een autorisatie te registeren"]
-        [:ul [:li "Klantorder nr."] [:li "Rijbewijs (laatste 4 cijfers)"] [:li "Kenteken"]]]
-       [:li
-        [:h3 "OTM Trip"]
-        [:pre.json (w/to-json trip)]]
-       (w/ishare-log-intercept-to-hiccup ishare-log)]]]))
+    [:div.actions
+     [:a.button {:href "."} "Terug naar overzicht"]]]
+   [:details.explanation
+    [:summary "Uitleg"]
+    [:ol
+     [:li
+      [:h3 "Autoriseer de Chauffeur names de Vervoerder voor de Klantorder vervoerd met Kenteken"]
+      [:p "API call naar " [:strong "AR van de Vervoerder"] " om een autorisatie te registeren"]
+      [:ul [:li "Klantorder nr."] [:li "Rijbewijs (laatste 4 cijfers)"] [:li "Kenteken"]]]
+     [:li
+      [:h3 "OTM Trip"]
+      [:pre.json (w/to-json trip)]]
+     (w/ishare-log-intercept-to-hiccup ishare-log)]]])
 
 (defn outsource-trip [trip {:keys [carriers] :as master-data}]
   [:form {:method "POST"}
@@ -293,7 +298,7 @@
      (POST "/outsource-:id" {::store/keys              [store]
                              {:keys [id carrier-eori]} :params}
        (when-let [trip (get-trip store id)]
-         (let [trip (otm/trip-carrier-eori! trip carrier-eori)]
+         (let [trip (otm/trip-add-subcontractor! trip carrier-eori)]
            (-> (str "outsourced-" id)
                (redirect :see-other)
                (assoc :flash {:success "Naar vervoerder gestuurd"})

@@ -178,7 +178,7 @@
     (is (= "EU.EORI.CARRIER" (sut/trip-carrier-eori test-trip)))
     (is (= "EU.EORI.OTHER-CARRIER"
            (-> test-trip
-               (sut/trip-carrier-eori! "EU.EORI.OTHER-CARRIER")
+               (sut/trip-add-subcontractor! "EU.EORI.OTHER-CARRIER")
                (sut/trip-carrier-eori)))))
 
   (testing "driver id digits"

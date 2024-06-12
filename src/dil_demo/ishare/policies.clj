@@ -159,14 +159,16 @@
       :finally
       (seq))))
 
-(defn ishare-delegation-access-subject
-  "Hack around short coming of iSHARE AR; uniqueness on accessSubject and policyIssuer."
+(defn outsource-pickup-access-subject
+  "Returns an \"accessSubject\" to denote a pickup is outsourced to some
+  party."
   [{:keys [carrier-eori ref]}]
   {:pre [carrier-eori ref]}
-  (str carrier-eori ":" ref))
+  (str carrier-eori "#ref=" ref))
 
-(defn poort8-delegation-access-subject
-  "Returns driver ID license-plate access subject."
-  [{:keys [driver-id-digits license-plate]}]
+(defn pickup-access-subject
+  "Returns an \"accessSubject\" to denote a pickup will be done by a
+  driver / vehicle."
+  [{:keys [carrier-eori driver-id-digits license-plate]}]
   {:pre [driver-id-digits license-plate]}
-  (str driver-id-digits "|" license-plate))
+  (str carrier-eori "#driver-id-digits=" driver-id-digits "&license-plate=" license-plate))

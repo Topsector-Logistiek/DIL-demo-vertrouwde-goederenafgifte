@@ -6,6 +6,7 @@
 ;;; SPDX-License-Identifier: AGPL-3.0-or-later
 
 (ns dil-demo.otm
+  (:require [clojure.set :refer [intersection]])
   (:import java.util.UUID
            java.time.LocalDateTime
            java.time.format.DateTimeFormatter))
@@ -35,6 +36,7 @@
 
 (def role-owner "owner")
 (def role-carrier "carrier")
+(def role-subcontractor "subcontractor")
 (def role-driver "driver")
 
 (def action-type-load "load")
@@ -345,34 +347,40 @@
       (consignment-action action-type-unload)
       :remarks))
 
-(defn trip-actor [{:keys [actors]} role]
+(defn trip-actors [{:keys [actors]} pred]
   (->> actors
-       (filter #(get (:roles %) role))
-       (map :entity)
-       (first)))
+       (filter pred)
+       (map :entity)))
 
-(defn trip-carrier-eori [trip]
-  (->> (-> trip
-           (trip-actor role-carrier)
-           :contact-details)
-       (filter #(= contact-details-type-eori (:type %)))
-       (first)
-       :value))
+(defn trip-carrier-eori-list
+  "Return list of carrier/subcontractors EORIs."
+  [trip]
+  (->> (trip-actors trip #(seq (intersection (:roles %)
+                                             #{role-carrier
+                                               role-subcontractor})))
+       (map (fn [{:keys [contact-details]}]
+              (->> contact-details
+                   (filter #(= contact-details-type-eori (:type %)))
+                   (first)
+                   :value)))))
 
-(defn trip-carrier-eori! [trip carrier-eori]
+(defn trip-carrier-eori
+  "Return EORI of last carrier/subcontractor."
+  [trip]
+  (last (trip-carrier-eori-list trip)))
+
+(defn trip-add-subcontractor! [trip subco-eori]
   (update trip :actors
-          (fn [actors]
-            (->> actors
-                 (filter (complement #(get (:roles %) role-carrier)))
-                 (concat [{:association-type association-type-inline
-                           :roles            #{role-carrier}
-                           :entity
-                           {:contact-details [{:type  contact-details-type-eori
-                                               :value carrier-eori}]}}])))))
+          concat [{:association-type association-type-inline
+                   :roles            #{role-subcontractor}
+                   :entity
+                   {:contact-details [{:type  contact-details-type-eori
+                                       :value subco-eori}]}}]))
 
 (defn trip-driver-id-digits [trip]
   (-> trip
-      (trip-actor role-driver)
+      (trip-actors #(contains? (:roles %) role-driver))
+      (first)
       :external-attributes
       :id-digits))
 

@@ -74,7 +74,7 @@
   (fn delegation-wrapper [{:keys [client-data] :as req}]
     (let [response (app req)
           trip     (trip-stored response)]
-      (if-let [subject (and trip (policies/poort8-delegation-access-subject (otm/trip->map trip)))]
+      (if-let [subject (and trip (policies/pickup-access-subject (otm/trip->map trip)))]
         (let [response (ishare-exec-with-log response
                                              (-> client-data
                                                  (assoc :ishare/message-type :poort8/policy
