@@ -305,10 +305,11 @@
                (assoc ::store/commands [[:put! :trips (otm/trip-status! trip otm/status-outsourced)]
                                         [:publish! :trips carrier-eori trip]])))))
 
-     (GET "/outsourced-:id" {:keys        [flash master-data]
-                            ::store/keys [store]
-                            {:keys [id]} :params}
+     (GET "/outsourced-:id" {:keys        [flash]
+                             ::store/keys [store]
+                             {:keys [id]} :params
+                             {:keys [ishare-log]} :flash}
        (when-let [trip (get-trip store id)]
          (render "Transportopdracht uitbesteed"
-                 (outsourced-trip trip master-data)
+                 (outsourced-trip trip {:ishare-log ishare-log})
                  flash))))))

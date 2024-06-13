@@ -353,8 +353,10 @@ When bearer token is not needed, provide a `nil` token"
 
 
 
-(defn ->client-data [{:keys [eori key-file chain-file dataspace-id
-                             ar-id ar-endpoint
+(defn ->client-data [{:keys [eori
+                             dataspace-id
+                             key-file chain-file
+                             ar-id ar-endpoint ar-type
                              satellite-id satellite-endpoint]}]
   {:ishare/client-id                        eori
    :ishare/dataspace-id                     dataspace-id
@@ -362,6 +364,7 @@ When bearer token is not needed, provide a `nil` token"
    :ishare/satellite-endpoint               satellite-endpoint
    :ishare/authentication-registry-id       ar-id
    :ishare/authentication-registry-endpoint ar-endpoint
+   :ishare/authentication-registry-type     (keyword ar-type)
    :ishare/private-key                      (private-key key-file)
    :ishare/x5c                              (x5c chain-file)})
 
@@ -378,6 +381,11 @@ When bearer token is not needed, provide a `nil` token"
     {:ishare/client-id   "EU.EORI.NLSMARTPHON"
      :ishare/x5c         (x5c "credentials/EU.EORI.NLSMARTPHON.crt")
      :ishare/private-key (private-key "credentials/EU.EORI.NLSMARTPHON.pem")})
+
+    (def client-data
+    {:ishare/client-id   "EU.EORI.NLFLEXTRANS"
+     :ishare/x5c         (x5c "credentials/EU.EORI.NLFLEXTRANS.crt")
+     :ishare/private-key (private-key "credentials/EU.EORI.NLFLEXTRANS.pem")})
 
   (def ishare-ar-request
     {:ishare/endpoint    "https://ar.isharetest.net/"
