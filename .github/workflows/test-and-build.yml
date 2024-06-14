@@ -38,7 +38,7 @@ jobs:
   build:
     needs: [check]
     # only run on this branch
-    if: ${{ github.ref == 'refs/heads/master' }}
+    if: ${{ github.ref == 'refs/heads/push-fase-1' }}
     name: 'Build and Push to ACR'
     runs-on: ubuntu-latest
 
