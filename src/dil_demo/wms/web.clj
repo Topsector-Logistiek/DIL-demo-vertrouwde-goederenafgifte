@@ -75,10 +75,10 @@
 
 
      [:div.actions
-      (qr-code-scan-button "carrier-eori" "driver-id-digits" "license-plate")]
+      (qr-code-scan-button "carrier-eoris" "driver-id-digits" "license-plate")]
 
-     (w/field {:id       "carrier-eori"
-               :name     "carrier-eori", :label "Vervoerder EORI"
+     (w/field {:id       "carrier-eoris"
+               :name     "carrier-eoris", :label "Vervoerder EORI"
                :required true})
      (w/field {:id          "driver-id-digits"
                :name        "driver-id-digits",  :label   "Rijbewijs",
@@ -96,7 +96,7 @@
       [:a.button {:href "."} "Annuleren"]]]))
 
 (defn accepted-transport-order [transport-order
-                                {:keys [carrier-eori driver-id-digits license-plate]}
+                                {:keys [carrier-eoris driver-id-digits license-plate]}
                                 {:keys [ishare-log]}]
   [:div
    [:section
@@ -105,7 +105,7 @@
      "Transportopdracht "
      [:q (otm/transport-order-ref transport-order)]
      " goedgekeurd voor vervoerder met EORI "
-     [:q carrier-eori]
+     [:q carrier-eoris]
      ", chauffeur met rijbewijs eindigend op "
      [:q driver-id-digits]
      " en kenteken "
@@ -118,7 +118,7 @@
     [:ol (w/ishare-log-intercept-to-hiccup ishare-log)]]])
 
 (defn rejected-transport-order [transport-order
-                                {:keys [carrier-eori driver-id-digits license-plate]}
+                                {:keys [carrier-eoris driver-id-digits license-plate]}
                                 {:keys [ishare-log
                                         owner-rejections
                                         carrier-rejections]}]
@@ -131,7 +131,7 @@
         "Transportopdracht "
         [:q (otm/transport-order-ref transport-order)]
         " is AFGEKEURD voor vervoerder met EORI "
-        [:q carrier-eori]
+        [:q carrier-eoris]
         "."]
        [:ul.rejections
         (for [rejection owner-rejections]
@@ -202,8 +202,7 @@
                           ::store/keys            [store]
                           {:keys [id] :as params} :params}
        (when-let [transport-order (get-transport-order store id)]
-         (let [params (merge (otm/transport-order->map transport-order)
-                             (select-keys params [:carrier-eori :driver-id-digits :license-plate]))
+         (let [params (update params :carrier-eoris string/split #",")
                result (verify/verify! client-data transport-order params)]
            (if (verify/permitted? result)
              (render "Transportopdracht geaccepteerd"

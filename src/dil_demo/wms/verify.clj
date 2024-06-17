@@ -27,40 +27,57 @@
 (defn verify-owner
   "Ask AR of owner if carrier is allowed to pickup order. Return list of
   rejection reasons or nil well access is allowed."
-  [client-data transport-order
-   {:keys [carrier-eori ref] :as params}]
-  {:pre [carrier-eori ref]}
+  [client-data transport-order {:keys [carrier-eoris]}]
+  {:pre [(seq carrier-eoris)]}
 
-  (let [issuer (otm/transport-order-owner-eori transport-order)
-        target (policies/->delegation-target (otm/transport-order-ref transport-order))
-        mask   (policies/->delegation-mask {:issuer  issuer
-                                            :subject (policies/outsource-pickup-access-subject params)
-                                            :target  target})]
+  (let [issuer  (otm/transport-order-owner-eori transport-order)
+        ref     (otm/transport-order-ref transport-order)
+        target  (policies/->delegation-target ref)
+        subject (policies/outsource-pickup-access-subject {:ref          ref
+                                                           :carrier-eori (first carrier-eoris)})
+        mask    (policies/->delegation-mask {:issuer  issuer
+                                             :subject subject
+                                             :target  target})]
     (rejection-reasons client-data {:issuer issuer
                                     :target target
                                     :mask   mask})))
 
-(defn verify-carrier-pickup
-  "Ask AR of carrier if driver is allowed to pickup order. Return list
-  of rejection reasons or nil well access is allowed."
-  [client-data transport-order
-   {:keys [carrier-eori driver-id-digits license-plate] :as params}]
-  {:pre [carrier-eori driver-id-digits license-plate]}
+(defn verify-carriers
+  "Ask AR of carriers if sourced to next or, if last, driver is allowed
+  to pickup order. Return list of rejection reasons or nil well access
+  is allowed."
+  [client-data transport-order {:keys [carrier-eoris driver-id-digits license-plate]}]
+  {:pre [(seq carrier-eoris) driver-id-digits license-plate]}
 
-  (let [target (policies/->delegation-target (otm/transport-order-ref transport-order))
-        mask   (policies/->delegation-mask {:issuer  carrier-eori
-                                            :subject (policies/pickup-access-subject params)
-                                            :target  target})]
-    (rejection-reasons client-data {:issuer carrier-eori
-                                    :target target
-                                    :mask   mask})))
+  (let [ref    (otm/transport-order-ref transport-order)
+        target (policies/->delegation-target ref)]
+    (loop [carrier-eoris carrier-eoris
+           result        []]
+      (if (seq carrier-eoris)
+        (let [carrier-eori (first carrier-eoris)
+              subject      (if (= 1 (count carrier-eoris))
+                             (policies/pickup-access-subject {:driver-id-digits driver-id-digits
+                                                              :license-plate    license-plate
+                                                              :carrier-eori     carrier-eori})
+                             (policies/outsource-pickup-access-subject {:ref          ref
+                                                                        :carrier-eori (second carrier-eoris)}))
+              mask         (policies/->delegation-mask {:issuer  carrier-eori
+                                                        :subject subject
+                                                        :target  target})]
+          (recur (next carrier-eoris)
+                 (concat result
+                         (rejection-reasons client-data
+                                            {:issuer carrier-eori
+                                             :target target
+                                             :mask   mask}))))
+        (seq result)))))
 
 (defn verify! [client-data transport-order params]
   (binding [ishare-client/log-interceptor-atom (atom [])]
     (let [owner-rejections (verify-owner client-data transport-order params)]
       {:owner-rejections   owner-rejections
        :carrier-rejections (when-not owner-rejections
-                             (verify-carrier-pickup client-data transport-order params))
+                             (verify-carriers client-data transport-order params))
        :ishare-log         @ishare-client/log-interceptor-atom})))
 
 (defn permitted? [{:keys [owner-rejections carrier-rejections]}]
