@@ -59,50 +59,53 @@
 
 (defn edit-consignment [consignment {:keys [carriers warehouses]}]
   (let [{:keys [status ref load-date load-location load-remarks unload-location unload-date unload-remarks goods carrier-eori]}
-        (otm/consignment->map consignment)]
+        (otm/consignment->map consignment)
+
+        ;; add empty option
+        carriers (into {nil nil} carriers)]
     [:form {:method "POST"}
      (w/anti-forgery-input)
 
      [:section
       (w/field {:name  "status", :value status,
-                :label "Status", :type  "select", :list otm/statuses})
-      (w/field {:name  "ref",            :value ref,
-                :label "Klantorder nr.", :type  "number", :required true})]
+                :label "Status", :type  "select",
+                :list  otm/statuses})
+      (w/field {:name     "ref",            :value ref,
+                :label    "Klantorder nr.", :type  "number",
+                :required true})]
      [:section
       (w/field {:name  "load-date",   :type  "date",
                 :label "Ophaaldatum", :value load-date})
-      (w/field {:name  "load-location", :value load-location, ;; EORIs?!
-                :label "Ophaaladres",   :type  "select", :list warehouses, :required true})
+      (w/field {:name  "load-location", :value    load-location, ;; EORIs?!
+                :label "Ophaaladres",   :type     "select",
+                :list  warehouses,      :required true})
       (w/field {:name  "load-remarks", :value load-remarks,
                 :label "Opmerkingen",  :type  "textarea"})]
      [:section
       (w/field {:name  "unload-date",  :value unload-date,
                 :label "Afleverdatum", :type  "date"})
-      (w/field {:name  "unload-location", :value unload-location,
-                :label "Afleveradres",    :type  "text", :list (keys d/locations), :required true})
+      (w/field {:name  "unload-location",  :value    unload-location,
+                :label "Afleveradres",     :type     "text",
+                :list  (keys d/locations), :required true})
       (w/field {:name  "unload-remarks", :value unload-remarks,
                 :label "Opmerkingen",    :type  "textarea"})]
      [:section
-      (w/field {:name  "goods",    :value goods,
-                :label "Goederen", :type  "text", :list d/goods, :required true})
-      (w/field {:name  "carrier-eori", :value carrier-eori,
-                :label "Vervoerder",   :type  "select", :list carriers, :required true})]
+      (w/field {:name  "goods",    :value    goods,
+                :label "Goederen", :type     "text",
+                :list  d/goods,    :required true})
+      (w/field {:name  "carrier-eori", :value    carrier-eori,
+                :label "Vervoerder",   :type     "select",
+                :list  carriers,       :required true})]
      [:div.actions
       [:button.button.button-primary {:type "submit"} "Bewaren"]
       [:a.button {:href "."} "Annuleren"]]]))
 
-(defn deleted-consignment [{:keys [ishare-log]}]
+(defn deleted-consignment [{:keys [explanation]}]
   [:div
    [:section
     [:div.actions
      [:a.button {:href "."} "Terug naar overzicht"]]]
-   [:details.explanation
-    [:summary "Uitleg"]
-    [:ol
-     [:li
-      [:h3 "Autorisatie van vervoerder ingetrokken"]
-      [:p "API call naar " [:strong "AR van de Verlader"] " om een autorisatie te verwijderen"]]
-     (w/ishare-log-intercept-to-hiccup ishare-log)]]])
+   (w/explanation explanation)])
 
 (defn publish-consignment [consignment {:keys [carriers warehouses warehouse-addresses]}]
   (let [{:keys [status ref load-date load-location load-remarks unload-date unload-location unload-remarks goods carrier-eori]}
@@ -155,7 +158,7 @@
 
 (defn published-consignment [consignment
                              {:keys [carriers warehouses]}
-                             {:keys [ishare-log]}]
+                             {:keys [explanation]}]
   (let [{:keys [load-location carrier-eori]} (otm/consignment->map consignment)]
     [:div
      [:section
@@ -166,18 +169,9 @@
        "."]
       [:div.actions
        [:a.button {:href "."} "Terug naar overzicht"]]]
-     [:details.explanation
-      [:summary "Uitleg"]
-      [:ol
-       [:li
-        [:details
-         [:summary "Stuur OTM Transportopdracht naar WMS van DC"]
-         [:pre.json (w/otm-to-json (otm/consignment->transport-order consignment))]]]
-       [:li
-        [:details
-         [:summary "Stuur OTM Trip naar TMS van Vervoerder"]
-         [:pre.json (w/otm-to-json (otm/consignment->trip consignment))]]]
-       (w/ishare-log-intercept-to-hiccup ishare-log)]]]))
+     (w/explanation (into [["Stuur OTM Transportopdracht naar WMS van DC"]
+                           ["Stuur OTM Trip naar TMS van Vervoerder"]]
+                          explanation))]))
 
 
 
@@ -267,9 +261,9 @@
              (assoc :flash {:success "Klantorder verwijderd"})
              (assoc ::store/commands [[:delete! :consignments id]]))))
 
-     (GET "/deleted" {{:keys [ishare-log] :as flash} :flash}
+     (GET "/deleted" {:keys [flash]}
        (render "Transportopdracht verwijderd"
-               (deleted-consignment {:ishare-log ishare-log})
+               (deleted-consignment flash)
                flash))
 
      (GET "/publish-:id" {:keys        [flash master-data ::store/store]

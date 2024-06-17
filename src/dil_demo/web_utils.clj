@@ -155,13 +155,13 @@
 (defn otm-to-json [val]
   (to-json val :key-fn (comp camelize name)))
 
-(defmulti ishare-interaction-summary #(-> % :request :ishare/message-type))
-
 (defn server-description
   [{:ishare/keys [server-id server-name]}]
   (if server-name
     [:span [:q server-id] " (" server-name ")"]
     [:q server-id]))
+
+(defmulti ishare-interaction-summary #(-> % :request :ishare/message-type))
 
 (defmethod ishare-interaction-summary :default
   [_]
@@ -200,14 +200,24 @@
     [:li.interaction
      [:details
       [:summary (ishare-interaction-summary interaction)]
-      [:p "Request:"]
-      [:pre.request
-       (to-json (-> interaction
-                    :request
-                    (select-keys [:method :uri :params :form-params :json-params :headers])))]
-      [:p "Response:"]
-      [:pre.response
-       (to-json (select-keys interaction [:status :headers :body]))]]]))
+      (when (:request interaction)
+        [:div.request
+         [:p "Request:"]
+         [:pre (to-json (-> interaction
+                            :request
+                            (select-keys [:method :uri :params :form-params :json-params :headers])))]])
+      (when (:status interaction)
+        [:div.response
+         [:p "Response:"]
+         [:pre (to-json (select-keys interaction [:status :headers :body]))]])]]))
+
+(defn explanation [explanation]
+  [:details.explanation
+    [:summary "Uitleg"]
+    [:ol
+     (for [[title ishare-log] explanation]
+       [:li [:h3 title]
+        [:ol (ishare-log-intercept-to-hiccup ishare-log)]])]])
 
 (defn wrap-config [app config]
   (fn config-wrapper [req]

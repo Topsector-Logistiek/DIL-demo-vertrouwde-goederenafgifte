@@ -135,7 +135,7 @@
       [:button.button-primary {:type "submit"} "Toewijzen"]
       [:a.button {:href "."} "Annuleren"]]]))
 
-(defn assigned-trip [trip {:keys [ishare-log]}]
+(defn assigned-trip [trip {:keys [explanation]}]
   [:div
    [:section
     [:p "Transportopdracht " [:q (otm/trip-ref trip)] " toegewezen."]
@@ -144,17 +144,7 @@
 
     [:div.actions
      [:a.button {:href "."} "Terug naar overzicht"]]]
-   [:details.explanation
-    [:summary "Uitleg"]
-    [:ol
-     [:li
-      [:h3 "Autoriseer de Chauffeur names de Vervoerder voor de Klantorder vervoerd met Kenteken"]
-      [:p "API call naar " [:strong "AR van de Vervoerder"] " om een autorisatie te registeren"]
-      [:ul [:li "Klantorder nr."] [:li "Rijbewijs (laatste 4 cijfers)"] [:li "Kenteken"]]]
-     [:li
-      [:h3 "OTM Trip"]
-      [:pre.json (w/to-json trip)]]
-     (w/ishare-log-intercept-to-hiccup ishare-log)]]])
+   (w/explanation explanation)])
 
 (defn outsource-trip [trip {:keys [carriers] :as master-data}]
   [:form {:method "POST"}
@@ -163,16 +153,17 @@
    (trip-details trip master-data)
 
    [:section
-    (let [carriers (into {nil nil} carriers)]
-      (w/field {:label "Vervoerder"
-                :name  "carrier-eori", :required true
-                :type  "select",       :list     carriers}))]
+    (let [;; add empty option
+          carriers (into {nil nil} carriers)]
+      (w/field {:name  "carrier-eori",
+                :label "Vervoerder", :type     "select",
+                :list  carriers,     :required true}))]
 
    [:div.actions
     [:button.button-primary {:type "submit"} "Uitbesteden"]
     [:a.button {:href "."} "Annuleren"]]])
 
-(defn outsourced-trip [trip {:keys [ishare-log]}]
+(defn outsourced-trip [trip {:keys [explanation]}]
   (let [{:keys [ref]} (otm/trip->map trip)]
     [:div
      [:section
@@ -180,26 +171,14 @@
 
       [:div.actions
        [:a.button {:href "."} "Terug naar overzicht"]]]
-     [:details.explanation
-      [:summary "Uitleg"]
-      [:ol
-       (w/ishare-log-intercept-to-hiccup ishare-log)]]]))
+     (w/explanation explanation)]))
 
-(defn deleted-trip [{:keys [ishare-log]}]
+(defn deleted-trip [{:keys [explanation]}]
   [:div
    [:section
     [:div.actions
      [:a.button {:href "."} "Terug naar overzicht"]]]
-   [:details.explanation
-    [:summary "Uitleg"]
-    [:ol
-     [:li
-      [:h3 "Autorisatie van Chauffeur ingetrokken"]
-      [:p "API call naar " [:strong "AR van de Vervoerder"] " om een autorisatie te verwijderen"]
-      [:ul [:li "Klantorder nr."]
-       [:li "Rijbewijs (laatste 4 cijfers)"]
-       [:li "Kenteken"]]]
-     (w/ishare-log-intercept-to-hiccup ishare-log)]]])
+   (w/explanation explanation)])
 
 
 
@@ -249,9 +228,9 @@
              (assoc :flash {:success "Transportopdracht verwijderd"})
              (assoc ::store/commands [[:delete! :trips id]]))))
 
-     (GET "/deleted" {{:keys [ishare-log] :as flash} :flash}
+     (GET "/deleted" {:keys [flash]}
        (render "Transportopdracht verwijderd"
-               (deleted-trip {:ishare-log ishare-log})
+               (deleted-trip flash)
                flash))
 
      (GET "/assign-:id" {:keys        [flash master-data]
@@ -276,13 +255,12 @@
                (assoc :flash {:success "Chauffeur en kenteken toegewezen"})
                (assoc ::store/commands [[:put! :trips trip]])))))
 
-     (GET "/assigned-:id" {:keys                [flash]
-                           ::store/keys         [store]
-                           {:keys [id]}         :params
-                           {:keys [ishare-log]} :flash}
+     (GET "/assigned-:id" {:keys        [flash]
+                           ::store/keys [store]
+                           {:keys [id]} :params}
        (when-let [trip (get-trip store id)]
          (render (str "Transportopdracht toegewezen")
-                 (assigned-trip trip {:ishare-log ishare-log})
+                 (assigned-trip trip flash)
                  flash)))
 
      (GET "/outsource-:id" {:keys        [flash master-data]
@@ -305,11 +283,10 @@
                (assoc ::store/commands [[:put! :trips (otm/trip-status! trip otm/status-outsourced)]
                                         [:publish! :trips carrier-eori trip]])))))
 
-     (GET "/outsourced-:id" {:keys        [flash]
-                             ::store/keys [store]
-                             {:keys [id]} :params
-                             {:keys [ishare-log]} :flash}
+     (GET "/outsourced-:id" {:keys                [flash]
+                             ::store/keys         [store]
+                             {:keys [id]}         :params}
        (when-let [trip (get-trip store id)]
          (render "Transportopdracht uitbesteed"
-                 (outsourced-trip trip {:ishare-log ishare-log})
+                 (outsourced-trip trip flash)
                  flash))))))

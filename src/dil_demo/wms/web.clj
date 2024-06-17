@@ -97,7 +97,7 @@
 
 (defn accepted-transport-order [transport-order
                                 {:keys [carrier-eoris driver-id-digits license-plate]}
-                                {:keys [ishare-log]}]
+                                {:keys [explanation]}]
   [:div
    [:section
     [:h3.verification.verification-accepted "Afgifte akkoord"]
@@ -105,7 +105,7 @@
      "Transportopdracht "
      [:q (otm/transport-order-ref transport-order)]
      " goedgekeurd voor vervoerder met EORI "
-     [:q carrier-eoris]
+     [:q (last carrier-eoris)]
      ", chauffeur met rijbewijs eindigend op "
      [:q driver-id-digits]
      " en kenteken "
@@ -113,49 +113,32 @@
      "."]
     [:div.actions
      [:a.button {:href "."} "Terug naar overzicht"]]]
-   [:details.explanation
-    [:summary "Uitleg"]
-    [:ol (w/ishare-log-intercept-to-hiccup ishare-log)]]])
+   (w/explanation explanation)])
 
 (defn rejected-transport-order [transport-order
                                 {:keys [carrier-eoris driver-id-digits license-plate]}
-                                {:keys [ishare-log
-                                        owner-rejections
-                                        carrier-rejections]}]
+                                {:keys [explanation] :as result}]
   [:div
    [:section
-    [:h3.verification.verification-rejected "Afgifte NIET akkoord"]
-    (when owner-rejections
-      [:div.owner-rejections
-       [:p
-        "Transportopdracht "
-        [:q (otm/transport-order-ref transport-order)]
-        " is AFGEKEURD voor vervoerder met EORI "
-        [:q carrier-eoris]
-        "."]
-       [:ul.rejections
-        (for [rejection owner-rejections]
-          [:li rejection])]])
-    (when carrier-rejections
-      [:div.carrier-rejections
-       [:p
-        "Transportopdracht "
-        [:q (otm/transport-order-ref transport-order)]
-        " is AFGEKEURD chauffeur met rijbewijs eindigend op "
-        [:q driver-id-digits]
-        " en kenteken "
-        [:q license-plate]
-        "."]
-       [:ul.rejections
-        (for [rejection carrier-rejections]
-          [:li rejection])]
-       ])
+    [:h3.verification.verification-rejected "Afgifte " [:strong "NIET"] " akkoord"]
+    [:p
+     "Transportopdracht "
+     [:q (otm/transport-order-ref transport-order)]
+     " " [:strong "NIET"] " goedgekeurd voor vervoerder met EORI "
+     [:q (last carrier-eoris)]
+     ", chauffeur met rijbewijs eindigend op "
+     [:q driver-id-digits]
+     " en kenteken "
+     [:q license-plate]
+     "."]
+
+    [:ul.rejections
+     (for [rejection (verify/rejection-reasons result)]
+       [:li (pr-str rejection)])]
 
     [:div.actions
      [:a.button {:href "."} "Terug naar overzicht"]]]
-   [:details.explanation
-    [:summary "Uitleg"]
-    [:ol (w/ishare-log-intercept-to-hiccup ishare-log)]]])
+   (w/explanation explanation)])
 
 
 

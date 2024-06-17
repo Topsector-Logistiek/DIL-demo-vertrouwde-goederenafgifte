@@ -13,31 +13,24 @@
             [dil-demo.ishare.client :as ishare-client]
             [dil-demo.otm :as otm]))
 
-(defn- append-in
-  "Insert `coll` into collection at `path` in `m`.
-
-  If there is not collection at `path` insert into empty vector."
-  [m path coll]
-  (update-in m path (fnil into []) coll))
-
-
-
-(defn- ishare-exec! [{:keys [client-data] :as req} cmd]
+(defn- ishare-exec! [{:keys [client-data] :as req} title cmd]
   (binding [ishare-client/log-interceptor-atom (atom [])]
     (try
       (let [result (:ishare/result (ishare-client/exec (merge client-data cmd)))]
         (-> req
-            (append-in [:flash :ishare-log] @ishare-client/log-interceptor-atom)
+            (update-in [:flash :explanation] (fnil conj [])
+                       [title @ishare-client/log-interceptor-atom])
             (assoc :ishare/result result)))
       (catch Exception ex
         (log/error ex)
         (-> req
-            (append-in [:flash :ishare-log] @ishare-client/log-interceptor-atom)
+            (update-in [:flash :explanation] (fnil conj [])
+                       [title @ishare-client/log-interceptor-atom])
             (assoc-in [:flash :error] (str "Fout bij uitvoeren van iShare commando " (:ishare/message-type ex))))))))
 
 
 
-(defn-  ->ar-type
+(defn- ->ar-type
   [{{:ishare/keys [authentication-registry-type]} :client-data} & _]
   authentication-registry-type)
 
@@ -58,18 +51,20 @@
   [{:keys [::store/store] :as req} {:keys [id] :as _trip} _subject]
   (if-let [policy-id (get-in store [:trip-policies id :policy-id])]
     (-> req
-        (ishare-exec! {:throw false ;; ignore HTTP errors for when
-                                    ;; policy already deleted
+        (ishare-exec! "Verwijder policy voor trip"
+                      {:throw false ;; ignore HTTP errors for when
+                       ;; policy already deleted
 
                        :ishare/message-type :poort8/delete-policy
                        :ishare/params       {:policyId policy-id}})
-        (append-in [::store/commands]
-                   [[:delete! :trip-policies id]]))
+        (update-in [::store/commands] (fnil conj [])
+                   [:delete! :trip-policies id]))
     req))
 
 (defmethod delete-policy-for-trip! :ishare
   [req trip subject]
   (ishare-exec! req
+                "Verwijder policy voor trip"
                 (ishare-create-policy-command req subject trip "Deny")))
 
 (defmulti create-policy-for-trip! ->ar-type)
@@ -83,16 +78,16 @@
           {:consignment-ref (otm/trip-ref trip)
            :date            (otm/trip-load-date trip)
            :subject         subject})}
-        res (ishare-exec! req cmd)]
+        res (ishare-exec! req "Toevoegen policy voor trip" cmd)]
 
     (if-let [policy-id (get-in res [:ishare/result "policyId"])]
-      (append-in res [::store/commands]
-                 [[:put! :trip-policies {:id id, :policy-id policy-id}]])
+      (update-in res [::store/commands] (fnil conj [])
+                 [:put! :trip-policies {:id id, :policy-id policy-id}])
       res)))
 
 (defmethod create-policy-for-trip! :ishare
   [req trip subject]
-  (ishare-exec! req
+  (ishare-exec! req "Toevoegen policy voor trip"
                 (ishare-create-policy-command req subject trip "Permit")))
 
 (defmulti delegation-effect!

@@ -147,10 +147,12 @@
            (not= rules [{:effect "Permit"}]))
       (conj (str "Geen toepasbare regels gevonden: " (pr-str rules)))
 
-      (< now (:notBefore delegation-evidence))
+      (and (:notBefore delegation-evidence)
+           (< now (:notBefore delegation-evidence)))
       (conj (str "Mag niet voor " (epoch->str (:notBefore delegation-evidence))) )
 
-      (>= now (:notOnOrAfter delegation-evidence))
+      (and (:notOnOrAfter delegation-evidence)
+           (>= now (:notOnOrAfter delegation-evidence)))
       (conj (str "Mag niet op of na " (epoch->str (:notOnOrAfter delegation-evidence))))
 
       (empty? matching-policies) ;; FEEDBACK: should not happen?

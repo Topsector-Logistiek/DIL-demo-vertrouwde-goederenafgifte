@@ -45,7 +45,7 @@
      @ishare-client/log-interceptor-atom]))
 
 (defn- wrap-policy-deletion
-  "When a trip is added or deleted, retract existing policies in the AR"
+  "When a trip is deleted, retract existing policies in the AR."
   [app]
   (fn policy-deletion-wrapper
     [{:keys [client-data ::store/store] :as req}]
@@ -55,9 +55,10 @@
                               commands)
                       (first)
                       (nth 2))]
-        (let [consignment (get-in store [:consignments id])
-              [result log] (ishare-ar! client-data "Deny" (otm/consignment->map consignment))]
-          (cond-> (assoc-in res [:flash :ishare-log] log)
+        (let [old-consignment (get-in store [:consignments id])
+              [result log] (ishare-ar! client-data "Deny" (otm/consignment->map old-consignment))]
+          (cond-> (update-in res [:flash :explanation] (fnil conj [])
+                             ["Verwijderen policy" log])
             (not result) (assoc-in [:flash :error] "Verwijderen AR policy mislukt")))
 
         res))))
@@ -73,7 +74,8 @@
                     (first))]
       (if trip
         (let [[result log] (ishare-ar! client-data "Permit" (otm/trip->map trip))]
-          (cond-> (assoc-in res [:flash :ishare-log] log)
+          (cond-> (update-in res [:flash :explanation] (fnil conj [])
+                             ["Toevoegen policy" log])
             (not result) (assoc-in [:flash :error] "Aanmaken AR policy mislukt")))
         res))))
 
