@@ -56,7 +56,7 @@
                   (content-type "text/html; charset=utf-8"))))
 
 (defn list-apps []
-  [:nav
+  [:main
    [:p "Lorem ipsum.."]
    [:ul
     (for [{:keys [path title]} sites]

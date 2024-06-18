@@ -23,8 +23,9 @@
    (assoc (request method path params)
           ::store/store store
           :user-number 1
-          :master-data {:warehouses {}
-                        :warehouse-addresses {}})))
+          :master-data {:warehouses          {}
+                        :warehouse-addresses {}
+                        :carriers            {}})))
 
 (deftest handler
   (testing "GET /"

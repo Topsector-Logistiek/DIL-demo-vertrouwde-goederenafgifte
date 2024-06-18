@@ -17,38 +17,22 @@
   (:import (java.util UUID)))
 
 (defn list-transport-orders [transport-orders]
-  (if (seq transport-orders)
-    [:ul.cards
-     (for [{:keys [id ref load-date goods]}
-           (map otm/transport-order->map transport-orders)]
-       [:li.card.transport-order
-        [:a.button {:href (str "verify-" id)}
-         [:div.date load-date]
-         [:div.ref ref]
-         [:div.goods goods]]
-        (w/delete-button (str "transport-order-" id))])]
-    [:ul.empty
-     [:li
-      "Nog geen transportopdrachten geregistreerd.."]]))
+  [:main
+   (when-not (seq transport-orders)
+     [:article.empty
+      [:p "Nog geen transportopdrachten geregistreerd.."]])]
 
-(defn show-transport-order [transport-order]
-  (let [{:keys [id ref load-date load-remarks]}
-        (otm/transport-order->map transport-order)]
-    [:section.details
-     [:dl
-      [:div
-       [:dt "Klantorder nr."]
-       [:dd ref]]
-      [:div
-       [:dt "Ophaaldatum"]
-       [:dd load-date]]
-      (when-not (string/blank? load-remarks)
-        [:div
-         [:dt "Opmerkingen"]
-         [:dd [:blockquote.remarks load-remarks]]])]
-     [:div.actions
-      [:a.button.button-primary {:href (str "verify-" id)} "Veriferen"]
-      [:a.button {:href "."} "Annuleren"]]]))
+  (for [{:keys [id ref load-date goods]}
+        (map otm/transport-order->map transport-orders)]
+    [:article
+     [:header
+      [:div.ref-date ref " / " load-date]]
+     [:div.goods goods]
+
+     [:footer.actions
+      [:a.button.primary {:href (str "verify-" id)}
+       "Veriferen"]
+      (w/delete-button (str "transport-order-" id))]]))
 
 (defn qr-code-scan-button [carrier-id driver-id plate-id]
   (let [id (str "qr-code-video-" (UUID/randomUUID))]
@@ -57,8 +41,11 @@
 
      [:script {:src "/assets/qr-scanner.legacy.min.js"}] ;; https://github.com/nimiq/qr-scanner
      [:script {:src "/assets/scan-qr.js"}]
-     [:a.button
-      {:onclick (str "scanDriverQr(this, " (json-str id) ", " (json-str carrier-id) ", " (json-str driver-id) ", " (json-str plate-id) ", " ")")}
+     [:a.button.secondary {:onclick (str "scanDriverQr(this, "
+                                         (json-str id) ", "
+                                         (json-str carrier-id) ", "
+                                         (json-str driver-id) ", "
+                                         (json-str plate-id) ")")}
       "Scan QR"]]))
 
 (defn verify-transport-order [transport-order]
@@ -70,15 +57,15 @@
      (w/field {:label "Opdracht nr.", :value ref, :disabled true})
      (w/field {:label "Datum", :value load-date, :disabled true})
      (w/field {:label "Goederen", :value goods, :disabled true})
+
      (when-not (string/blank? load-remarks)
        (w/field {:label "Opmerkingen", :value load-remarks, :type "textarea", :disabled true}))
-
 
      [:div.actions
       (qr-code-scan-button "carrier-eoris" "driver-id-digits" "license-plate")]
 
      (w/field {:id       "carrier-eoris"
-               :name     "carrier-eoris", :label "Vervoerder EORI"
+               :name     "carrier-eoris", :label "Vervoerder EORI's"
                :required true})
      (w/field {:id          "driver-id-digits"
                :name        "driver-id-digits",  :label   "Rijbewijs",
@@ -97,15 +84,16 @@
 
 (defn accepted-transport-order [transport-order
                                 {:keys [carrier-eoris driver-id-digits license-plate]}
-                                {:keys [explanation]}]
+                                {:keys [explanation]}
+                                {:keys [carriers]}]
   [:div
    [:section
     [:h3.verification.verification-accepted "Afgifte akkoord"]
     [:p
-     "Transportopdracht "
+     "Afgifte transportopdracht "
      [:q (otm/transport-order-ref transport-order)]
-     " goedgekeurd voor vervoerder met EORI "
-     [:q (last carrier-eoris)]
+     " goedgekeurd voor vervoerder "
+     [:q (carriers (last carrier-eoris))]
      ", chauffeur met rijbewijs eindigend op "
      [:q driver-id-digits]
      " en kenteken "
@@ -117,15 +105,16 @@
 
 (defn rejected-transport-order [transport-order
                                 {:keys [carrier-eoris driver-id-digits license-plate]}
-                                {:keys [explanation] :as result}]
+                                {:keys [explanation] :as result}
+                                {:keys [carriers]}]
   [:div
    [:section
     [:h3.verification.verification-rejected "Afgifte " [:strong "NIET"] " akkoord"]
     [:p
-     "Transportopdracht "
+     "Afgifte transportopdracht "
      [:q (otm/transport-order-ref transport-order)]
-     " " [:strong "NIET"] " goedgekeurd voor vervoerder met EORI "
-     [:q (last carrier-eoris)]
+     " " [:strong "NIET"] " goedgekeurd voor vervoerder "
+     [:q (carriers (last carrier-eoris))]
      ", chauffeur met rijbewijs eindigend op "
      [:q driver-id-digits]
      " en kenteken "
@@ -177,20 +166,19 @@
                          ::store/keys [store]
                          {:keys [id]} :params}
        (when-let [transport-order (get-transport-order store id)]
-         (render "Verificatie"
+         (render "Verificatie afgifte"
                  (verify-transport-order transport-order)
                  flash)))
 
-     (POST "/verify-:id" {:keys                   [client-data flash]
-                          ::store/keys            [store]
+     (POST "/verify-:id" {:keys                   [client-data flash master-data ::store/store]
                           {:keys [id] :as params} :params}
        (when-let [transport-order (get-transport-order store id)]
          (let [params (update params :carrier-eoris string/split #",")
                result (verify/verify! client-data transport-order params)]
            (if (verify/permitted? result)
-             (render "Transportopdracht geaccepteerd"
-                     (accepted-transport-order transport-order params result)
+             (render "Afgifte goedgekeurd"
+                     (accepted-transport-order transport-order params result master-data)
                      flash)
-             (render "Transportopdracht afgewezen"
-                     (rejected-transport-order transport-order params result)
+             (render "Afgifte afgewezen"
+                     (rejected-transport-order transport-order params result master-data)
                      flash))))))))

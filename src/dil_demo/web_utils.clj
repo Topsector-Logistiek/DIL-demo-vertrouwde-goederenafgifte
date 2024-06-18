@@ -25,25 +25,29 @@
 
     [:title (str title " — " site-name)]
 
-    [:link {:rel "stylesheet", :href (str "/assets/" site ".css")}]
-    [:link {:rel "stylesheet", :href "/assets/base.css"}]]
+    [:link {:rel "stylesheet", :href "/assets/base.css"}]
+    [:link {:rel "stylesheet", :href (str "/assets/" site ".css")}]]
 
    [:body
-    [:nav {:class "top"}
+    [:nav.top
+     [:ul
+      [:li [:strong site-name]]]
      [:ul
       (for [{:keys [slug path title]} sites]
         [:li [:a {:href path, :class (when (= slug site) "current")} title]])]]
-    [:header [:h1 title]]
-    [:main
+
+    [:header.container [:h1 title]]
+    [:main.container
      (for [[type message] (select-keys flash [:error :success :warning])]
-       [:div.flash {:class (str "flash-" (name type))} message])
+       [:article.flash {:class (str "flash-" (name type))} message])
      main]
-    [:footer
-     [:div.site-name site-name]
-     [:div.powered-by
-      [:img {:src "/assets/bdi-logo.png"
-             :title "Powered by BDI — Basic Data Infrastructure"
-             :alt "Powered by BDI — Basic Data Infrastructure"}]]]]])
+    [:footer.container
+     [:img {:src   "/assets/bdi-logo.png"
+            :title "Powered by BDI — Basic Data Infrastructure"
+            :alt   "Powered by BDI — Basic Data Infrastructure"}]
+     [:img {:src   "/assets/jomco-logo.png"
+            :title "Build by Jomco B.V"
+            :alt   "Build by Jomco B.V"}]]]])
 
 (defn field [{:keys [name label type value list value-fn]
               :as opts
@@ -76,7 +80,11 @@
   [:form.delete {:method "POST", :action path}
    (anti-forgery-input)
    [:input {:type "hidden", :name "_method", :value "DELETE"}]
-   [:button {:type "submit", :onclick "return confirm('Zeker weten?')"} label]])
+   [:button.contrast {:onclick "return confirm('Zeker weten?')"} label]])
+
+(defn link-button [path label]
+  [:form {:action path}
+   [:input {:type "submit", :value label}]])
 
 (defn qr-code [text]
   (let [id (str "qrcode-" (UUID/randomUUID))]
@@ -213,7 +221,7 @@
 
 (defn explanation [explanation]
   [:details.explanation
-    [:summary "Uitleg"]
+    [:summary.button.secondary "Uitleg"]
     [:ol
      (for [[title ishare-log] explanation]
        [:li [:h3 title]

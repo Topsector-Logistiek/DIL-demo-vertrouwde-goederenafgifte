@@ -124,7 +124,10 @@
 
 (defmethod delegation-effect! [:publish! :trips]
   [req [_ _ other-eori trip]]
-  (let [sub (policies/outsource-pickup-access-subject
+  (let [req (-> req
+                (update-in [:flash :explanation] (fnil conj [])
+                           ["Stuur OTM Trip naar TMS van andere vervoerder"]))
+        sub (policies/outsource-pickup-access-subject
              (-> trip
                  (otm/trip->map)
                  (assoc :carrier-eori other-eori)))

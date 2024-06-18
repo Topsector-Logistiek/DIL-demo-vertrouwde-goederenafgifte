@@ -8,22 +8,6 @@
  */
 
 :root {
-    --color-bg: #dbcdf0;
-}
-
-h3.verification {
-    padding: 1em;
-}
-h3.verification-accepted {
-    background: var(--color-success-bg);
-}
-h3.verification-accepted:before {
-    content: '✔ ';
-}
-
-h3.verification-rejected {
-    background: var(--color-error-bg);
-}
-h3.verification-rejected:before {
-    content: '❌ ';
+    --site-color: #D24317;
+    --site-other-color: #017FC0;
 }

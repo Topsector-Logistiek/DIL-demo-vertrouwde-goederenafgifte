@@ -8,9 +8,6 @@
  */
 
 :root {
-    --color-bg: #c6def1;
-}
-
-.trip .qr-code img {
-    width: 100%;
+    --site-color: #FFBF00;
+    --site-other-color: #A5D601;
 }
