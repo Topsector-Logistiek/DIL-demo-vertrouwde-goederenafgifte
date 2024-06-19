@@ -28,20 +28,26 @@ inloggen met één van de volgende accounts:
   elders.  Deze opdrachten worden hier toegewezen aan een vervoerder
   en doorgestuurd naar TMS en WMS (zie onder).
 
-- TMS
-
-  Het Transport Management Systeem van de transporteur.  Hier wordt de
-  transportopdracht ingepland en een chauffeur / vrachtwagen toegewezen.
-
-- TMS (Chauffeur)
-
-  Schermen in het TMS speciaal bedoelt voor chauffeurs voor het laten
-  zien van QR-code.
-
 - WMS
 
   Het Warehouse Management Systeem op het DC.  Hierin worden
   "ophaal"-opdrachten geregistreerd en de chauffeur gecontroleerd.
+
+- TMS-1
+
+  Het Transport Management Systeem van de transporteur.  Hier wordt de
+  transportopdracht ingepland en een chauffeur / vrachtwagen
+  toegewezen of uitbesteed aan een andere vervoerder.
+
+- TMS-1 (Chauffeur)
+
+  Schermen in het TMS speciaal bedoelt voor chauffeurs voor het laten
+  zien van QR-code.
+
+- TMS-2 en TMS-2 (Chauffeur)
+
+  TMS schermen van de andere transporteur.
+
 
 
 \clearpage
@@ -52,28 +58,24 @@ Ga naar: https://connekt-dil-demo.jomco.nl/erp/
 
 [[./demo-script/erp-index.png]]
 
-Maak een nieuwe opdracht aan met de "NIEUW" knop.
+Maak een nieuwe opdracht aan met de "NIEUW ORDER AANMAKEN" knop.
 
 [[./demo-script/erp-new.png]]
 
-Vul hier het "Afleveradres" en de "Goederen" in, bijvoorbeeld "Nokia,
-Espoo" en "Bananen" en sla op met "BEWAREN".  Tip: kies een
-"Afleveradres" uit de suggesties om in latere schermen een volledig
-adres te zien.  Goederen kunnen vrij ingevuld worden.
+Vul hier het "Afleveradres", de "Goederen" en de "Vervoerder" in,
+bijvoorbeeld "Nokia, Espoo", "Bananen" en "Precious Goods Transport",
+en sla op met "OPSLAAN".  Tip: kies een "Afleveradres" uit de
+suggesties om in latere schermen een volledig adres te zien.  Goederen
+kunnen vrij ingevuld worden.
 
-Let op: voor "Ophaaladres" (het DC) en "Vervoerder" is maar voor
-beiden één keuze mogelijkheid.  Het gaat hier namelijk om de ook
-behandelde WMS en TMS omgevingen.
+Let op: voor "Ophaaladres" (het DC) en "Vervoerder" zijn beperkte
+keuze mogelijkheiden.  Het gaat hier namelijk om de ook behandelde WMS
+en TMS omgevingen.
 
 [[./demo-script/erp-created.png]]
 
-Open de zojuist aangemaakte klantorder opnieuw met de bijbehorende
-"OPENEN" knop.
-
-[[./demo-script/erp-open.png]]
-
-En druk op de "TRANSPORTOPDRACHT AANMAKEN" knop om de order door te
-zetten naar het TMS en WMS van de resp. vervoerder en DC.
+Verstuur de zojuist aangemaakte klantorder naar het DC en de
+vervoerder met de bijbehorende "VERSTUREN" knop.
 
 [[./demo-script/erp-publish.png]]
 
@@ -88,58 +90,92 @@ van deze demo.
 
 [[./demo-script/erp-published-uitleg.png]]
 
-Belangrijk hier is dat de vervoerder, in het netwerk bekend als
-"EU.EORI.NLPRECIOUSG". geregistreerd wordt in het /Autorisatie
-Register/ van de verlader (stappen 3 en 4) voor het ophalen van
-klantorder "124122001".
+Belangrijk hier is dat de verlader in het netwerk bekend is als
+"EU.EORI.NLSMARTPHON" en de vervoerder als "EU.EORI.NLPRECIOUSG".  De
+policy wordt toegevoegd in het /Autorisatie Register/ van de verlader
+(stap 3) voor het afhandelen van klantorder "124171001".
 
 [[./demo-script/erp-published-uitleg-de.png]]
 
 
 \clearpage
 
-* TMS
+* TMS-1
 
-De opdracht is nu aangekomen in het TMS.  Ga naar:
-https://connekt-dil-demo.jomco.nl/tms/
+De opdracht is nu aangekomen in het TMS van "Precious Goods
+Transport".  Ga naar: https://connekt-dil-demo.jomco.nl/tms-1/
 
 [[./demo-script/tms-index.png]]
 
-Open de nieuwe transportopdracht met de bijbehorende "OPENEN" knop.
+Het is nu mogelijk deze opdracht toe te wijzen aan een chauffeur en
+vrachtwagen of uit te besteden bij een andere vervoerder.
 
-[[./demo-script/tms-open.png]]
+Om uit te besteden (toewijzen doen we straks bij de andere vervoerder)
+druk op de "UITBESTEDEN" knop.
+
+[[./demo-script/tms-outsource.png]]
+
+Kies vervoerder "Flex Transport" en druk op "UITBESTEDEN".
+
+[[./demo-script/tms-outsourced.png]]
+
+In de uitklapbare "Uitleg" is te zien dat de opdracht verstuurd is
+naar het TMS van "Flex Transport" en dat dit geregistreerd is in het
+/Authorisatie Register/.
+
+[[./demo-script/tms-outsourced-uitleg.png]]
+
+Belangrijk hier is dat de andere vervoerder, in het netwerk bekend als
+"EU.EORI.NLFLEXTRANS". geregistreerd wordt in het /Autorisatie
+Register/ van de uitbestedende vervoerder (stap 2) voor het afhandelen
+van klantorder "124171001".  Merk op dat deze aanroep een andere vorm
+heeft omdat het hier om een andere type /Autorisatie Register/ gaat
+(Poort8 ipv iSHARE).
+
+[[./demo-script/tms-outsourced-uitleg-de.png]]
+
+\clearpage
+
+* TMS-2
+
+De opdracht is nu aangekomen in het TMS van "Flex Transport".  Ga
+naar: https://connekt-dil-demo.jomco.nl/tms-2/
+
+[[./demo-script/tms-2-index.png]]
+
+Druk op de "TOEWIJZEN" knop om een chauffeur en vrachtwagen toe te
+wijzen.
+
+[[./demo-script/tms-2-assign.png]]
 
 Voer de "Rijbewijs" en "Kenteken" velden in om een chauffeur en
 vrachtwagen toe te wijzen aan deze opdracht, bijvoorbeeld "4321" en
 "ABC12YZ" en druk op "TOEWIJZEN".
 
-[[./demo-script/tms-assigned.png]]
+[[./demo-script/tms-2-assigned.png]]
 
 Hier zie je de QR-code die de chauffeur straks moet laten zien bij het
-DC (zie onder bij "TMS (Chauffeur)").
+DC (zie onder bij "TMS-2 (Chauffeur)").
 
-In de uitklapbare "Uitleg" in stap 4 is te zien dat de chauffeur en de
+In de uitklapbare "Uitleg" is te zien dat de chauffeur en de
 vrachtwagen in het /Autorisatie Register/ van de vervoerder toegewezen
 zijn.
 
-[[./demo-script/tms-assigned-uitleg.png]]
+[[./demo-script/tms-2-assigned-uitleg.png]]
 
 
 \clearpage
 
-* TMS (Chauffeur)
+* TMS-2 (Chauffeur)
 
 De QR-code is nu ook beschikbaar voor de chauffeur.  Ga naar:
-https://connekt-dil-demo.jomco.nl/tms/chauffeur/
+https://connekt-dil-demo.jomco.nl/tms-2/chauffeur/
 
-[[./demo-script/tms-c-index.png]]
+[[./demo-script/tms-2-chauffeur-index.png]]
 
-Merk op dat dit scherm is geoptimaliseerd voor mobiele apparaten zoals
-tablets en smartphones.  Kies opdracht "124122001" en zie daar de op
-het DC aan te bieden QR-code.
+Druk op "TONEN" om de QR-code te zien.
 
-[[./demo-script/tms-c-open.png]]
-
+[[./demo-script/tms-2-chauffeur-open.png]]
 
 \clearpage
 
@@ -150,19 +186,18 @@ geverifieerd worden.  Ga naar: https://connekt-dil-demo.jomco.nl/wms/
 
 [[./demo-script/wms-index.png]]
 
-Merk op dat ook dit scherm is geoptimaliseerd voor mobiele apparaten
-zoals tablets en smartphones.  Kies de opdracht voor het ophalen van
-"Bananen".
+Druk op "VERIFEREN" om te controleren of de chauffeur de vracht mag
+ontvangen.
 
-[[./demo-script/wms-open.png]]
+[[./demo-script/wms-verify.png]]
 
 Hier zijn een "SCAN QR" knop en invoer velden te vinden.  Het scannen
-van een QR-code zorgt dat de "Vervoerder EORI", "Rijbewijs" en
+van een QR-code zorgt dat de "Vervoerder EORI's", "Rijbewijs" en
 "Kenteken" velden automatisch ingevuld worden.  Het scannen van een
 QR-code is lastig in een video call het is daarom handiger om deze
 velden met de hand in te vullen:
 
-- "Vervoerder EORI": "EU.EORI.NLPRECIOUSG"
+- "Vervoerder EORI's": "EU.EORI.NLPRECIOUSG,EU.EORI.NLFLEXTRANS"
 - "Rijbewijs": "4321"
 - "Kenteken": "ABC12YZ" (let op, dit veld is op dit moment nog
   hoofdletter gevoelig!)
@@ -176,29 +211,11 @@ Hier is geverifieerd of de verlader de vervoerder toestaat de zending
 op te halen en of de vervoerder de chauffeur met vrachtwagen toestaat
 de zending aan te nemen.
 
-In de uitklapbare "Uitleg" is te zien dat:
+In de uitklapbare "Uitleg" is te zien dat de /Autorisatie Register's/
+van de verlader, uitbestedende vervoerder en uitvoerdende vervoerder
+bevraagd worden.
 
-- Stap 1 en 2: het /Associatie Register/ gevraagd wordt naar de
-  locatie van het /Autorisatie Register/ van de verlader (bekent als
-  "EU.EORI.NLSMARTPHON")
-
-  [[./demo-script/wms-verify-good-uitleg-ar-verlader.png]]
-
-- Stap 3 en 4: het /Autorisatie Register/ van de verlader gevraagd
-  wordt of de vervoerder deze opdracht mag uitvoeren
-
-  [[./demo-script/wms-verify-good-uitleg-ar-verlader-permit.png]]
-
-- Stap 5 en 6: het /Associatie Register/ gevraagd wordt naar de
-  locatie van het /Autorisatie Register/ van de vervoerder (bekent als
-  "EU.EURI.NLPRECIOUSG")
-
-  [[./demo-script/wms-verify-good-uitleg-ar-vervoerder.png]]
-
-- Stap 7 en 8: het /Autorisatie Register/ van de vervoerder gevraagd
-  wordt of de chauffeur met vrachtwagen de zending aan mag nemen
-
-  [[./demo-script/wms-verify-good-uitleg-ar-vervoerder-permit.png]]
+[[./demo-script/wms-verify-good-uitleg.png]]
 
 * Org export configuratie                                          :noexport:
 
