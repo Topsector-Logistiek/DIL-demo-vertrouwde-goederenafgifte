@@ -134,7 +134,6 @@
 
   The result is a list of tuples: reason key and the offending value."
   [delegation-evidence target]
-  {:pre [delegation-evidence target]}
   (let [now               (local-date-time->epoch (LocalDateTime/now))
         policies          (->> delegation-evidence
                                :policySets
@@ -155,7 +154,7 @@
            (>= now (:notOnOrAfter delegation-evidence)))
       (conj (str "Mag niet op of na " (epoch->str (:notOnOrAfter delegation-evidence))))
 
-      (empty? matching-policies) ;; FEEDBACK: should not happen?
+      (empty? matching-policies)
       (conj (str "Geen toepasbare policies gevonden: " (pr-str policies)))
 
       :finally

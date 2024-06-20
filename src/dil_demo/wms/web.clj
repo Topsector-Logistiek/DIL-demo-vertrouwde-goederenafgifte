@@ -106,7 +106,7 @@
 (defn rejected-transport-order [transport-order
                                 {:keys [carrier-eoris driver-id-digits license-plate]}
                                 {:keys [explanation] :as result}
-                                {:keys [carriers]}]
+                                {:keys [eori->name]}]
   [:div
    [:section
     [:h3.verification.verification-rejected "Afgifte " [:strong "NIET"] " akkoord"]
@@ -114,16 +114,21 @@
      "Afgifte transportopdracht "
      [:q (otm/transport-order-ref transport-order)]
      " " [:strong "NIET"] " goedgekeurd voor vervoerder "
-     [:q (carriers (last carrier-eoris))]
+     [:q (eori->name (last carrier-eoris))]
      ", chauffeur met rijbewijs eindigend op "
      [:q driver-id-digits]
      " en kenteken "
      [:q license-plate]
      "."]
 
+    [:p
+     "Afgewezen na inspectie van het Authorisatie Register van "
+     [:q (eori->name (verify/rejection-eori result))]
+     " met de volgende bevindingen:"]
+
     [:ul.rejections
      (for [rejection (verify/rejection-reasons result)]
-       [:li (pr-str rejection)])]
+       [:li rejection])]
 
     [:div.actions
      [:a.button {:href "."} "Terug naar overzicht"]]]

@@ -18,28 +18,39 @@
     (try
       (-> req
           (update :delegation-evidences (fnil conj [])
-                  [target
+                  {:issuer issuer
+                   :target target
+
+                   :delegation-evidence
                    (-> client-data
                        (assoc :ishare/policy-issuer issuer ;; ensures we target the right AR
                               :ishare/message-type :delegation
                               :ishare/params mask)
                        (ishare-client/exec)
                        :ishare/result
-                       :delegationEvidence)])
+                       :delegationEvidence)})
           (update-in [:explanation] (fnil conj [])
                      [title {:ishare-log @ishare-client/log-interceptor-atom}]))
       (catch Throwable ex
         (-> req
             (update :delegation-evidences (fnil conj [])
-                    [target {}])
+                    {:issuer issuer
+                     :target target})
             (update-in [:explanation] (fnil into [])
                        [[title {:ishare-log @ishare-client/log-interceptor-atom}
                          [(str "Technische fout upgrade: " (.getMessage ex))]]]))))))
 
 (defn rejection-reasons [{:keys [delegation-evidences]}]
-  (seq (mapcat (fn [[target delegation-evidence]]
+  (seq (mapcat (fn [{:keys [delegation-evidence target]}]
                  (policies/rejection-reasons delegation-evidence target))
                delegation-evidences)))
+
+(defn rejection-eori [{:keys [delegation-evidences]}]
+  (->> delegation-evidences
+       (filter (fn [{:keys [delegation-evidence target]}]
+                 (policies/rejection-reasons delegation-evidence target)))
+       (first)
+       :issuer))
 
 (defn permitted? [req]
   (not (rejection-reasons req)))
