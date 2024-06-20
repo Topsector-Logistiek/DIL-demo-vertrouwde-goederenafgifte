@@ -58,7 +58,7 @@
                                              :subject subject
                                              :target  target})]
     (ishare-delegation! req
-                        "Verifier bij verlader"
+                        "Verifieer bij verlader"
                         {:issuer issuer, :target target, :mask mask})))
 
 (defn verify-carriers!
@@ -88,8 +88,8 @@
           (recur (next carrier-eoris)
                  (ishare-delegation! req
                                      (if pickup?
-                                       "Verifier ophalen bij vervoerder"
-                                       "Verifier uitbesteding bij vervoerder")
+                                       "Verifieer ophalen bij vervoerder"
+                                       "Verifieer uitbesteding bij vervoerder")
                                      {:issuer carrier-eori
                                       :target target
                                       :mask   mask})))
