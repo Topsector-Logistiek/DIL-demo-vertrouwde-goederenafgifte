@@ -234,7 +234,7 @@ legend {
 
 .field :is(input, textarea, select) {
     width: 30rem;
-    max-width: calc(100vw - 5rem);
+    max-width: calc(100vw - 7rem);
     font-family: inherit;
     font-size: 1rem;
     padding: .5rem;

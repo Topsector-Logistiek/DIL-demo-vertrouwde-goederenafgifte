@@ -77,7 +77,23 @@
 
 (defn chauffeur-trip [trip]
   [:div.trip
-   (qr-code-dil-demo trip)
+   [:section
+    (qr-code-dil-demo trip)]
+
+   (let [carrier-eori-list (otm/trip-carrier-eori-list trip)
+         driver-id-digits  (otm/trip-driver-id-digits trip)
+         license-plate     (otm/trip-license-plate trip)]
+     [:fieldset
+      (w/field {:label    "Vervoerder EORI's",
+                :value    (string/join "," carrier-eori-list),
+                :readonly true})
+      (w/field {:label    "Rijbewijs",
+                :value    driver-id-digits
+                :readonly true})
+      (w/field {:label    "Kenteken",
+                :value    license-plate
+                :readonly true})])
+
    [:div.actions
     [:a.button {:href "../chauffeur/"} "Terug naar overzicht"]]])
 
