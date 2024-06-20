@@ -24,7 +24,7 @@
          (map otm/trip->map trips)]
      [:article
       [:header
-       [:div.status (otm/statuses status)]
+       [:div.status (otm/status-titles status)]
        [:div.ref-date ref " / " load-date]
        [:div.from-to (warehouses load-location) " → " unload-location]]
       (cond

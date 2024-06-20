@@ -52,17 +52,21 @@
   (if-let [policy-id (get-in store [:trip-policies id :policy-id])]
     (-> req
         (ishare-exec! "Verwijder policy voor trip"
-                      {:throw false ;; ignore HTTP errors for when
-                       ;; policy already deleted
+                      {:ishare/message-type :poort8/delete-policy
+                       :ishare/params       {:policyId policy-id}
 
-                       :ishare/message-type :poort8/delete-policy
-                       :ishare/params       {:policyId policy-id}})
+                       ;; ignore HTTP errors for when policy already
+                       ;; deleted
+                       :throw false})
         (update-in [::store/commands] (fnil conj [])
                    [:delete! :trip-policies id]))
     req))
 
 (defmethod delete-policy-for-trip! :ishare
   [req trip subject]
+  ;; iSHARE does not return a policy-id upon creation for deletion so
+  ;; we're going to force a "deny" policy in to make sure we don't
+  ;; have a lingering "permit".
   (ishare-exec! req
                 "Verwijder policy voor trip"
                 (ishare-create-policy-command req subject trip "Deny")))
@@ -81,6 +85,7 @@
         res (ishare-exec! req "Toevoegen policy voor trip" cmd)]
 
     (if-let [policy-id (get-in res [:ishare/result "policyId"])]
+      ;; poort8 AR will return a policy-id which can be used to delete the policy
       (update-in res [::store/commands] (fnil conj [])
                  [:put! :trip-policies {:id id, :policy-id policy-id}])
       res)))

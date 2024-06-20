@@ -189,7 +189,7 @@
 
 (defmethod ishare-interaction-summary :ishare/policy
   [{:keys [request]}]
-  [:span "Delegation Evidence aanmaken in iSHARE Authorisatie Register op " (server-description request)])
+  [:span "Policy aanmaken in iSHARE Authorisatie Register op " (server-description request)])
 
 (defmethod ishare-interaction-summary :poort8/delete-policy
   [{:keys [request]}]
@@ -201,7 +201,7 @@
 
 (defmethod ishare-interaction-summary :delegation
   [{:keys [request]}]
-  [:span "Delegation Mask opvragen in Authorisatie Register " (server-description request)])
+  [:span "Delegation Evidence opvragen in Authorisatie Register " (server-description request)])
 
 (defn ishare-log-intercept-to-hiccup [logs]
   (for [interaction logs]

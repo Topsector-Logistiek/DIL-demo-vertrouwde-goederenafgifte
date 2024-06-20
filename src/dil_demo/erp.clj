@@ -34,7 +34,7 @@
                                                   effect
                                                   obj)))
 
-(defn- ishare-ar! [client-data effect obj]
+(defn- ishare-ar-create-policy! [client-data effect obj]
   (binding [ishare-client/log-interceptor-atom (atom [])]
     [(try (-> client-data
               (->ishare-ar-policy-request effect obj)
@@ -56,7 +56,10 @@
                       (first)
                       (nth 2))]
         (let [old-consignment (get-in store [:consignments id])
-              [result log] (ishare-ar! client-data "Deny" (otm/consignment->map old-consignment))]
+
+              [result log]
+              ;; kinda hackish way to delete a policy from a iSHARE AR
+              (ishare-ar-create-policy! client-data "Deny" (otm/consignment->map old-consignment))]
           (cond-> (update-in res [:flash :explanation] (fnil conj [])
                              ["Verwijderen policy" log])
             (not result) (assoc-in [:flash :error] "Verwijderen AR policy mislukt")))
@@ -73,7 +76,8 @@
                     (map #(nth % 3))
                     (first))]
       (if trip
-        (let [[result log] (ishare-ar! client-data "Permit" (otm/trip->map trip))]
+        (let [[result log]
+              (ishare-ar-create-policy! client-data "Permit" (otm/trip->map trip))]
           (cond-> (update-in res [:flash :explanation] (fnil conj [])
                              ["Toevoegen policy" log])
             (not result) (assoc-in [:flash :error] "Aanmaken AR policy mislukt")))

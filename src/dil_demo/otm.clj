@@ -23,16 +23,17 @@
 (def status-assigned "assigned")
 (def status-outsourced "outsourced")
 
-(def statuses {status-draft      "Klad"
-               status-requested  "Ingediend"
-               status-confirmed  "Bevestigd"
-               status-in-transit "In Transit"
-               status-completed  "Afgerond"
-               status-cancelled  "Geannuleerd"
+(def status-titles
+  {status-draft      "Klad"
+   status-requested  "Ingediend"
+   status-confirmed  "Bevestigd"
+   status-in-transit "In Transit"
+   status-completed  "Afgerond"
+   status-cancelled  "Geannuleerd"
 
-               ;; custom
-               status-assigned   "Toegewezen"
-               status-outsourced "Uitbesteed"})
+   ;; custom
+   status-assigned   "Toegewezen"
+   status-outsourced "Uitbesteed"})
 
 (def role-owner "owner")
 (def role-carrier "carrier")
@@ -387,7 +388,7 @@
 (defn trip-driver-id-digits! [trip driver-id-digits]
   (update trip :actors
           (fn [actors]
-            (concat (filterv (complement #(get (:roles %) role-driver)) actors)
+            (concat (remove #(get (:roles %) role-driver) actors)
                     [{:association-type association-type-inline
                       :roles            #{role-driver}
                       :entity           {:external-attributes {:id-digits driver-id-digits}}}]))))

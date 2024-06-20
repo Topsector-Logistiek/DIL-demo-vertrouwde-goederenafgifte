@@ -16,8 +16,6 @@
   (:import (java.time LocalDateTime)
            (java.util Date UUID)))
 
-(def publishable-status? #{otm/status-draft})
-
 (defn list-consignments [consignments {:keys [carriers warehouses]}]
   [:main
    [:section.actions
@@ -31,7 +29,7 @@
          (map otm/consignment->map consignments)]
      [:article
       [:header
-       [:div.status (otm/statuses status)]
+       [:div.status (otm/status-titles status)]
        [:div.ref-date ref " / " load-date]
        [:div.from-to (warehouses load-location) " → " unload-location]]
 
@@ -39,11 +37,11 @@
       [:div.carrier (carriers carrier-eori)]
 
       [:footer.actions
-       (when (publishable-status? status)
+       (when (= otm/status-draft status)
          [:a.button.primary {:href  (str "consignment-" id)
                              :title "Eigenschappen aanpassen"}
           "Aanpassen"])
-       (when (publishable-status? status)
+       (when (= otm/status-draft status)
          [:a.button.secondary {:href  (str "publish-" id)
                                :title "Opdracht versturen naar locatie en vervoerder"}
           "Versturen"])
@@ -61,7 +59,7 @@
      [:section
       (w/field {:name  "status", :value status,
                 :label "Status", :type  "select",
-                :list  otm/statuses})
+                :list  otm/status-titles})
       (w/field {:name     "ref",            :value ref,
                 :label    "Klantorder nr.", :type  "number",
                 :required true})]

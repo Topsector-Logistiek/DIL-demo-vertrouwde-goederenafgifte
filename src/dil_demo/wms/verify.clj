@@ -10,9 +10,10 @@
             [dil-demo.ishare.policies :as policies]
             [dil-demo.otm :as otm]))
 
-(defn ishare-delegation! [{:keys [client-data] :as req}
-                          title
-                          {:keys [issuer target mask]}]
+(defn ishare-get-delegation-evidence!
+  [{:keys [client-data] :as req}
+   title
+   {:keys [issuer target mask]}]
   (binding [ishare-client/log-interceptor-atom (atom [])]
     (try
       (-> req
@@ -36,16 +37,16 @@
                         [(str "Technische fout upgrade: " (.getMessage ex))]]))))))
 
 (defn rejection-reasons [{:keys [delegation-evidences]}]
-    (seq (mapcat (fn [[target delegation-evidence]]
-                   (policies/rejection-reasons delegation-evidence target))
-                 delegation-evidences)))
+  (seq (mapcat (fn [[target delegation-evidence]]
+                 (policies/rejection-reasons delegation-evidence target))
+               delegation-evidences)))
 
 (defn permitted? [req]
   (not (rejection-reasons req)))
 
 (defn verify-owner!
   "Ask AR of owner if carrier is allowed to pickup order. Return list of
-  rejection reasons or nil well access is allowed."
+  rejection reasons or nil, if access is allowed."
   [req transport-order {:keys [carrier-eoris]}]
   {:pre [(seq carrier-eoris)]}
 
@@ -57,13 +58,13 @@
         mask    (policies/->delegation-mask {:issuer issuer
                                              :subject subject
                                              :target  target})]
-    (ishare-delegation! req
-                        "Verifieer bij verlader"
-                        {:issuer issuer, :target target, :mask mask})))
+    (ishare-get-delegation-evidence! req
+                                     "Verifieer bij verlader"
+                                     {:issuer issuer, :target target, :mask mask})))
 
 (defn verify-carriers!
   "Ask AR of carriers if sourced to next or, if last, driver is allowed
-  to pickup order. Return list of rejection reasons or nil well access
+  to pickup order. Return list of rejection reasons or nil, if access
   is allowed."
   [req transport-order {:keys [carrier-eoris driver-id-digits license-plate]}]
   {:pre [(seq carrier-eoris) driver-id-digits license-plate]}
@@ -86,16 +87,17 @@
                                                         :subject subject
                                                         :target  target})]
           (recur (next carrier-eoris)
-                 (ishare-delegation! req
-                                     (if pickup?
-                                       "Verifieer ophalen bij vervoerder"
-                                       "Verifieer uitbesteding bij vervoerder")
-                                     {:issuer carrier-eori
-                                      :target target
-                                      :mask   mask})))
+                 (ishare-get-delegation-evidence! req
+                                                  (if pickup?
+                                                    "Verifieer ophalen bij vervoerder"
+                                                    "Verifieer uitbesteding bij vervoerder")
+                                                  {:issuer carrier-eori
+                                                   :target target
+                                                   :mask   mask})))
         req))))
 
-(defn verify! [client-data transport-order params]
+(defn verify!
+  [client-data transport-order params]
   (-> {:client-data client-data}
       (verify-owner! transport-order params)
       (verify-carriers! transport-order params)))
