@@ -136,6 +136,11 @@ footer.container:after {
     display: table;
     clear: both;
 }
+@media screen and (max-width: 84rem) {
+    :is(footer,header).container {
+        border-radius: inherit;
+    }
+}
 
 nav ul {
     list-style-position: inside;
@@ -381,7 +386,6 @@ video {
     color: var(--color-error);
     padding: 1rem;
 }
-
 
 .verification-accepted {
     background: var(--color-success-bg);
