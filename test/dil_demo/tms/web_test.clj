@@ -16,6 +16,7 @@
   {:trips
    {"31415"
     {:id "31415"
+     :status "assigned"
      :external-attributes {:consignment-ref "31415"}}}})
 
 (defn do-request [method path & [params]]

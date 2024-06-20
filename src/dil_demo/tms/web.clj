@@ -224,17 +224,20 @@
 
      (GET "/chauffeur/" {:keys [flash master-data ::store/store]}
        (render "Opdrachten"
-               (chauffeur-list-trips (get-trips store) master-data)
+               (chauffeur-list-trips (filter #(= otm/status-assigned (otm/trip-status %))
+                                             (get-trips store))
+                                     master-data)
                flash
                :slug-postfix "-chauffeur"))
 
      (GET "/chauffeur/trip-:id" {:keys        [flash ::store/store]
                                  {:keys [id]} :params}
        (when-let [trip (get-trip store id)]
-         (render (otm/trip-ref trip)
-                 (chauffeur-trip trip)
-                 flash
-                 :slug-postfix "-chauffeur")))
+         (when (= otm/status-assigned (otm/trip-status trip))
+           (render (otm/trip-ref trip)
+                   (chauffeur-trip trip)
+                   flash
+                   :slug-postfix "-chauffeur"))))
 
      (DELETE "/trip-:id" {::store/keys [store]
                           {:keys [id]} :params}
