@@ -27,14 +27,14 @@
                        :ishare/result
                        :delegationEvidence)])
           (update-in [:explanation] (fnil conj [])
-                     [title @ishare-client/log-interceptor-atom]))
+                     [title {:ishare-log @ishare-client/log-interceptor-atom}]))
       (catch Throwable ex
         (-> req
             (update :delegation-evidences (fnil conj [])
                     [target {}])
             (update-in [:explanation] (fnil into [])
-                       [[title @ishare-client/log-interceptor-atom]
-                        [(str "Technische fout upgrade: " (.getMessage ex))]]))))))
+                       [[title {:ishare-log @ishare-client/log-interceptor-atom}
+                         [(str "Technische fout upgrade: " (.getMessage ex))]]]))))))
 
 (defn rejection-reasons [{:keys [delegation-evidences]}]
   (seq (mapcat (fn [[target delegation-evidence]]

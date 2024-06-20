@@ -61,7 +61,7 @@
               ;; kinda hackish way to delete a policy from a iSHARE AR
               (ishare-ar-create-policy! client-data "Deny" (otm/consignment->map old-consignment))]
           (cond-> (update-in res [:flash :explanation] (fnil conj [])
-                             ["Verwijderen policy" log])
+                             ["Verwijderen policy" {:ishare-log log}])
             (not result) (assoc-in [:flash :error] "Verwijderen AR policy mislukt")))
 
         res))))
@@ -79,7 +79,7 @@
         (let [[result log]
               (ishare-ar-create-policy! client-data "Permit" (otm/trip->map trip))]
           (cond-> (update-in res [:flash :explanation] (fnil conj [])
-                             ["Toevoegen policy" log])
+                             ["Toevoegen policy" {:ishare-log log}])
             (not result) (assoc-in [:flash :error] "Aanmaken AR policy mislukt")))
         res))))
 

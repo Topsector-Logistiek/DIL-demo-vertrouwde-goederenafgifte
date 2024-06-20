@@ -298,12 +298,14 @@
          (let [trip (otm/trip-add-subcontractor! trip carrier-eori)]
            (-> (str "outsourced-" id)
                (redirect :see-other)
-               (assoc :flash {:success (str "Opdracht " (otm/trip-ref trip) " naar vervoerder gestuurd")})
+               (assoc :flash {:success     (str "Opdracht " (otm/trip-ref trip) " naar vervoerder gestuurd")
+                              :explanation [["Stuur OTM Trip naar TMS van andere vervoerder"
+                                             {:otm-object trip}]]})
                (assoc ::store/commands [[:put! :trips (otm/trip-status! trip otm/status-outsourced)]
                                         [:publish! :trips carrier-eori trip]])))))
 
-     (GET "/outsourced-:id" {:keys                [flash master-data ::store/store]
-                             {:keys [id]}         :params}
+     (GET "/outsourced-:id" {:keys        [flash master-data ::store/store]
+                             {:keys [id]} :params}
        (when-let [trip (get-trip store id)]
          (render (str "Opdracht " (otm/trip-ref trip) " uitbesteed")
                  (outsourced-trip trip flash master-data)

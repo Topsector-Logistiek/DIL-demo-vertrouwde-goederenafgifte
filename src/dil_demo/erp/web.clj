@@ -159,9 +159,7 @@
        "."]
       [:div.actions
        [:a.button {:href "."} "Terug naar overzicht"]]]
-     (w/explanation (into [["Stuur OTM Transportopdracht naar WMS van DC"]
-                           ["Stuur OTM Trip naar TMS van Vervoerder"]]
-                          explanation))]))
+     (w/explanation explanation)]))
 
 
 
@@ -262,22 +260,28 @@
                  (publish-consignment consignment master-data)
                  flash)))
 
-     (POST "/publish-:id" {:keys              [::store/store]
-                           {:keys [id]}       :params}
+     (POST "/publish-:id" {:keys        [::store/store]
+                           {:keys [id]} :params}
        (when-let [consignment (get-consignment store id)]
-         (let [consignment (otm/consignment-status! consignment otm/status-requested)]
+         (let [consignment     (otm/consignment-status! consignment otm/status-requested)
+               transport-order (otm/consignment->transport-order consignment)
+               trip            (otm/consignment->trip consignment)]
            (-> (str "published-" id)
                (redirect :see-other)
-               (assoc :flash {:success (str "Order " (otm/consignment-ref consignment) " verstuurd")})
+               (assoc :flash {:success     (str "Order " (otm/consignment-ref consignment) " verstuurd")
+                              :explanation [["Stuur OTM Transportopdracht naar WMS van DC"
+                                             {:otm-object transport-order}]
+                                            ["Stuur OTM Trip naar TMS van Vervoerder"
+                                             {:otm-object trip}]]})
                (assoc ::store/commands [[:put! :consignments consignment]
                                         [:publish! ;; to warehouse WMS
                                          :transport-orders
                                          (otm/consignment-warehouse-eori consignment)
-                                         (otm/consignment->transport-order consignment)]
+                                         transport-order]
                                         [:publish! ;; to carrier TMS
                                          :trips
                                          (otm/consignment-carrier-eori consignment)
-                                         (otm/consignment->trip consignment)]])))))
+                                         trip]])))))
 
      (GET "/published-:id" {:keys        [flash master-data ::store/store]
                             {:keys [id]} :params}

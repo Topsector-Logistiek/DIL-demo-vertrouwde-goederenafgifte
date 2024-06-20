@@ -19,13 +19,13 @@
       (let [result (:ishare/result (ishare-client/exec (merge client-data cmd)))]
         (-> req
             (update-in [:flash :explanation] (fnil conj [])
-                       [title @ishare-client/log-interceptor-atom])
+                       [title {:ishare-log @ishare-client/log-interceptor-atom}])
             (assoc :ishare/result result)))
       (catch Exception ex
         (log/error ex)
         (-> req
             (update-in [:flash :explanation] (fnil conj [])
-                       [title @ishare-client/log-interceptor-atom])
+                       [title {:ishare-log @ishare-client/log-interceptor-atom}])
             (assoc-in [:flash :error] (str "Fout bij uitvoeren van iShare commando " (:ishare/message-type ex))))))))
 
 
@@ -129,10 +129,7 @@
 
 (defmethod delegation-effect! [:publish! :trips]
   [req [_ _ other-eori trip]]
-  (let [req (-> req
-                (update-in [:flash :explanation] (fnil conj [])
-                           ["Stuur OTM Trip naar TMS van andere vervoerder"]))
-        sub (policies/outsource-pickup-access-subject
+  (let [sub (policies/outsource-pickup-access-subject
              (-> trip
                  (otm/trip->map)
                  (assoc :carrier-eori other-eori)))

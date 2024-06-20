@@ -204,28 +204,36 @@
   [:span "Delegation Evidence opvragen in Authorisatie Register " (server-description request)])
 
 (defn ishare-log-intercept-to-hiccup [logs]
-  (for [interaction logs]
-    [:li.interaction
-     [:details
-      [:summary (ishare-interaction-summary interaction)]
-      (when (:request interaction)
-        [:div.request
-         [:p "Request:"]
-         [:pre (to-json (-> interaction
-                            :request
-                            (select-keys [:method :uri :params :form-params :json-params :headers])))]])
-      (when (:status interaction)
-        [:div.response
-         [:p "Response:"]
-         [:pre (to-json (select-keys interaction [:status :headers :body]))]])]]))
+  [:ol
+   (for [interaction logs]
+     [:li.interaction
+      [:details
+       [:summary (ishare-interaction-summary interaction)]
+       (when (:request interaction)
+         [:div.request
+          [:p "Request:"]
+          [:pre (to-json (-> interaction
+                             :request
+                             (select-keys [:method :uri :params :form-params :json-params :headers])))]])
+       (when (:status interaction)
+         [:div.response
+          [:p "Response:"]
+          [:pre (to-json (select-keys interaction [:status :headers :body]))]])]])])
 
 (defn explanation [explanation]
-  [:details.explanation
-    [:summary.button.secondary "Uitleg"]
-    [:ol
-     (for [[title ishare-log] explanation]
-       [:li [:h3 title]
-        [:ol (ishare-log-intercept-to-hiccup ishare-log)]])]])
+  (when (seq explanation)
+    [:details.explanation
+     [:summary.button.secondary "Uitleg"]
+     [:ol
+      (for [[title {:keys [otm-object ishare-log]}] explanation]
+        [:li
+         [:h3 title]
+         (when otm-object
+           [:details
+            [:summary "Bekijk OTM object"]
+            [:pre (otm-to-json otm-object)]])
+         (when ishare-log
+           (ishare-log-intercept-to-hiccup ishare-log))])]]))
 
 (defn wrap-config [app config]
   (fn config-wrapper [req]
