@@ -17,7 +17,7 @@
    {"31415"
     {:id "31415"
      :status "assigned"
-     :external-attributes {:consignment-ref "31415"}}}})
+     :ref "31415"}}})
 
 (defn do-request [method path & [params]]
   ((sut/make-handler {:id :tms, :site-name "TMS"})
