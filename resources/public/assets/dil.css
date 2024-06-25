@@ -8,5 +8,6 @@
  */
 
 :root {
-    --color-bg: #aaaaaa;
+    --site-color: #444;
+    --site-other-color: #8f8;
 }

@@ -134,7 +134,6 @@
 
   The result is a list of tuples: reason key and the offending value."
   [delegation-evidence target]
-  {:pre [delegation-evidence target]}
   (let [now               (local-date-time->epoch (LocalDateTime/now))
         policies          (->> delegation-evidence
                                :policySets
@@ -147,26 +146,30 @@
            (not= rules [{:effect "Permit"}]))
       (conj (str "Geen toepasbare regels gevonden: " (pr-str rules)))
 
-      (< now (:notBefore delegation-evidence))
+      (and (:notBefore delegation-evidence)
+           (< now (:notBefore delegation-evidence)))
       (conj (str "Mag niet voor " (epoch->str (:notBefore delegation-evidence))) )
 
-      (>= now (:notOnOrAfter delegation-evidence))
+      (and (:notOnOrAfter delegation-evidence)
+           (>= now (:notOnOrAfter delegation-evidence)))
       (conj (str "Mag niet op of na " (epoch->str (:notOnOrAfter delegation-evidence))))
 
-      (empty? matching-policies) ;; FEEDBACK: should not happen?
+      (empty? matching-policies)
       (conj (str "Geen toepasbare policies gevonden: " (pr-str policies)))
 
       :finally
       (seq))))
 
-(defn ishare-delegation-access-subject
-  "Hack around short coming of iSHARE AR; uniqueness on accessSubject and policyIssuer."
+(defn outsource-pickup-access-subject
+  "Returns an \"accessSubject\" to denote a pickup is outsourced to some
+  party."
   [{:keys [carrier-eori ref]}]
   {:pre [carrier-eori ref]}
-  (str carrier-eori ":" ref))
+  (str carrier-eori "#ref=" ref))
 
-(defn poort8-delegation-access-subject
-  "Returns driver ID license-plate access subject."
-  [{:keys [driver-id-digits license-plate]}]
+(defn pickup-access-subject
+  "Returns an \"accessSubject\" to denote a pickup will be done by a
+  driver / vehicle."
+  [{:keys [carrier-eori driver-id-digits license-plate]}]
   {:pre [driver-id-digits license-plate]}
-  (str driver-id-digits "|" license-plate))
+  (str carrier-eori "#driver-id-digits=" driver-id-digits "&license-plate=" license-plate))

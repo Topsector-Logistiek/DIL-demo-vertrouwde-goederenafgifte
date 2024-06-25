@@ -25,25 +25,29 @@
 
     [:title (str title " — " site-name)]
 
-    [:link {:rel "stylesheet", :href (str "/assets/" site ".css")}]
-    [:link {:rel "stylesheet", :href "/assets/base.css"}]]
+    [:link {:rel "stylesheet", :href "/assets/base.css"}]
+    [:link {:rel "stylesheet", :href (str "/assets/" site ".css")}]]
 
    [:body
-    [:nav {:class "top"}
+    [:nav.top
+     [:ul
+      [:li [:strong site-name]]]
      [:ul
       (for [{:keys [slug path title]} sites]
         [:li [:a {:href path, :class (when (= slug site) "current")} title]])]]
-    [:header [:h1 title]]
-    [:main
+
+    [:header.container [:h1 title]]
+    [:main.container
      (for [[type message] (select-keys flash [:error :success :warning])]
-       [:div.flash {:class (str "flash-" (name type))} message])
+       [:article.flash {:class (str "flash-" (name type))} message])
      main]
-    [:footer
-     [:div.site-name site-name]
-     [:div.powered-by
-      [:img {:src "/assets/bdi-logo.png"
-             :title "Powered by BDI — Basic Data Infrastructure"
-             :alt "Powered by BDI — Basic Data Infrastructure"}]]]]])
+    [:footer.container
+     [:img {:src   "/assets/bdi-logo.png"
+            :title "Powered by BDI — Basic Data Infrastructure"
+            :alt   "Powered by BDI — Basic Data Infrastructure"}]
+     [:img {:src   "/assets/jomco-logo.png"
+            :title "Build by Jomco B.V"
+            :alt   "Build by Jomco B.V"}]]]])
 
 (defn field [{:keys [name label type value list value-fn]
               :as opts
@@ -76,7 +80,11 @@
   [:form.delete {:method "POST", :action path}
    (anti-forgery-input)
    [:input {:type "hidden", :name "_method", :value "DELETE"}]
-   [:button {:type "submit", :onclick "return confirm('Zeker weten?')"} label]])
+   [:button.contrast {:onclick "return confirm('Zeker weten?')"} label]])
+
+(defn link-button [path label]
+  [:form {:action path}
+   [:input {:type "submit", :value label}]])
 
 (defn qr-code [text]
   (let [id (str "qrcode-" (UUID/randomUUID))]
@@ -155,13 +163,13 @@
 (defn otm-to-json [val]
   (to-json val :key-fn (comp camelize name)))
 
-(defmulti ishare-interaction-summary #(-> % :request :ishare/message-type))
-
 (defn server-description
   [{:ishare/keys [server-id server-name]}]
   (if server-name
     [:span [:q server-id] " (" server-name ")"]
     [:q server-id]))
+
+(defmulti ishare-interaction-summary #(-> % :request :ishare/message-type))
 
 (defmethod ishare-interaction-summary :default
   [_]
@@ -181,7 +189,7 @@
 
 (defmethod ishare-interaction-summary :ishare/policy
   [{:keys [request]}]
-  [:span "Delegation Evidence aanmaken in iSHARE Authorisatie Register op " (server-description request)])
+  [:span "Policy aanmaken in iSHARE Authorisatie Register op " (server-description request)])
 
 (defmethod ishare-interaction-summary :poort8/delete-policy
   [{:keys [request]}]
@@ -193,21 +201,39 @@
 
 (defmethod ishare-interaction-summary :delegation
   [{:keys [request]}]
-  [:span "Delegation Mask opvragen in Authorisatie Register " (server-description request)])
+  [:span "Delegation Evidence opvragen in Authorisatie Register " (server-description request)])
 
 (defn ishare-log-intercept-to-hiccup [logs]
-  (for [interaction logs]
-    [:li.interaction
-     [:details
-      [:summary (ishare-interaction-summary interaction)]
-      [:p "Request:"]
-      [:pre.request
-       (to-json (-> interaction
-                    :request
-                    (select-keys [:method :uri :params :form-params :json-params :headers])))]
-      [:p "Response:"]
-      [:pre.response
-       (to-json (select-keys interaction [:status :headers :body]))]]]))
+  [:ol
+   (for [interaction logs]
+     [:li.interaction
+      [:details
+       [:summary (ishare-interaction-summary interaction)]
+       (when (:request interaction)
+         [:div.request
+          [:p "Request:"]
+          [:pre (to-json (-> interaction
+                             :request
+                             (select-keys [:method :uri :params :form-params :json-params :headers])))]])
+       (when (:status interaction)
+         [:div.response
+          [:p "Response:"]
+          [:pre (to-json (select-keys interaction [:status :headers :body]))]])]])])
+
+(defn explanation [explanation]
+  (when (seq explanation)
+    [:details.explanation
+     [:summary.button.secondary "Uitleg"]
+     [:ol
+      (for [[title {:keys [otm-object ishare-log]}] explanation]
+        [:li
+         [:h3 title]
+         (when otm-object
+           [:details
+            [:summary "Bekijk OTM object"]
+            [:pre (otm-to-json otm-object)]])
+         (when ishare-log
+           (ishare-log-intercept-to-hiccup ishare-log))])]]))
 
 (defn wrap-config [app config]
   (fn config-wrapper [req]

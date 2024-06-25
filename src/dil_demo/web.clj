@@ -56,7 +56,7 @@
                   (content-type "text/html; charset=utf-8"))))
 
 (defn list-apps []
-  [:nav
+  [:main
    [:p "Lorem ipsum.."]
    [:ul
     (for [{:keys [path title]} sites]
@@ -80,13 +80,18 @@
         warehouses (->> d/warehouses
                         (map #(vector (get-in config [% :eori])
                                       (get-in config [% :site-name])))
+                        (into {}))
+        eori->name (->> (concat d/owners d/carriers d/warehouses)
+                        (map #(vector (get-in config [% :eori])
+                                      (get-in config [% :site-name])))
                         (into {}))]
     (fn carriers-wrapper [req]
       (app (assoc req
                   :master-data
                   {:carriers carriers
                    :warehouses warehouses
-                   :warehouse-addresses (constantly d/warehouse-address)})))))
+                   :warehouse-addresses (constantly d/warehouse-address)
+                   :eori->name eori->name})))))
 
 (defn wrap-log
   [handler]

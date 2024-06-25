@@ -53,6 +53,7 @@
              :satellite-endpoint satellite-endpoint
              :ar-id              (get-env "TMS1_AR_ID")
              :ar-endpoint        (get-env "TMS1_AR_ENDPOINT")
+             :ar-type            (get-env "TMS1_AR_TYPE")
              :key-file           (get-env "TMS1_KEY_FILE" (str "credentials/" tms-1-eori ".pem"))
              :chain-file         (get-env "TMS1_CHAIN_FILE" (str "credentials/" tms-1-eori ".crt"))}
      :tms-2 {:eori               tms-2-eori
@@ -62,6 +63,7 @@
              :satellite-endpoint satellite-endpoint
              :ar-id              (get-env "TMS2_AR_ID")
              :ar-endpoint        (get-env "TMS2_AR_ENDPOINT")
+             :ar-type            (get-env "TMS2_AR_TYPE")
              :key-file           (get-env "TMS2_KEY_FILE" (str "credentials/" tms-2-eori ".pem"))
              :chain-file         (get-env "TMS2_CHAIN_FILE" (str "credentials/" tms-2-eori ".crt"))}}))
 

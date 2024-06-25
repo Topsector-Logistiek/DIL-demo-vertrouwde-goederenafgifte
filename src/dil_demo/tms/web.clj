@@ -14,74 +14,94 @@
             [dil-demo.web-utils :as w]
             [ring.util.response :refer [redirect]]))
 
-(defn list-trips [trips {:keys [warehouses]}]
-  [:table
-   [:thead
-    [:tr
-     [:th.date "Ophaaldatum"]
-     [:th.ref "Klantorder nr."]
-     [:th.location "Ophaaladres"]
-     [:th.location "Afleveradres"]
-     [:th.id-digits "Rijbewijs cijfers"]
-     [:th.license-plate "Kenteken"]
-     [:th.actions]]]
-   [:tbody
-    (when-not (seq trips)
-      [:tr.empty
-       [:td {:colspan 999}
-        "Nog geen transportopdrachten geregistreerd.."]])
+(defn list-trips [trips {:keys [carriers warehouses]}]
+  [:main
+   (when-not (seq trips)
+     [:article.empty
+      [:p "Nog geen transportopdrachten geregistreerd.."]])
 
-    (for [{:keys [id ref load-date load-location unload-location driver-id-digits license-plate]}
-          (map otm/trip->map trips)]
-      [:tr.trip
-       [:td.date load-date]
-       [:td.ref ref]
-       [:td.location (warehouses load-location)]
-       [:td.location unload-location]
-       [:td.id-digits (w/or-em-dash driver-id-digits)]
-       [:td.license-plate (w/or-em-dash license-plate)]
-       [:td.actions
-        [:ul
-         [:li [:a.button.button-secondary {:href (str "assign-" id)} "Openen"]]
-         [:li (w/delete-button (str "trip-" id))]]]])]])
+   (for [{:keys [id ref status load-date load-location unload-location driver-id-digits license-plate carrier-eori]}
+         (map otm/trip->map trips)]
+     [:article
+      [:header
+       [:div.status (otm/status-titles status)]
+       [:div.ref-date ref " / " load-date]
+       [:div.from-to (warehouses load-location) " → " unload-location]]
+      (cond
+        (and driver-id-digits license-plate)
+        [:p.assigned
+         "Toegewezen aan "
+         [:q.driver-id-digits (w/or-em-dash driver-id-digits)]
+         " / "
+         [:q.license-plate (w/or-em-dash license-plate)]]
 
-(defn qr-code-dil-demo [{:keys [carrier-eori driver-id-digits license-plate]}]
-  (w/qr-code (str ":dil-demo:" carrier-eori ":" driver-id-digits ":" license-plate)))
+        (and (= otm/status-outsourced status)
+             carrier-eori)
+        [:p.outsourced "Uitbesteed aan " [:q (carriers carrier-eori)]]
+
+        :else
+        [:em "Nog niet toegewezen.."])
+      [:footer.actions
+       (when (= otm/status-requested status)
+         [:a.button.primary {:href  (str "assign-" id)
+                             :title "Toewijzen aan een chauffeur en wagen"}
+          "Toewijzen"])
+       (when (= otm/status-requested status)
+         [:a.button.secondary {:href  (str "outsource-" id)
+                               :title "Uitbesteden aan een andere vervoerder"}
+          "Uitbesteden"])
+       (w/delete-button (str "trip-" id))]])])
+
+(defn qr-code-dil-demo [trip]
+  (let [carrier-eori-list (otm/trip-carrier-eori-list trip)
+        driver-id-digits (otm/trip-driver-id-digits trip)
+        license-plate (otm/trip-license-plate trip)]
+    (w/qr-code (str ":dil-demo"
+                    ":" (string/join "," carrier-eori-list)
+                    ":" driver-id-digits
+                    ":" license-plate))))
 
 (defn chauffeur-list-trips [trips {:keys [warehouses]}]
-  (if (seq trips)
-    [:ul.cards
-     (for [{:keys [id ref load-location load-date unload-location]} (map otm/trip->map trips)]
-       [:li.card.trip
-        [:a.button {:href (str "trip-" id)}
-         [:div.date load-date]
-         [:div.trip
-          [:span.ref ref]
-          " / "
-          [:span.load-location (warehouses load-location)]
-          " → "
-          [:span.unload-location unload-location]]]])]
-    [:ul.empty
-     [:li
-      "Nog geen transportopdrachten geregistreerd.."]]))
+  [:main
+   (when-not (seq trips)
+     [:article.empty
+      [:p "Nog geen transportopdrachten geregistreerd.."]])
+
+   (for [{:keys [id ref load-location load-date unload-location]} (map otm/trip->map trips)]
+     [:article
+      [:header
+       [:div.ref-date ref " / " load-date]]
+      [:div.from-to (warehouses load-location) " → " unload-location]
+      [:footer.actions
+       [:a.button.primary {:href (str "trip-" id)} "Tonen"]]])])
 
 (defn chauffeur-trip [trip]
   [:div.trip
-   (qr-code-dil-demo (otm/trip->map trip))
+   [:section
+    (qr-code-dil-demo trip)]
+
+   (let [carrier-eori-list (otm/trip-carrier-eori-list trip)
+         driver-id-digits  (otm/trip-driver-id-digits trip)
+         license-plate     (otm/trip-license-plate trip)]
+     [:fieldset
+      (w/field {:label    "Vervoerder EORI's",
+                :value    (string/join "," carrier-eori-list),
+                :readonly true})
+      (w/field {:label    "Rijbewijs",
+                :value    driver-id-digits
+                :readonly true})
+      (w/field {:label    "Kenteken",
+                :value    license-plate
+                :readonly true})])
+
    [:div.actions
     [:a.button {:href "../chauffeur/"} "Terug naar overzicht"]]])
 
-(defn assign-trip [trip {:keys [warehouses warehouse-addresses]}]
-  (let [{:keys [ref carrier-eori load-date load-location load-remarks unload-date unload-location unload-remarks driver-id-digits license-plate]
-         :as   params}
+(defn trip-details [trip {:keys [warehouses warehouse-addresses]}]
+  (let [{:keys [ref load-date load-location load-remarks unload-date unload-location unload-remarks]}
         (otm/trip->map trip)]
-    [:form {:method "POST"}
-     (w/anti-forgery-input)
-
+    [:section
      [:section.details
-      (when (and carrier-eori driver-id-digits license-plate)
-        (qr-code-dil-demo params))
-
       [:dl
        [:div
         [:dt "Klantorder nr."]
@@ -107,10 +127,21 @@
        (when-let [address (get d/locations unload-location)]
          [:pre address])
        (when-not (string/blank? unload-remarks)
-         [:blockquote.remarks unload-remarks])]]
+         [:blockquote.remarks unload-remarks])]]]))
+
+(defn assign-trip [trip master-data]
+  (let [{:keys [carrier-eori driver-id-digits license-plate]}
+        (otm/trip->map trip)]
+    [:form {:method "POST"}
+     (w/anti-forgery-input)
+
+     (when (and carrier-eori driver-id-digits license-plate)
+       (qr-code-dil-demo trip))
+
+     (trip-details trip master-data)
 
      (w/field {:name  "driver-id-digits", :value       driver-id-digits
-               :label "Rijbewijs",     :placeholder "Laatste 4 cijfers"
+               :label "Rijbewijs",        :placeholder "Laatste 4 cijfers"
                :type  "text",             :pattern     "\\d{4}", :required true})
      (w/field {:name  "license-plate", :value    license-plate
                :label "Kenteken",
@@ -120,43 +151,50 @@
       [:button.button-primary {:type "submit"} "Toewijzen"]
       [:a.button {:href "."} "Annuleren"]]]))
 
-(defn assigned-trip [trip {:keys [ishare-log]}]
-  (let [{:keys [ref] :as params} (otm/trip->map trip)]
+(defn assigned-trip [trip {:keys [explanation]}]
+  [:div
+   [:section
+    [:p "Opdracht " [:q (otm/trip-ref trip)] " toegewezen."]
+
+    (qr-code-dil-demo trip)
+
+    [:div.actions
+     [:a.button {:href "."} "Terug naar overzicht"]]]
+   (w/explanation explanation)])
+
+(defn outsource-trip [trip {:keys [carriers] :as master-data}]
+  [:form {:method "POST"}
+   (w/anti-forgery-input)
+
+   (trip-details trip master-data)
+
+   [:section
+    (let [;; add empty option
+          carriers (into {nil nil} carriers)]
+      (w/field {:name  "carrier-eori",
+                :label "Vervoerder", :type     "select",
+                :list  carriers,     :required true}))]
+
+   [:div.actions
+    [:button.button-primary {:type "submit"} "Uitbesteden"]
+    [:a.button {:href "."} "Annuleren"]]])
+
+(defn outsourced-trip [trip {:keys [explanation]} {:keys [carriers]}]
+  (let [{:keys [ref carrier-eori]} (otm/trip->map trip)]
     [:div
      [:section
-      [:p "Transportopdracht " [:q ref] " toegewezen."]
-
-      (qr-code-dil-demo params)
+      [:p "Opdracht " [:q ref] " uitbesteed aan " [:q (carriers carrier-eori)]]
 
       [:div.actions
        [:a.button {:href "."} "Terug naar overzicht"]]]
-     [:details.explanation
-      [:summary "Uitleg"]
-      [:ol
-       [:li
-        [:h3 "Autoriseer de Chauffeur names de Vervoerder voor de Klantorder vervoerd met Kenteken"]
-        [:p "API call naar " [:strong "AR van de Vervoerder"] " om een autorisatie te registeren"]
-        [:ul [:li "Klantorder nr."] [:li "Rijbewijs (laatste 4 cijfers)"] [:li "Kenteken"]]]
-       [:li
-        [:h3 "OTM Trip"]
-        [:pre.json (w/to-json trip)]]
-       (w/ishare-log-intercept-to-hiccup ishare-log)]]]))
+     (w/explanation explanation)]))
 
-(defn deleted-trip [{:keys [ishare-log]}]
+(defn deleted-trip [{:keys [explanation]}]
   [:div
    [:section
     [:div.actions
      [:a.button {:href "."} "Terug naar overzicht"]]]
-   [:details.explanation
-    [:summary "Uitleg"]
-    [:ol
-     [:li
-      [:h3 "Autorisatie van Chauffeur ingetrokken"]
-      [:p "API call naar " [:strong "AR van de Vervoerder"] " om een autorisatie te verwijderen"]
-      [:ul [:li "Klantorder nr."]
-       [:li "Rijbewijs (laatste 4 cijfers)"]
-       [:li "Kenteken"]]]
-     (w/ishare-log-intercept-to-hiccup ishare-log)]]])
+   (w/explanation explanation)])
 
 
 
@@ -170,7 +208,7 @@
 
 (def ^:dynamic *slug* nil)
 
-(defn make-handler [{:keys [id site-name]}]
+(defn make-handler [{:keys [id site-name], own-eori :eori}]
   (let [slug   (name id)
         render (fn render [title main flash & {:keys [slug-postfix]}]
                  (w/render-body (str slug slug-postfix)
@@ -180,42 +218,45 @@
                                 :site-name site-name))]
     (routes
      (GET "/" {:keys [flash master-data ::store/store]}
-       (render "Transportopdrachten"
+       (render "Opdrachten"
                (list-trips (get-trips store) master-data)
                flash))
 
      (GET "/chauffeur/" {:keys [flash master-data ::store/store]}
-       (render "Transportopdrachten"
-               (chauffeur-list-trips (get-trips store) master-data)
+       (render "Opdrachten"
+               (chauffeur-list-trips (filter #(= otm/status-assigned (otm/trip-status %))
+                                             (get-trips store))
+                                     master-data)
                flash
                :slug-postfix "-chauffeur"))
 
      (GET "/chauffeur/trip-:id" {:keys        [flash ::store/store]
                                  {:keys [id]} :params}
        (when-let [trip (get-trip store id)]
-         (render (otm/trip-ref trip)
-                 (chauffeur-trip trip)
-                 flash
-                 :slug-postfix "-chauffeur")))
+         (when (= otm/status-assigned (otm/trip-status trip))
+           (render (otm/trip-ref trip)
+                   (chauffeur-trip trip)
+                   flash
+                   :slug-postfix "-chauffeur"))))
 
      (DELETE "/trip-:id" {::store/keys [store]
                           {:keys [id]} :params}
        (when (get-trip store id)
          (-> "deleted"
              (redirect :see-other)
-             (assoc :flash {:success "Transportopdracht verwijderd"})
+             (assoc :flash {:success "Opdracht verwijderd"})
              (assoc ::store/commands [[:delete! :trips id]]))))
 
-     (GET "/deleted" {{:keys [ishare-log] :as flash} :flash}
-       (render "Transportopdracht verwijderd"
-               (deleted-trip {:ishare-log ishare-log})
+     (GET "/deleted" {:keys [flash]}
+       (render "Opdracht verwijderd"
+               (deleted-trip flash)
                flash))
 
      (GET "/assign-:id" {:keys        [flash master-data]
                          ::store/keys [store]
                          {:keys [id]} :params}
        (when-let [trip (get-trip store id)]
-         (render (str "Transportopdracht: " (otm/trip-ref trip))
+         (render (str "Opdracht " (otm/trip-ref trip) " toewijzen")
                  (assign-trip trip master-data)
                  flash)))
 
@@ -224,18 +265,48 @@
                                   driver-id-digits
                                   license-plate]} :params}
        (when-let [trip (get-trip store id)]
-         (-> (str "assigned-" id)
-             (redirect :see-other)
-             (assoc :flash {:success "Chauffeur en kenteken toegewezen"})
-             (assoc ::store/commands [[:put! :trips (-> trip
-                                                        (otm/trip-driver-id-digits! driver-id-digits)
-                                                        (otm/trip-license-plate! license-plate))]]))))
+         (let [trip (-> trip
+                        (otm/trip-status! otm/status-assigned)
+                        (otm/trip-driver-id-digits! driver-id-digits)
+                        (otm/trip-license-plate! license-plate))]
+           (-> (str "assigned-" id)
+               (redirect :see-other)
+               (assoc :flash {:success (str "Chauffeur en kenteken toegewezen aan opdracht " (otm/trip-ref trip))})
+               (assoc ::store/commands [[:put! :trips trip]])))))
 
-     (GET "/assigned-:id" {:keys                [flash]
-                           ::store/keys         [store]
-                           {:keys [id]}         :params
-                           {:keys [ishare-log]} :flash}
+     (GET "/assigned-:id" {:keys        [flash]
+                           ::store/keys [store]
+                           {:keys [id]} :params}
        (when-let [trip (get-trip store id)]
-         (render (str "Transportopdracht toegewezen")
-                 (assigned-trip trip {:ishare-log ishare-log})
+         (render (str "Opdracht " (otm/trip-ref trip) " toegewezen")
+                 (assigned-trip trip flash)
+                 flash)))
+
+     (GET "/outsource-:id" {:keys        [flash master-data]
+                            ::store/keys [store]
+                            {:keys [id]} :params}
+       (when-let [trip (get-trip store id)]
+         (render (str "Opdracht " (otm/trip-ref trip) " uitbesteden aan een andere vervoerder")
+                 (outsource-trip trip (-> master-data
+                                          ;; can't outsource to ourselves
+                                          (update :carriers dissoc own-eori)))
+                 flash)))
+
+     (POST "/outsource-:id" {::store/keys              [store]
+                             {:keys [id carrier-eori]} :params}
+       (when-let [trip (get-trip store id)]
+         (let [trip (otm/trip-add-subcontractor! trip carrier-eori)]
+           (-> (str "outsourced-" id)
+               (redirect :see-other)
+               (assoc :flash {:success     (str "Opdracht " (otm/trip-ref trip) " naar vervoerder gestuurd")
+                              :explanation [["Stuur OTM Trip naar TMS van andere vervoerder"
+                                             {:otm-object trip}]]})
+               (assoc ::store/commands [[:put! :trips (otm/trip-status! trip otm/status-outsourced)]
+                                        [:publish! :trips carrier-eori trip]])))))
+
+     (GET "/outsourced-:id" {:keys        [flash master-data ::store/store]
+                             {:keys [id]} :params}
+       (when-let [trip (get-trip store id)]
+         (render (str "Opdracht " (otm/trip-ref trip) " uitbesteed")
+                 (outsourced-trip trip flash master-data)
                  flash))))))

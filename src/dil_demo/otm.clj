@@ -6,10 +6,12 @@
 ;;; SPDX-License-Identifier: AGPL-3.0-or-later
 
 (ns dil-demo.otm
+  (:require [clojure.set :refer [intersection]])
   (:import java.util.UUID
            java.time.LocalDateTime
            java.time.format.DateTimeFormatter))
 
+;; standard OTM
 (def status-draft "draft")
 (def status-requested "requested")
 (def status-confirmed "confirmed")
@@ -17,13 +19,35 @@
 (def status-completed "completed")
 (def status-cancelled "cancelled")
 
-(def statuses {status-draft     "Klad"
-               status-requested "Ingediend"
-               status-confirmed "Bevestigd"
-               status-in-transit "In Transit"
-               status-completed "Afgerond"
-               status-cancelled "Geannuleerd"})
+;; custom for TMS
+(def status-assigned "assigned")
+(def status-outsourced "outsourced")
 
+(def status-titles
+  {status-draft      "Klad"
+   status-requested  "Ingediend"
+   status-confirmed  "Bevestigd"
+   status-in-transit "In Transit"
+   status-completed  "Afgerond"
+   status-cancelled  "Geannuleerd"
+
+   ;; custom
+   status-assigned   "Toegewezen"
+   status-outsourced "Uitbesteed"})
+
+(def role-owner "owner")
+(def role-carrier "carrier")
+(def role-subcontractor "subcontractor")
+(def role-driver "driver")
+
+(def action-type-load "load")
+(def action-type-unload "unload")
+
+(def association-type-inline "inline")
+
+(def location-type-warehouse "warehouse")
+
+(def contact-details-type-eori "eori")
 
 
 (defn time-stamp [obj]
@@ -45,38 +69,38 @@
     :status              status
 
     :goods
-    [{:association-type "inline"
+    [{:association-type association-type-inline
       :entity           {:description goods}}]
 
     :actors
-    [{:association-type "inline"
-      :roles            #{"carrier"}
+    [{:association-type association-type-inline
+      :roles            #{role-carrier}
       :entity
-      {:contact-details [{:type  "eori"
+      {:contact-details [{:type  contact-details-type-eori
                           :value carrier-eori}]}}
-     {:association-type "inline"
-      :roles            #{"owner"}
+     {:association-type association-type-inline
+      :roles            #{role-owner}
       :entity
-      {:contact-details [{:type  "eori"
+      {:contact-details [{:type  contact-details-type-eori
                           :value owner-eori}]}}]
 
     :actions
-    [{:association-type "inline"
+    [{:association-type association-type-inline
       :entity
-      {:action-type "load"
+      {:action-type action-type-load
        :start-time  load-date
-       :location    {:association-type "inline"
+       :location    {:association-type association-type-inline
                      :entity           {:name          load-location
-                                        :type          "warehouse"
+                                        :type          location-type-warehouse
                                         :geo-reference {}}}
        :remarks     load-remarks}}
-     {:association-type "inline"
+     {:association-type association-type-inline
       :entity
-      {:action-type "unload"
+      {:action-type action-type-unload
        :start-time  unload-date
-       :location    {:association-type "inline"
+       :location    {:association-type association-type-inline
                      :entity           {:name          unload-location
-                                        :type          "warehouse"
+                                        :type          location-type-warehouse
                                         :geo-reference {}}}
        :remarks     unload-remarks}}]}))
 
@@ -85,6 +109,9 @@
 
 (defn consignment-status [{:keys [status]}]
   status)
+
+(defn consignment-status! [consignment status]
+  (assoc consignment :status status))
 
 (defn consignment-goods [{[{{:keys [description]} :entity}] :goods}]
   description)
@@ -96,10 +123,10 @@
        (first)))
 
 (defn consignment-load-date [consignment]
-  (:start-time (consignment-action consignment "load")))
+  (:start-time (consignment-action consignment action-type-load)))
 
 (defn consignment-unload-date [consignment]
-  (:start-time (consignment-action consignment "unload")))
+  (:start-time (consignment-action consignment action-type-unload)))
 
 (defn consignment-action-location [consignment action-type]
   (-> consignment
@@ -109,19 +136,19 @@
       :name))
 
 (defn consignment-load-location [consignment]
-  (consignment-action-location consignment "load"))
+  (consignment-action-location consignment action-type-load))
 
 (defn consignment-unload-location [consignment]
-  (consignment-action-location consignment "unload"))
+  (consignment-action-location consignment action-type-unload))
 
 (defn consignment-load-remarks [consignment]
   (-> consignment
-      (consignment-action "load")
+      (consignment-action action-type-load)
       :remarks))
 
 (defn consignment-unload-remarks [consignment]
   (-> consignment
-      (consignment-action "unload")
+      (consignment-action action-type-unload)
       :remarks))
 
 (defn consignment-actor-eori [{:keys [actors]} role]
@@ -130,15 +157,15 @@
        (map :entity)
        (first)
        :contact-details
-       (filter #(= "eori" (:type %)))
+       (filter #(= contact-details-type-eori (:type %)))
        (first)
        :value))
 
 (defn consignment-carrier-eori [consignment]
-  (consignment-actor-eori consignment "carrier"))
+  (consignment-actor-eori consignment role-carrier))
 
 (defn consignment-owner-eori [consignment]
-  (consignment-actor-eori consignment "owner"))
+  (consignment-actor-eori consignment role-owner))
 
 (def consignment-warehouse-eori consignment-load-location) ;; TODO maybe use EORI keys in OTM?
 
@@ -164,22 +191,23 @@
   (time-stamp
    {:id (str (UUID/randomUUID))
     :consignments
-    [{:association-type "inline"
+    [{:association-type association-type-inline
       :entity           (-> consignment
                             (update :actors
                                     (fn [actors]
-                                      (filterv #(contains? (:roles %) "owner")
+                                      (filterv #(contains? (:roles %) role-owner)
                                                actors)))
                             (update :actions
                                     (fn [actions]
-                                      (filterv #(= "load" (-> % :entity :action-type))
+                                      (filterv #(= action-type-load (-> % :entity :action-type))
                                                actions))))}]}))
 
 (defn transport-order->map [{:keys [id] :as transport-order}]
   (-> transport-order
       (get-in [:consignments 0 :entity])
       (consignment->map)
-      (assoc :id id)))
+      (assoc :id id)
+      (dissoc :unload-date :unload-location :unload-remarks :carrier-eori)))
 
 (defn transport-order-consignment [transport-order]
   (get-in transport-order [:consignments 0 :entity]))
@@ -207,75 +235,83 @@
   (time-stamp
    {:id                  (str (UUID/randomUUID))
     :external-attributes {:consignment-ref (consignment-ref consignment)}
+    :status              (consignment-status consignment)
 
     :actors
-    [{:association-type "inline"
-      :roles #{"carrier"}
+    [{:association-type association-type-inline
+      :roles            #{role-carrier}
       :entity
-      {:contact-details [{:type "eori"
+      {:contact-details [{:type  contact-details-type-eori
                           :value (consignment-carrier-eori consignment)}]}}]
 
     :actions
-    [{:association-type "inline"
+    [{:association-type association-type-inline
       :entity
-      {:action-type "load"
+      {:action-type action-type-load
        :start-time  (consignment-load-date consignment)
-       :location    {:association-type "inline"
+       :location    {:association-type association-type-inline
                      :entity           {:name          (consignment-load-location consignment)
-                                        :type          "warehouse"
+                                        :type          location-type-warehouse
                                         :geo-reference {}}}
        :remarks     (consignment-load-remarks consignment)}}
-     {:association-type "inline"
+     {:association-type association-type-inline
       :entity
-      {:action-type "unload"
+      {:action-type action-type-unload
        :start-time  (consignment-unload-date consignment)
-       :location    {:association-type "inline"
+       :location    {:association-type association-type-inline
                      :entity           {:name          (consignment-unload-location consignment)
-                                        :type          "warehouse"
+                                        :type          location-type-warehouse
                                         :geo-reference {}}}
        :remarks     (consignment-unload-remarks consignment)}}]}))
 
-(defn map->trip [{:keys [id ref load-date load-location load-remarks unload-date unload-location unload-remarks carrier-eori driver-id-digits license-plate]}]
+(defn map->trip [{:keys [id ref status load-date load-location load-remarks unload-date unload-location unload-remarks carrier-eori driver-id-digits license-plate]}]
   {:id                  id
    :external-attributes {:consignment-ref ref}
+   :status              status
 
    :vehicle
-   [{:association-type "inline"
+   [{:association-type association-type-inline
      :entity           {:license-plate license-plate}}]
 
    :actors
-   [{:association-type "inline"
-     :roles #{"carrier"}
+   [{:association-type association-type-inline
+     :roles            #{role-carrier}
      :entity
-     {:contact-details [{:type "eori"
+     {:contact-details [{:type  contact-details-type-eori
                          :value carrier-eori}]}}
-    {:association-type "inline"
-     :roles #{"driver"}
+    {:association-type association-type-inline
+     :roles            #{role-driver}
      :entity
      {:external-attributes {:id-digits driver-id-digits}}}]
 
    :actions
-   [{:association-type "inline"
+   [{:association-type association-type-inline
      :entity
-     {:action-type "load"
+     {:action-type action-type-load
       :start-time  load-date
-      :location    {:association-type "inline"
+      :location    {:association-type association-type-inline
                     :entity           {:name          load-location
-                                       :type          "warehouse"
+                                       :type          location-type-warehouse
                                        :geo-reference {}}}
       :remarks     load-remarks}}
-    {:association-type "inline"
+    {:association-type association-type-inline
      :entity
-     {:action-type "unload"
+     {:action-type action-type-unload
       :start-time  unload-date
-      :location    {:association-type "inline"
+      :location    {:association-type association-type-inline
                     :entity           {:name          unload-location
-                                       :type          "warehouse"
+                                       :type          location-type-warehouse
                                        :geo-reference {}}}
       :remarks     unload-remarks}}]})
 
 (defn trip-ref [trip]
   (get-in trip [:external-attributes :consignment-ref]))
+
+(defn trip-status [trip]
+  (get trip :status))
+
+(defn trip-status! [trip status]
+  (assoc trip :status status))
 
 (defn trip-action [{:keys [actions]} action-type]
   (->> actions
@@ -284,10 +320,10 @@
        (first)))
 
 (defn trip-load-date [consignment]
-  (:start-time (consignment-action consignment "load")))
+  (:start-time (consignment-action consignment action-type-load)))
 
 (defn trip-unload-date [consignment]
-  (:start-time (consignment-action consignment "unload")))
+  (:start-time (consignment-action consignment action-type-unload)))
 
 (defn trip-action-location [consignment action-type]
   (-> consignment
@@ -297,58 +333,76 @@
       :name))
 
 (defn trip-load-location [consignment]
-  (consignment-action-location consignment "load"))
+  (consignment-action-location consignment action-type-load))
 
 (defn trip-unload-location [consignment]
-  (consignment-action-location consignment "unload"))
+  (consignment-action-location consignment action-type-unload))
 
 (defn trip-load-remarks [consignment]
   (-> consignment
-      (consignment-action "load")
+      (consignment-action action-type-load)
       :remarks))
 
 (defn trip-unload-remarks [consignment]
   (-> consignment
-      (consignment-action "unload")
+      (consignment-action action-type-unload)
       :remarks))
 
-(defn trip-actor [{:keys [actors]} role]
+(defn trip-actors [{:keys [actors]} pred]
   (->> actors
-       (filter #(get (:roles %) role))
-       (map :entity)
-       (first)))
+       (filter pred)
+       (map :entity)))
 
-(defn trip-carrier-eori [trip]
-  (->> (-> trip
-           (trip-actor "carrier")
-           :contact-details)
-       (filter #(= "eori" (:type %)))
-       (first)
-       :value))
+(defn trip-carrier-eori-list
+  "Return list of carrier/subcontractors EORIs."
+  [trip]
+  (->> (trip-actors trip #(seq (intersection (:roles %)
+                                             #{role-carrier
+                                               role-subcontractor})))
+       (map (fn [{:keys [contact-details]}]
+              (->> contact-details
+                   (filter #(= contact-details-type-eori (:type %)))
+                   (first)
+                   :value)))))
+
+(defn trip-carrier-eori
+  "Return EORI of last carrier/subcontractor."
+  [trip]
+  (last (trip-carrier-eori-list trip)))
+
+(defn trip-add-subcontractor! [trip subco-eori]
+  (update trip :actors
+          concat [{:association-type association-type-inline
+                   :roles            #{role-subcontractor}
+                   :entity
+                   {:contact-details [{:type  contact-details-type-eori
+                                       :value subco-eori}]}}]))
 
 (defn trip-driver-id-digits [trip]
   (-> trip
-      (trip-actor "driver")
+      (trip-actors #(contains? (:roles %) role-driver))
+      (first)
       :external-attributes
       :id-digits))
 
 (defn trip-driver-id-digits! [trip driver-id-digits]
   (update trip :actors
           (fn [actors]
-            (concat (filterv (complement #(get (:roles %) "driver")) actors)
-                    [{:association-type "inline"
-                      :roles #{"driver"}
-                      :entity {:external-attributes {:id-digits driver-id-digits}}}]))))
+            (concat (remove #(get (:roles %) role-driver) actors)
+                    [{:association-type association-type-inline
+                      :roles            #{role-driver}
+                      :entity           {:external-attributes {:id-digits driver-id-digits}}}]))))
 
 (defn trip-license-plate [trip]
   (get-in trip [:vehicle 0 :entity :license-plate]))
 
 (defn trip-license-plate! [trip license-plate]
-  (assoc trip :vehicle [{:association-type "inline"
-                         :entity {:license-plate license-plate}}]))
+  (assoc trip :vehicle [{:association-type association-type-inline
+                         :entity           {:license-plate license-plate}}]))
 
 (defn trip->map [trip]
   {:id               (:id trip)
+   :status           (trip-status trip)
    :ref              (trip-ref trip)
    :load-date        (trip-load-date trip)
    :load-location    (trip-load-location trip)

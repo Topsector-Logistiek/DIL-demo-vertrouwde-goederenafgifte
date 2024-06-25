@@ -19,7 +19,7 @@
   {:pre [client-id effect ref load-date]}
   (policies/->delegation-evidence
    {:issuer  client-id
-    :subject (policies/ishare-delegation-access-subject m)
+    :subject (policies/outsource-pickup-access-subject m)
     :target  (policies/->delegation-target ref)
     :date    load-date
     :effect  effect}))
@@ -34,7 +34,7 @@
                                                   effect
                                                   obj)))
 
-(defn- ishare-ar! [client-data effect obj]
+(defn- ishare-ar-create-policy! [client-data effect obj]
   (binding [ishare-client/log-interceptor-atom (atom [])]
     [(try (-> client-data
               (->ishare-ar-policy-request effect obj)
@@ -45,7 +45,7 @@
      @ishare-client/log-interceptor-atom]))
 
 (defn- wrap-policy-deletion
-  "When a trip is added or deleted, retract existing policies in the AR"
+  "When a trip is deleted, retract existing policies in the AR."
   [app]
   (fn policy-deletion-wrapper
     [{:keys [client-data ::store/store] :as req}]
@@ -53,11 +53,15 @@
     (let [{::store/keys [commands] :as res} (app req)]
       (if-let [id (-> (filter #(= [:delete! :consignments] (take 2 %))
                               commands)
-                        (first)
-                        (nth 2))]
-        (let [consignment (get-in store [:consignments id])
-              [result log] (ishare-ar! client-data "Deny" (otm/consignment->map consignment))]
-          (cond-> (assoc-in res [:flash :ishare-log] log)
+                      (first)
+                      (nth 2))]
+        (let [old-consignment (get-in store [:consignments id])
+
+              [result log]
+              ;; kinda hackish way to delete a policy from a iSHARE AR
+              (ishare-ar-create-policy! client-data "Deny" (otm/consignment->map old-consignment))]
+          (cond-> (update-in res [:flash :explanation] (fnil conj [])
+                             ["Verwijderen policy" {:ishare-log log}])
             (not result) (assoc-in [:flash :error] "Verwijderen AR policy mislukt")))
 
         res))))
@@ -72,8 +76,10 @@
                     (map #(nth % 3))
                     (first))]
       (if trip
-        (let [[result log] (ishare-ar! client-data "Permit" (otm/trip->map trip))]
-          (cond-> (assoc-in res [:flash :ishare-log] log)
+        (let [[result log]
+              (ishare-ar-create-policy! client-data "Permit" (otm/trip->map trip))]
+          (cond-> (update-in res [:flash :explanation] (fnil conj [])
+                             ["Toevoegen policy" {:ishare-log log}])
             (not result) (assoc-in [:flash :error] "Aanmaken AR policy mislukt")))
         res))))
 

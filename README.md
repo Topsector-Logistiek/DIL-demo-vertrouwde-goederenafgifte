@@ -52,19 +52,21 @@ WMS:
 
 TMS 1:
 
-- `TMS1_EORI`: EORI used by TMS 1
-- `TMS1_KEY_FILE`: the file to read the TMS 1 private key from
-- `TMS1_CHAIN_FILE`: the file to read the TMS 1 certificate chain from
-- `TMS1_AR_ID`: EORI of the TMS 1 authorization register
-- `TMS1_AR_ENDPOINT`: URL to the TMS 1 authorization register
+- `TMS1_EORI`: EORI
+- `TMS1_KEY_FILE`: the file to read the private key from
+- `TMS1_CHAIN_FILE`: the file to read the certificate chain from
+- `TMS1_AR_ID`: EORI of the authorization register
+- `TMS1_AR_ENDPOINT`: URL to the authorization register
+- `TMS1_AR_TYPE`: type of authorization register (ishare or poort8)
 
 TMS 2:
 
-- `TMS2_EORI`: EORI used by TMS 2
-- `TMS2_KEY_FILE`: the file to read the TMS 2 private key from
-- `TMS2_CHAIN_FILE`: the file to read the TMS 2 certificate chain from
-- `TMS2_AR_ID`: EORI of the TMS 2 authorization register
-- `TMS2_AR_ENDPOINT`: URL to the TMS 2 authorization register
+- `TMS2_EORI`: EORI
+- `TMS2_KEY_FILE`: the file to read the private key from
+- `TMS2_CHAIN_FILE`: the file to read the certificate chain from
+- `TMS2_AR_ID`: EORI of the authorization register
+- `TMS2_AR_ENDPOINT`: URL to the authorization register
+- `TMS1_AR_TYPE`: type of authorization register (ishare or poort8)
 
 Run the web server with the following:
 
