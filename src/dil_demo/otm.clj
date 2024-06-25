@@ -48,7 +48,7 @@
 
 
 
-;; internal representation
+;; internal representation specs
 
 (s/def ::status #{status-draft
                   status-requested
@@ -63,7 +63,7 @@
   #(re-matches #"..\.EORI\..*" %))
 
 (s/def ::actor
-  (s/keys :req [::eori]))
+  (s/keys :req-un [::eori]))
 
 (s/def ::owner ::actor)
 (s/def ::carrier ::actor)
@@ -73,44 +73,54 @@
          #(re-matches #"\d{4}-\d{2}-\d{2}" %)))
 
 (s/def ::action
-  (s/keys :req [::date
-                ::location]
-          :opt [::remarks]))
+  (s/keys :req-un [::date
+                   ::location]
+          :opt-un [::remarks]))
 
 (s/def ::load ::action)
 (s/def ::unload ::action)
 
 (s/def ::consignment
-  (s/keys :req [::id
-                ::ref
-                ::status
-                ::goods
-                ::load
-                ::unload
-                ::carrier
-                ::owner]))
+  (s/keys :req-un [::id
+                   ::ref
+                   ::status
+                   ::goods
+                   ::load
+                   ::unload
+                   ::carrier
+                   ::owner]))
 
 (s/def ::carriers
   (s/coll-of ::carrier :kind vector?))
 
 (s/def ::trip
-  (s/keys :req [::id
-                ::ref
-                ::status
-                ::carriers ;; list of carrier and subcontrators
-                ::load
-                ::unload
-                ::driver-id-digits
-                ::license-plate]))
+  (s/keys :req-un [::id
+                   ::ref
+                   ::status
+                   ::carriers ;; list of carrier and subcontrators
+                   ::load
+                   ::unload]
+          :opt-un [::driver-id-digits
+                   ::license-plate]))
 
 (s/def ::transport-order
-  (s/keys :req [::id
-                ::ref
-                ::owner
-                ::carrier
-                ::load
-                ::goods]))
+  (s/keys :req-un [::id
+                   ::ref
+                   ::owner
+                   ::carrier
+                   ::load
+                   ::goods]))
 
+(defn check! [type value]
+  (when-let [spec ({:consignments     ::consignment
+                    :trips            ::trip
+                    :transport-orders ::transport-order}
+                   type)]
+    (when-let [data (s/explain-data spec value)]
+      (throw (ex-info (s/explain-str spec value)
+                      {:spec    spec
+                       :value   value
+                       :explain data})))))
 
 
 ;; conversion to other types
@@ -136,8 +146,8 @@
        :roles            role
        :entity           {:contact-details [{:type  contact-details-type-eori
                                              :value eori}]}}
-      external-attributes
-      (assoc-in [:entity :external-attributes] external-attributes)))
+    external-attributes
+    (assoc-in [:entity :external-attributes] external-attributes)))
 
 (defn ->action [{:keys [action-type date location remarks]}]
   (cond->
@@ -195,14 +205,14 @@
        [(->action (assoc load :action-type action-type-load))
         (->action (assoc unload :action-type action-type-unload))]}
 
-      driver-id-digits
-      (update :actors conj
-              (->actor {:role role-driver
-                        :external-attributes {:id-digits driver-id-digits}}))
+    driver-id-digits
+    (update :actors conj
+            (->actor {:role role-driver
+                      :external-attributes {:id-digits driver-id-digits}}))
 
-      license-plate
-      (assoc :vehicle
-             [(->vehicle license-plate)])))
+    license-plate
+    (assoc :vehicle
+           [(->vehicle license-plate)])))
 
 (defn ->transport-order
   "Convert internal representation to OTM transport order."

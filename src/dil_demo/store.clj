@@ -8,16 +8,19 @@
 (ns dil-demo.store
   (:require [clojure.edn :as edn]
             [clojure.java.io :as io]
-            [clojure.tools.logging.readable :as log]))
+            [clojure.tools.logging.readable :as log]
+            [dil-demo.otm :as otm]))
 
 (defmulti commit (fn [_store-atom _user-number _own-eori [cmd & _args]] cmd))
 
 (defmethod commit :put! ;; put data in own database
   [store-atom user-number own-eori [_cmd table-key {:keys [id] :as value}]]
+  (otm/check! table-key value)
   (swap! store-atom assoc-in [user-number own-eori table-key id] value))
 
 (defmethod commit :publish! ;; put data in other database
   [store-atom user-number _own-eori [_cmd table-key target-eori {:keys [id] :as value}]]
+  (otm/check! table-key value)
   (swap! store-atom assoc-in [user-number target-eori table-key id] value))
 
 (defmethod commit :delete!
