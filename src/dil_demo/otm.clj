@@ -115,16 +115,6 @@
                    ::load
                    ::goods]))
 
-(defn check! [type value]
-  (when-let [spec ({:consignments     ::consignment
-                    :trips            ::trip
-                    :transport-orders ::transport-order}
-                   type)]
-    (when-let [data (s/explain-data spec value)]
-      (throw (ex-info (s/explain-str spec value)
-                      {:spec    spec
-                       :value   value
-                       :explain data})))))
 
 
 ;; conversion to other types

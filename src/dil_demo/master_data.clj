@@ -52,7 +52,7 @@
                         (map #(vector (get-in config [% :eori])
                                       (get-in config [% :site-name])))
                         (into {}))]
-    (fn carriers-wrapper [req]
+    (fn master-data-wrapper [req]
       (app (assoc req
                   :master-data
                   {:carriers carriers

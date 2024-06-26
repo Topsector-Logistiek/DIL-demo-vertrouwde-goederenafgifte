@@ -6,21 +6,37 @@
 ;;; SPDX-License-Identifier: AGPL-3.0-or-later
 
 (ns dil-demo.store
-  (:require [clojure.edn :as edn]
+  (:require [clojure.spec.alpha :as s]
+            [clojure.edn :as edn]
             [clojure.java.io :as io]
             [clojure.tools.logging.readable :as log]
             [dil-demo.otm :as otm]))
+
+(def table-key->spec
+  {:consignments     ::otm/consignment
+   :trips            ::otm/trip
+   :transport-orders ::otm/transport-order})
+
+(defn- check!
+  "Run spec check on value."
+  [table-key value]
+  (when-let [spec (table-key->spec table-key)]
+    (when-let [data (s/explain-data spec value)]
+      (throw (ex-info (s/explain-str spec value)
+                      {:spec    spec
+                       :value   value
+                       :explain data})))))
 
 (defmulti commit (fn [_store-atom _user-number _own-eori [cmd & _args]] cmd))
 
 (defmethod commit :put! ;; put data in own database
   [store-atom user-number own-eori [_cmd table-key {:keys [id] :as value}]]
-  (otm/check! table-key value)
+  (check! table-key value)
   (swap! store-atom assoc-in [user-number own-eori table-key id] value))
 
 (defmethod commit :publish! ;; put data in other database
   [store-atom user-number _own-eori [_cmd table-key target-eori {:keys [id] :as value}]]
-  (otm/check! table-key value)
+  (check! table-key value)
   (swap! store-atom assoc-in [user-number target-eori table-key id] value))
 
 (defmethod commit :delete!
