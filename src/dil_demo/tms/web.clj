@@ -63,7 +63,7 @@
                   ":" driver-id-digits
                   ":" license-plate)))
 
-(defn chauffeur-list-trips [trips {:keys [warehouses]}]
+(defn chauffeur-list-trips [trips {:keys [eori->name]}]
   [:main
    (when-not (seq trips)
      [:article.empty
@@ -73,7 +73,7 @@
      [:article
       [:header
        [:div.ref-date ref " / " (:date load)]]
-      [:div.from-to (-> load :location warehouses) " → " (:location unload)]
+      [:div.from-to (-> load :location eori->name) " → " (:location unload)]
       [:footer.actions
        [:a.button.primary {:href (str "trip-" id)} "Tonen"]]])])
 
@@ -97,7 +97,7 @@
     [:a.button {:href "../chauffeur/"} "Terug naar overzicht"]]])
 
 (defn trip-details [{:keys [ref load unload]}
-                    {:keys [warehouses warehouse-addresses]}]
+                    {:keys [eori->name warehouse-addresses]}]
   [:section
    [:section.details
     [:dl
@@ -114,7 +114,7 @@
    [:section.trip
     [:fieldset.load-location
      [:legend "Ophaaladres"]
-     [:h3 (-> load :location warehouses)]
+     [:h3 (-> load :location eori->name)]
      (when-let [address (-> load :location warehouse-addresses)]
        [:pre address])
      (when-not (string/blank? (:remarks load))
@@ -283,8 +283,7 @@
                  (assigned-trip trip flash)
                  flash)))
 
-     (GET "/outsource-:id" {:keys        [flash master-data]
-                            ::store/keys [store]
+     (GET "/outsource-:id" {:keys        [flash master-data ::store/store]
                             {:keys [id]} :params}
        (when-let [trip (get-trip store id)]
          (render (str "Opdracht " (:ref trip) " uitbesteden aan een andere vervoerder")
@@ -293,7 +292,7 @@
                                           (update :carriers dissoc own-eori)))
                  flash)))
 
-     (POST "/outsource-:id" {::store/keys         [store]
+     (POST "/outsource-:id" {:keys                [master-data ::store/store]
                              {:keys [id carrier]} :params}
        (when-let [trip (get-trip store id)]
          (let [trip (update trip :carriers conj carrier)]
@@ -301,7 +300,7 @@
                (redirect :see-other)
                (assoc :flash {:success     (str "Opdracht " (:ref trip) " naar vervoerder gestuurd")
                               :explanation [["Stuur OTM Trip naar TMS van andere vervoerder"
-                                             {:otm-object (otm/->trip trip)}]]})
+                                             {:otm-object (otm/->trip trip master-data)}]]})
                (assoc ::store/commands [[:put! :trips (assoc trip :status otm/status-outsourced)]
                                         [:publish! :trips (:eori carrier) trip]])))))
 

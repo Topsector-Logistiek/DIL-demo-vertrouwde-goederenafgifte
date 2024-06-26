@@ -44,6 +44,7 @@
 
 (def location-type-warehouse "warehouse")
 
+(def contact-details-type-name "name")
 (def contact-details-type-eori "eori")
 
 
@@ -140,16 +141,20 @@
 
 ;; conversion to OTM
 
-(defn ->actor [{:keys [role eori external-attributes]}]
+(defn ->actor [{:keys [role eori external-attributes]}
+               {:keys [eori->name]}]
   (cond->
       {:association-type association-type-inline
        :roles            role
-       :entity           {:contact-details [{:type  contact-details-type-eori
+       :entity           {:contact-details [{:type  contact-details-type-name
+                                             :value (eori->name eori)}
+                                            {:type  contact-details-type-eori
                                              :value eori}]}}
     external-attributes
     (assoc-in [:entity :external-attributes] external-attributes)))
 
-(defn ->action [{:keys [action-type date location remarks]}]
+(defn ->action [{:keys [action-type date location remarks]}
+                _master-data]
   (cond->
       {:association-type association-type-inline
        :entity
@@ -171,7 +176,8 @@
 
 (defn ->consignment
   "Convert internal representation to OTM consignment."
-  [{:keys [id ref status goods owner carrier load-action unload-action]}]
+  [{:keys [id ref status goods owner carrier load-action unload-action]}
+   master-data]
   {:id                  id
    :external-attributes {:ref ref}
    :status              status
@@ -179,16 +185,21 @@
    :goods [(->goods {:goods goods})]
 
    :actors
-   [(->actor (assoc carrier :role role-carrier))
-    (->actor (assoc owner :role role-owner))]
+   [(->actor (assoc carrier :role role-carrier)
+             master-data)
+    (->actor (assoc owner :role role-owner)
+             master-data)]
 
    :actions
-   [(->action (assoc load-action :action-type action-type-load))
-    (->action (assoc unload-action :action-type action-type-unload))]})
+   [(->action (assoc load-action :action-type action-type-load)
+              master-data)
+    (->action (assoc unload-action :action-type action-type-unload)
+              master-data)]})
 
 (defn ->trip
   "Convert internal representation to OTM trip."
-  [{:keys [id ref status carriers load unload driver-id-digits license-plate]}]
+  [{:keys [id ref status carriers load unload driver-id-digits license-plate]}
+   master-data]
   (cond->
       {:id                  id
        :external-attributes {:consignment-ref ref}
@@ -196,19 +207,24 @@
 
        :actors
        ;; first carriers is the "carrier" the rest are "subcontrators"
-       (concat [(->actor (-> carriers (first) (assoc :role role-carrier)))]
+       (concat [(->actor (-> carriers (first) (assoc :role role-carrier))
+                         master-data)]
                (->> carriers
                     (drop 1)
-                    (map #(->actor (assoc % :role role-subcontractor)))))
+                    (map #(->actor (assoc % :role role-subcontractor)
+                                   master-data))))
 
        :actions
-       [(->action (assoc load :action-type action-type-load))
-        (->action (assoc unload :action-type action-type-unload))]}
+       [(->action (assoc load :action-type action-type-load)
+                  master-data)
+        (->action (assoc unload :action-type action-type-unload)
+                  master-data)]}
 
     driver-id-digits
     (update :actors conj
             (->actor {:role role-driver
-                      :external-attributes {:id-digits driver-id-digits}}))
+                      :external-attributes {:id-digits driver-id-digits}}
+                     master-data))
 
     license-plate
     (assoc :vehicle
@@ -216,7 +232,8 @@
 
 (defn ->transport-order
   "Convert internal representation to OTM transport order."
-  [{:keys [id ref owner carrier load goods]}]
+  [{:keys [id ref owner carrier load goods]}
+   master-data]
   {:id                  id
    :consigments
    [{:association-type association-type-inline
@@ -225,9 +242,12 @@
               :goods [(->goods {:goods goods})]
 
               :actors
-              [(->actor (assoc carrier :role role-carrier))
-               (->actor (assoc owner :role role-owner))]
+              [(->actor (assoc carrier :role role-carrier)
+                        master-data)
+               (->actor (assoc owner :role role-owner)
+                        master-data)]
 
               :actions
               ;; only loading information is relevant in WMS
-              [(->action (assoc load :action-type action-type-load))]}}]})
+              [(->action (assoc load :action-type action-type-load)
+                         master-data)]}}]})

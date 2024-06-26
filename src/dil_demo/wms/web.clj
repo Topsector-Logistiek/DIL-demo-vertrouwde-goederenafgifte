@@ -81,7 +81,7 @@
 (defn accepted-transport-order [transport-order
                                 {:keys [carrier-eoris driver-id-digits license-plate]}
                                 {:keys [explanation]}
-                                {:keys [carriers]}]
+                                {:keys [eori->name]}]
   [:div
    [:section
     [:h3.verification.verification-accepted "Afgifte akkoord"]
@@ -89,7 +89,7 @@
      "Afgifte transportopdracht "
      [:q (:ref transport-order)]
      " goedgekeurd voor vervoerder "
-     [:q (carriers (last carrier-eoris))]
+     [:q (-> carrier-eoris last eori->name)]
      ", chauffeur met rijbewijs eindigend op "
      [:q driver-id-digits]
      " en kenteken "

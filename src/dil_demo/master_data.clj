@@ -38,3 +38,24 @@
 
 (def warehouse-address
   "Kerkstraat 1\n1234 AZ  Nergenshuizen\nNederland")
+
+(defn wrap [app config]
+  (let [eori->name (->> (concat owners carriers warehouses)
+                        (map #(vector (get-in config [% :eori])
+                                      (get-in config [% :site-name])))
+                        (into {}))
+        carriers   (->> carriers
+                        (map #(vector (get-in config [% :eori])
+                                      (get-in config [% :site-name])))
+                        (into {}))
+        warehouses (->> warehouses
+                        (map #(vector (get-in config [% :eori])
+                                      (get-in config [% :site-name])))
+                        (into {}))]
+    (fn carriers-wrapper [req]
+      (app (assoc req
+                  :master-data
+                  {:carriers carriers
+                   :warehouses warehouses
+                   :warehouse-addresses (constantly warehouse-address)
+                   :eori->name eori->name})))))

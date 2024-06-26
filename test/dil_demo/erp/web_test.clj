@@ -23,9 +23,10 @@
    (assoc (request method path params)
           ::store/store store
           :user-number 1
-          :master-data {:warehouses {}
-                        :warehouse-addresses {}
-                        :carriers {}})))
+          :master-data {:carriers {}
+                        :eori->name {}
+                        :warehouses {}
+                        :warehouse-addresses {}})))
 
 (deftest handler
   (testing "GET /"

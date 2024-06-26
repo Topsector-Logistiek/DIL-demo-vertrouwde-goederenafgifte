@@ -16,7 +16,7 @@
   (:import (java.time LocalDateTime)
            (java.util Date UUID)))
 
-(defn list-consignments [consignments {:keys [carriers warehouses]}]
+(defn list-consignments [consignments {:keys [eori->name]}]
   [:main
    [:section.actions
     [:a.button.primary {:href "consignment-new"} "Nieuwe order aanmaken"]]
@@ -30,10 +30,10 @@
       [:header
        [:div.status (otm/status-titles status)]
        [:div.ref-date ref " / " (:date load)]
-       [:div.from-to (-> load :location warehouses) " → " (:location unload)]]
+       [:div.from-to (-> load :location eori->name) " → " (:location unload)]]
 
       [:div.goods goods]
-      [:div.carrier (-> carrier :eori carriers)]
+      [:div.carrier (-> carrier :eori eori->name)]
 
       [:footer.actions
        (when (= otm/status-draft status)
@@ -95,7 +95,7 @@
      [:a.button {:href "."} "Terug naar overzicht"]]]
    (w/explanation explanation)])
 
-(defn publish-consignment [consignment {:keys [carriers warehouses warehouse-addresses]}]
+(defn publish-consignment [consignment {:keys [eori->name warehouse-addresses]}]
   (let [{:keys [status ref load unload goods carrier]} consignment]
     [:form {:method "POST"}
      (w/anti-forgery-input)
@@ -117,11 +117,11 @@
         [:dd (:date unload)]]
        [:div
         [:dt "Vervoerder"]
-        [:dd (carriers (:eori carrier))]]]]
+        [:dd (-> carrier :eori eori->name)]]]]
      [:section.trip
       [:fieldset.load-location
        [:legend "Ophaaladres"]
-       [:h3 (warehouses (:location load))]
+       [:h3 (-> load :location eori->name)]
        (when-let [address (-> load :location warehouse-addresses)]
          [:pre address])
        (when-not (string/blank? (:remarks load))
@@ -144,14 +144,14 @@
       [:a.button {:href "."} "Annuleren"]]]))
 
 (defn published-consignment [consignment
-                             {:keys [carriers warehouses]}
+                             {:keys [eori->name]}
                              {:keys [explanation]}]
   [:div
    [:section
     [:p "Transportopdracht verstuurd naar locatie "
-     [:q (-> consignment :load :location warehouses)]
+     [:q (-> consignment :load :location eori->name)]
      " en vervoerder "
-     [:q (-> consignment :carrier :eori carriers)]
+     [:q (-> consignment :carrier :eori eori->name)]
      "."]
     [:div.actions
      [:a.button {:href "."} "Terug naar overzicht"]]]
@@ -255,7 +255,7 @@
                  (publish-consignment consignment master-data)
                  flash)))
 
-     (POST "/publish-:id" {:keys        [::store/store]
+     (POST "/publish-:id" {:keys        [master-data ::store/store]
                            {:keys [id]} :params}
        (when-let [consignment (get-consignment store id)]
          (let [consignment     (assoc consignment :status otm/status-requested)
@@ -265,9 +265,9 @@
                (redirect :see-other)
                (assoc :flash {:success     (str "Order " (:ref consignment) " verstuurd")
                               :explanation [["Stuur OTM Transportopdracht naar WMS van DC"
-                                             {:otm-object (otm/->transport-order transport-order)}]
+                                             {:otm-object (otm/->transport-order transport-order master-data)}]
                                             ["Stuur OTM Trip naar TMS van Vervoerder"
-                                             {:otm-object (otm/->trip trip)}]]})
+                                             {:otm-object (otm/->trip trip master-data)}]]})
                (assoc ::store/commands [[:put! :consignments consignment]
                                         [:publish! ;; to warehouse WMS
                                          :transport-orders
