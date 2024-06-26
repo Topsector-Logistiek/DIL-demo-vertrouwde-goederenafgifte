@@ -16,9 +16,7 @@
   {:transport-orders
    {"31415"
     {:id "31415"
-     :consignments
-     [{:association-type "inline"
-       :entity {:external-attributes {:ref "31415"}}}]}}})
+     :ref "31415"}}})
 
 (defn do-request [method path & [params]]
   ((sut/make-handler {:id :wms, :site-name "WMS"})

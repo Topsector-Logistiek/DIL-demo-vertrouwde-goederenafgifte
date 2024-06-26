@@ -17,16 +17,17 @@
    {"31415"
     {:id "31415"
      :status "assigned"
-     :external-attributes {:consignment-ref "31415"}}}})
+     :ref "31415"}}})
 
 (defn do-request [method path & [params]]
   ((sut/make-handler {:id :tms, :site-name "TMS"})
    (assoc (request method path params)
           ::store/store store
           :user-number 1
-          :master-data {:warehouses          {}
-                        :warehouse-addresses {}
-                        :carriers            {}})))
+          :master-data {:carriers            {}
+                        :eori->name          {}
+                        :warehouses          {}
+                        :warehouse-addresses {}})))
 
 (deftest handler
   (testing "GET /"

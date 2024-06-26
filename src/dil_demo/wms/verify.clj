@@ -7,8 +7,7 @@
 
 (ns dil-demo.wms.verify
   (:require [dil-demo.ishare.client :as ishare-client]
-            [dil-demo.ishare.policies :as policies]
-            [dil-demo.otm :as otm]))
+            [dil-demo.ishare.policies :as policies]))
 
 (defn ishare-get-delegation-evidence!
   [{:keys [client-data] :as req}
@@ -61,12 +60,12 @@
   [req transport-order {:keys [carrier-eoris]}]
   {:pre [(seq carrier-eoris)]}
 
-  (let [issuer  (otm/transport-order-owner-eori transport-order)
-        ref     (otm/transport-order-ref transport-order)
+  (let [issuer  (-> transport-order :owner :eori)
+        ref     (:ref transport-order)
         target  (policies/->delegation-target ref)
-        subject (policies/outsource-pickup-access-subject {:ref          ref
-                                                           :carrier-eori (first carrier-eoris)})
-        mask    (policies/->delegation-mask {:issuer issuer
+        subject (policies/outsource-pickup-access-subject {:ref     ref
+                                                           :carrier {:eori (first carrier-eoris)}})
+        mask    (policies/->delegation-mask {:issuer  issuer
                                              :subject subject
                                              :target  target})]
     (ishare-get-delegation-evidence! req
@@ -80,7 +79,7 @@
   [req transport-order {:keys [carrier-eoris driver-id-digits license-plate]}]
   {:pre [(seq carrier-eoris) driver-id-digits license-plate]}
 
-  (let [ref    (otm/transport-order-ref transport-order)
+  (let [ref    (:ref transport-order)
         target (policies/->delegation-target ref)]
     (loop [carrier-eoris carrier-eoris
            req           req]
@@ -91,9 +90,9 @@
               subject      (if pickup?
                              (policies/pickup-access-subject {:driver-id-digits driver-id-digits
                                                               :license-plate    license-plate
-                                                              :carrier-eori     carrier-eori})
+                                                              :carrier          {:eori carrier-eori}})
                              (policies/outsource-pickup-access-subject {:ref          ref
-                                                                        :carrier-eori (second carrier-eoris)}))
+                                                                        :carrier {:eori (second carrier-eoris)}}))
               mask         (policies/->delegation-mask {:issuer  carrier-eori
                                                         :subject subject
                                                         :target  target})]

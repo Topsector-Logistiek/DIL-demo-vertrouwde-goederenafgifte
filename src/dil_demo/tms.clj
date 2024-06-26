@@ -10,8 +10,7 @@
             [clojure.tools.logging.readable :as log]
             [dil-demo.ishare.policies :as policies]
             [dil-demo.store :as store]
-            [dil-demo.ishare.client :as ishare-client]
-            [dil-demo.otm :as otm]))
+            [dil-demo.ishare.client :as ishare-client]))
 
 (defn- ishare-exec! [{:keys [client-data] :as req} title cmd]
   (binding [ishare-client/log-interceptor-atom (atom [])]
@@ -41,14 +40,14 @@
    :ishare/params       (policies/->delegation-evidence
                          {:issuer  client-id
                           :subject subject
-                          :target  (policies/->delegation-target (otm/trip-ref trip))
-                          :date    (otm/trip-load-date trip)
+                          :target  (policies/->delegation-target (:ref trip))
+                          :date    (-> trip :load :date)
                           :effect  effect})})
 
 (defmulti delete-policy-for-trip! ->ar-type)
 
 (defmethod delete-policy-for-trip! :poort8
-  [{:keys [::store/store] :as req} {:keys [id] :as _trip} _subject]
+  [{:keys [::store/store] :as req} {:keys [id] :as _trip} _subject-fn]
   (if-let [policy-id (get-in store [:trip-policies id :policy-id])]
     (-> req
         (ishare-exec! "Verwijder policy voor trip"
@@ -63,25 +62,25 @@
     req))
 
 (defmethod delete-policy-for-trip! :ishare
-  [req trip subject]
+  [req trip subject-fn]
   ;; iSHARE does not return a policy-id upon creation for deletion so
   ;; we're going to force a "deny" policy in to make sure we don't
   ;; have a lingering "permit".
   (ishare-exec! req
                 "Verwijder policy voor trip"
-                (ishare-create-policy-command req subject trip "Deny")))
+                (ishare-create-policy-command req (subject-fn trip) trip "Deny")))
 
 (defmulti create-policy-for-trip! ->ar-type)
 
 (defmethod create-policy-for-trip! :poort8
-  [req {:keys [id] :as trip} subject]
+  [req {:keys [id] :as trip} subject-fn]
   (let [cmd
         {:ishare/message-type :poort8/policy
          :ishare/params
          (policies/->poort8-policy
-          {:consignment-ref (otm/trip-ref trip)
-           :date            (otm/trip-load-date trip)
-           :subject         subject})}
+          {:consignment-ref (:ref trip)
+           :date            (-> trip :load :date)
+           :subject         (subject-fn trip)})}
         res (ishare-exec! req "Toevoegen policy voor trip" cmd)]
 
     (if-let [policy-id (get-in res [:ishare/result "policyId"])]
@@ -91,9 +90,9 @@
       res)))
 
 (defmethod create-policy-for-trip! :ishare
-  [req trip subject]
+  [req trip subject-fn]
   (ishare-exec! req "Toevoegen policy voor trip"
-                (ishare-create-policy-command req subject trip "Permit")))
+                (ishare-create-policy-command req (subject-fn trip) trip "Permit")))
 
 (defmulti delegation-effect!
   "Apply delegation effects from store commands."
@@ -101,15 +100,14 @@
 
 (defmethod delegation-effect! [:delete! :trips]
   [{:keys [::store/store] :as req} [_ _ id]]
-  (if-let [trip (get-in store [:trips id])]
+  (if-let [{:keys [driver-id-digits license-plate]
+            :as   trip} (get-in store [:trips id])]
     (cond-> req
-      (and (otm/trip-driver-id-digits trip) (otm/trip-license-plate trip))
-      (delete-policy-for-trip! trip
-                               (policies/pickup-access-subject (otm/trip->map trip)))
+      (and driver-id-digits license-plate)
+      (delete-policy-for-trip! trip policies/pickup-access-subject)
 
       :and
-      (delete-policy-for-trip! trip
-                               (policies/outsource-pickup-access-subject (otm/trip->map trip))))
+      (delete-policy-for-trip! trip policies/outsource-pickup-access-subject))
     req))
 
 (defmethod delegation-effect! [:put! :trips]
@@ -118,27 +116,20 @@
 
     (cond-> req
       ;; delete pre existing driver/pickup policy
-      (and (otm/trip-driver-id-digits old-trip) (otm/trip-license-plate old-trip))
-      (delete-policy-for-trip! old-trip
-                               (policies/pickup-access-subject (otm/trip->map old-trip)))
+      (and (:driver-id-digits old-trip) (:license-plate old-trip))
+      (delete-policy-for-trip! old-trip policies/pickup-access-subject)
 
       ;; create driver/pickup policy
-      (and (otm/trip-driver-id-digits trip) (otm/trip-license-plate trip))
-      (create-policy-for-trip! trip
-                               (policies/pickup-access-subject (otm/trip->map trip))))))
+      (and (:driver-id-digits trip) (:license-plate trip))
+      (create-policy-for-trip! trip policies/pickup-access-subject))))
 
 (defmethod delegation-effect! [:publish! :trips]
-  [req [_ _ other-eori trip]]
-  (let [sub (policies/outsource-pickup-access-subject
-             (-> trip
-                 (otm/trip->map)
-                 (assoc :carrier-eori other-eori)))
-
-        ;; remove already existing policy
-        res (delete-policy-for-trip! req trip sub)]
+  [req [_ _ _ trip]]
+  (let [;; remove already existing policy
+        res (delete-policy-for-trip! req trip policies/outsource-pickup-access-subject)]
 
     ;; create outsource policy
-    (create-policy-for-trip! res trip sub)))
+    (create-policy-for-trip! res trip policies/outsource-pickup-access-subject)))
 
 ;; do nothing for other store commands
 (defmethod delegation-effect! :default [req & _] req)

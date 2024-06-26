@@ -163,13 +163,15 @@
 (defn outsource-pickup-access-subject
   "Returns an \"accessSubject\" to denote a pickup is outsourced to some
   party."
-  [{:keys [carrier-eori ref]}]
-  {:pre [carrier-eori ref]}
-  (str carrier-eori "#ref=" ref))
+  [{:keys [ref carrier carriers]}]
+  (let [carrier-eori (or (:eori carrier) (-> carriers last :eori))]
+    (assert (and ref carrier-eori))
+    (str carrier-eori "#ref=" ref)))
 
 (defn pickup-access-subject
   "Returns an \"accessSubject\" to denote a pickup will be done by a
   driver / vehicle."
-  [{:keys [carrier-eori driver-id-digits license-plate]}]
-  {:pre [driver-id-digits license-plate]}
-  (str carrier-eori "#driver-id-digits=" driver-id-digits "&license-plate=" license-plate))
+  [{:keys [carrier carriers driver-id-digits license-plate]}]
+  (let [carrier-eori (or (:eori carrier) (-> carriers last :eori))]
+    (assert (and carrier-eori driver-id-digits license-plate))
+    (str carrier-eori "#driver-id-digits=" driver-id-digits "&license-plate=" license-plate)))

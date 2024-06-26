@@ -10,18 +10,17 @@
             [dil-demo.ishare.client :as ishare-client]
             [dil-demo.ishare.policies :as policies]
             [dil-demo.store :as store]
-            [dil-demo.otm :as otm]
             [clojure.tools.logging :as log]
             [dil-demo.web-utils :as web-utils]))
 
 (defn- map->delegation-evidence
-  [client-id effect {:keys [ref load-date] :as m}]
-  {:pre [client-id effect ref load-date]}
+  [client-id effect {:keys [ref load] :as obj}]
+  {:pre [client-id effect ref load]}
   (policies/->delegation-evidence
    {:issuer  client-id
-    :subject (policies/outsource-pickup-access-subject m)
+    :subject (policies/outsource-pickup-access-subject obj)
     :target  (policies/->delegation-target ref)
-    :date    load-date
+    :date    (:date load)
     :effect  effect}))
 
 (defn- ->ishare-ar-policy-request [{:ishare/keys [client-id]
@@ -59,7 +58,7 @@
 
               [result log]
               ;; kinda hackish way to delete a policy from a iSHARE AR
-              (ishare-ar-create-policy! client-data "Deny" (otm/consignment->map old-consignment))]
+              (ishare-ar-create-policy! client-data "Deny" old-consignment)]
           (cond-> (update-in res [:flash :explanation] (fnil conj [])
                              ["Verwijderen policy" {:ishare-log log}])
             (not result) (assoc-in [:flash :error] "Verwijderen AR policy mislukt")))
@@ -77,7 +76,7 @@
                     (first))]
       (if trip
         (let [[result log]
-              (ishare-ar-create-policy! client-data "Permit" (otm/trip->map trip))]
+              (ishare-ar-create-policy! client-data "Permit" trip)]
           (cond-> (update-in res [:flash :explanation] (fnil conj [])
                              ["Toevoegen policy" {:ishare-log log}])
             (not result) (assoc-in [:flash :error] "Aanmaken AR policy mislukt")))

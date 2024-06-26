@@ -9,7 +9,6 @@
   (:require [clojure.data.json :refer [json-str]]
             [clojure.string :as string]
             [compojure.core :refer [routes DELETE GET POST]]
-            [dil-demo.otm :as otm]
             [dil-demo.store :as store]
             [dil-demo.web-utils :as w]
             [dil-demo.wms.verify :as verify]
@@ -22,11 +21,10 @@
      [:article.empty
       [:p "Nog geen transportopdrachten geregistreerd.."]])]
 
-  (for [{:keys [id ref load-date goods]}
-        (map otm/transport-order->map transport-orders)]
+  (for [{:keys [id ref load goods]} transport-orders]
     [:article
      [:header
-      [:div.ref-date ref " / " load-date]]
+      [:div.ref-date ref " / " (:date load)]]
      [:div.goods goods]
 
      [:footer.actions
@@ -48,52 +46,50 @@
                                          (json-str plate-id) ")")}
       "Scan QR"]]))
 
-(defn verify-transport-order [transport-order]
-  (let [{:keys [id ref load-date load-remarks goods]}
-        (otm/transport-order->map transport-order)]
-    [:form {:method "POST", :action (str "verify-" id)}
-     (w/anti-forgery-input)
+(defn verify-transport-order [{:keys [id ref load goods]}]
+  [:form {:method "POST", :action (str "verify-" id)}
+   (w/anti-forgery-input)
 
-     (w/field {:label "Opdracht nr.", :value ref, :disabled true})
-     (w/field {:label "Datum", :value load-date, :disabled true})
-     (w/field {:label "Goederen", :value goods, :disabled true})
+   (w/field {:label "Opdracht nr.", :value ref, :disabled true})
+   (w/field {:label "Datum", :value (:date load), :disabled true})
+   (w/field {:label "Goederen", :value goods, :disabled true})
 
-     (when-not (string/blank? load-remarks)
-       (w/field {:label "Opmerkingen", :value load-remarks, :type "textarea", :disabled true}))
+   (when-not (string/blank? (:remarks load))
+     (w/field {:label "Opmerkingen", :value (:remarks load), :type "textarea", :disabled true}))
 
-     [:div.actions
-      (qr-code-scan-button "carrier-eoris" "driver-id-digits" "license-plate")]
+   [:div.actions
+    (qr-code-scan-button "carrier-eoris" "driver-id-digits" "license-plate")]
 
-     (w/field {:id       "carrier-eoris"
-               :name     "carrier-eoris", :label "Vervoerder EORI's"
-               :required true})
-     (w/field {:id          "driver-id-digits"
-               :name        "driver-id-digits",  :label   "Rijbewijs",
-               :placeholder "Laatste 4 cijfers", :pattern "\\d{4}",
-               :required    true})
-     (w/field {:id   "license-plate"
-               :name "license-plate", :label "Kenteken",
-               :required true})
+   (w/field {:id       "carrier-eoris"
+             :name     "carrier-eoris", :label "Vervoerder EORI's"
+             :required true})
+   (w/field {:id          "driver-id-digits"
+             :name        "driver-id-digits",  :label   "Rijbewijs",
+             :placeholder "Laatste 4 cijfers", :pattern "\\d{4}",
+             :required    true})
+   (w/field {:id   "license-plate"
+             :name "license-plate", :label "Kenteken",
+             :required true})
 
-     [:div.actions
-      [:button.button-primary
-       {:type "submit"
-        :onclick "return confirm('Kloppen de rijbewijs cijfers en het kenteken?')"}
-       "Veriferen"]
-      [:a.button {:href "."} "Annuleren"]]]))
+   [:div.actions
+    [:button.button-primary
+     {:type "submit"
+      :onclick "return confirm('Kloppen de rijbewijs cijfers en het kenteken?')"}
+     "Veriferen"]
+    [:a.button {:href "."} "Annuleren"]]])
 
 (defn accepted-transport-order [transport-order
                                 {:keys [carrier-eoris driver-id-digits license-plate]}
                                 {:keys [explanation]}
-                                {:keys [carriers]}]
+                                {:keys [eori->name]}]
   [:div
    [:section
     [:h3.verification.verification-accepted "Afgifte akkoord"]
     [:p
      "Afgifte transportopdracht "
-     [:q (otm/transport-order-ref transport-order)]
+     [:q (:ref transport-order)]
      " goedgekeurd voor vervoerder "
-     [:q (carriers (last carrier-eoris))]
+     [:q (-> carrier-eoris last eori->name)]
      ", chauffeur met rijbewijs eindigend op "
      [:q driver-id-digits]
      " en kenteken "
@@ -112,7 +108,7 @@
     [:h3.verification.verification-rejected "Afgifte " [:strong "NIET"] " akkoord"]
     [:p
      "Afgifte transportopdracht "
-     [:q (otm/transport-order-ref transport-order)]
+     [:q (:ref transport-order)]
      " " [:strong "NIET"] " goedgekeurd voor vervoerder "
      [:q (eori->name (last carrier-eoris))]
      ", chauffeur met rijbewijs eindigend op "
