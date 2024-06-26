@@ -14,7 +14,7 @@
             [dil-demo.web-utils :as w]
             [ring.util.response :refer [redirect]]))
 
-(defn list-trips [trips master-data]
+(defn list-trips [trips {:keys [eori->name]}]
   [:main
    (when-not (seq trips)
      [:article.empty
@@ -26,10 +26,9 @@
        [:div.status (otm/status-titles status)]
        [:div.ref-date ref " / " (:date load)]
        [:div.from-to
-        (get (:warehouses master-data)
-             (-> load :location))
+        (-> load :location-eori eori->name)
         " → "
-        (:location unload)]]
+        (:location-name unload)]]
       (cond
         (and driver-id-digits license-plate)
         [:p.assigned
@@ -41,8 +40,7 @@
         (and (= otm/status-outsourced status) (-> carriers last :eori))
         [:p.outsourced
          "Uitbesteed aan "
-         [:q (get (:carriers master-data)
-                  (-> carriers last :eori))]]
+         [:q (-> carriers last :eori eori->name)]]
 
         :else
         [:em "Nog niet toegewezen.."])
@@ -73,7 +71,10 @@
      [:article
       [:header
        [:div.ref-date ref " / " (:date load)]]
-      [:div.from-to (-> load :location eori->name) " → " (:location unload)]
+      [:div.from-to
+       (-> load :location-eori eori->name)
+       " → "
+       (:location-name unload)]
       [:footer.actions
        [:a.button.primary {:href (str "trip-" id)} "Tonen"]]])])
 
@@ -114,15 +115,15 @@
    [:section.trip
     [:fieldset.load-location
      [:legend "Ophaaladres"]
-     [:h3 (-> load :location eori->name)]
-     (when-let [address (-> load :location warehouse-addresses)]
+     [:h3 (-> load :location-eori eori->name)]
+     (when-let [address (-> load :location-eori warehouse-addresses)]
        [:pre address])
      (when-not (string/blank? (:remarks load))
        [:blockquote.remarks (:remarks load)])]
     [:fieldset.unload-location
      [:legend "Afleveradres"]
-     [:h3 (:location unload)]
-     (when-let [address (-> unload :location d/locations)]
+     [:h3 (:location-name unload)]
+     (when-let [address (-> unload :location-name d/locations)]
        [:pre address])
      (when-not (string/blank? (:remarks unload))
        [:blockquote.remarks (:remarks unload)])]]])

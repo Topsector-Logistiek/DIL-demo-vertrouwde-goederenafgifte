@@ -73,10 +73,13 @@
   (s/and string?
          #(re-matches #"\d{4}-\d{2}-\d{2}" %)))
 
+(s/def ::location-eori ::eori)
+
 (s/def ::action
-  (s/keys :req-un [::date
-                   ::location]
-          :opt-un [::remarks]))
+  (s/and
+   (s/keys :req-un [::date (or ::location-name ::location-eori)]
+           :opt-un [::remark])
+   #(not (and (:location-name %) (:location-eori %)))))
 
 (s/def ::load ::action)
 (s/def ::unload ::action)
@@ -153,18 +156,28 @@
     external-attributes
     (assoc-in [:entity :external-attributes] external-attributes)))
 
-(defn ->action [{:keys [action-type date location remarks]}
-                _master-data]
-  (cond->
-      {:association-type association-type-inline
-       :entity
-       {:action-type action-type
-        :start-time  date
-        :location    {:association-type association-type-inline
-                      :entity           {:name          location
-                                         :type          location-type-warehouse
-                                         :geo-reference {}}}}}
-    remarks (assoc-in [:entity :remarks] remarks)))
+(defn ->action [{:keys [action-type date location-eori location-name remarks]}
+                {:keys [eori->name]}]
+  (let [location-name (or location-name (eori->name location-eori))]
+    (cond->
+        {:association-type association-type-inline
+         :entity
+         {:action-type action-type
+          :start-time  date
+          :location    {:association-type association-type-inline
+                        :entity
+                        {:name             location-name
+                         :type            location-type-warehouse
+                         :geo-reference   {}
+                         :contact-details [{:type  contact-details-type-name
+                                            :value location-name}]}}}}
+      location-eori
+      (update-in [:entity :location :entity :contact-details] conj
+                 {:type  contact-details-type-eori
+                  :value location-eori})
+
+      remarks
+      (assoc-in [:entity :remarks] remarks))))
 
 (defn ->vehicle [{:keys [license-plate]}]
   {:association-type association-type-inline

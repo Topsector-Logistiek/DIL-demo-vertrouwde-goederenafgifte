@@ -30,7 +30,7 @@
       [:header
        [:div.status (otm/status-titles status)]
        [:div.ref-date ref " / " (:date load)]
-       [:div.from-to (-> load :location eori->name) " → " (:location unload)]]
+       [:div.from-to (-> load :location-eori eori->name) " → " (:location-name unload)]]
 
       [:div.goods goods]
       [:div.carrier (-> carrier :eori eori->name)]
@@ -64,26 +64,26 @@
      [:section
       (w/field {:name  "load[date]",  :type  "date",
                 :label "Ophaaldatum", :value (:date load)})
-      (w/field {:name  "load[location]", :value    (:location load), ;; EORIs?!
-                :label "Ophaaladres",    :type     "select",
-                :list  warehouses,       :required true})
+      (w/field {:name  "load[location-eori]", :value    (:location-eori load), ;; EORIs?!
+                :label "Ophaaladres",         :type     "select",
+                :list  warehouses,            :required true})
       (w/field {:name  "load[remarks]", :value (:remarks load),
-                :label "Opmerkingen",  :type  "textarea"})]
+                :label "Opmerkingen",   :type  "textarea"})]
      [:section
-      (w/field {:name  "unload[date]",  :value (:date unload),
+      (w/field {:name  "unload[date]", :value (:date unload),
                 :label "Afleverdatum", :type  "date"})
-      (w/field {:name  "unload[location]",  :value    (:location unload),
+      (w/field {:name  "unload[location-name]", :value    (:location-name unload),
                 :label "Afleveradres",     :type     "text",
                 :list  (keys d/locations), :required true})
       (w/field {:name  "unload[remarks]", :value (:remarks unload),
-                :label "Opmerkingen",    :type  "textarea"})]
+                :label "Opmerkingen",     :type  "textarea"})]
      [:section
       (w/field {:name  "goods",    :value    goods,
                 :label "Goederen", :type     "text",
                 :list  d/goods,    :required true})
       (w/field {:name  "carrier[eori]", :value    (:eori carrier),
-                :label "Vervoerder",   :type     "select",
-                :list  carriers,       :required true})]
+                :label "Vervoerder",    :type     "select",
+                :list  carriers,        :required true})]
      [:section.actions
       [:button {:type "submit"} "Opslaan"]
       [:a.button {:href "."} "Annuleren"]]]))
@@ -121,15 +121,15 @@
      [:section.trip
       [:fieldset.load-location
        [:legend "Ophaaladres"]
-       [:h3 (-> load :location eori->name)]
-       (when-let [address (-> load :location warehouse-addresses)]
+       [:h3 (-> load :location-eori eori->name)]
+       (when-let [address (-> load :location-eori warehouse-addresses)]
          [:pre address])
        (when-not (string/blank? (:remarks load))
          [:blockquote.remarks (:remarks load)])]
       [:fieldset.unload-location
        [:legend "Afleveradres"]
-       [:h3 (:location unload)]
-       (when-let [address (-> unload :location d/locations)]
+       [:h3 (:location-name unload)]
+       (when-let [address (-> unload :location-name d/locations)]
          [:pre address])
        (when-not (string/blank? (:remarks unload))
          [:blockquote.remarks (:remarks unload)])]]
@@ -149,7 +149,7 @@
   [:div
    [:section
     [:p "Transportopdracht verstuurd naar locatie "
-     [:q (-> consignment :load :location eori->name)]
+     [:q (-> consignment :load :location-eori eori->name)]
      " en vervoerder "
      [:q (-> consignment :carrier :eori eori->name)]
      "."]
@@ -271,7 +271,7 @@
                (assoc ::store/commands [[:put! :consignments consignment]
                                         [:publish! ;; to warehouse WMS
                                          :transport-orders
-                                         (-> consignment :load :location) ;; this is an eori for load locations
+                                         (-> consignment :load :location-eori)
                                          transport-order]
                                         [:publish! ;; to carrier TMS
                                          :trips
