@@ -167,12 +167,17 @@
 
 (defn min-ref [user-number]
   (let [dt (LocalDateTime/now)]
-    (+ (* user-number
-          100000000)
-       (* (- (.getYear dt) 2000)
-          1000000)
-       (* (.getDayOfYear dt)
-          1000))))
+    (loop [result  0
+           factors [[5 user-number]
+                    [3 (.getYear dt)]
+                    [365 (.getDayOfYear dt)]
+                    [24 (.getHour dt)]
+                    [60 (.getMinute dt)]
+                    [60 (.getSecond dt)]]]
+      (if-let [[[scale amount] _] factors]
+        (recur (+ (* scale result) (mod amount scale))
+               (next factors))
+        result))))
 
 (defn next-consignment-ref [store user-number]
   (let [refs (->> store
