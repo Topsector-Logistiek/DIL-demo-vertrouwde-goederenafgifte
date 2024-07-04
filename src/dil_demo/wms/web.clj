@@ -19,18 +19,18 @@
   [:main
    (when-not (seq transport-orders)
      [:article.empty
-      [:p "Nog geen transportopdrachten geregistreerd.."]])]
+      [:p "Nog geen transportopdrachten geregistreerd.."]])
 
-  (for [{:keys [id ref load goods]} transport-orders]
-    [:article
-     [:header
-      [:div.ref-date ref " / " (:date load)]]
-     [:div.goods goods]
+   (for [{:keys [id ref load goods]} transport-orders]
+     [:article
+      [:header
+       [:div.ref-date ref " / " (:date load)]]
+      [:div.goods goods]
 
-     [:footer.actions
-      [:a.button.primary {:href (str "verify-" id)}
-       "Veriferen"]
-      (w/delete-button (str "transport-order-" id))]]))
+      [:footer.actions
+       [:a.button.primary {:href (str "verify-" id)}
+        "Veriferen"]
+       (w/delete-button (str "transport-order-" id))]])])
 
 (defn qr-code-scan-button [carrier-id driver-id plate-id]
   (let [id (str "qr-code-video-" (UUID/randomUUID))]
