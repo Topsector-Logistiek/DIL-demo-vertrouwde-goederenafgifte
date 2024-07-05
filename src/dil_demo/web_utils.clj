@@ -44,10 +44,7 @@
     [:footer.container
      [:img {:src   "/assets/bdi-logo.png"
             :title "Powered by BDI — Basic Data Infrastructure"
-            :alt   "Powered by BDI — Basic Data Infrastructure"}]
-     [:img {:src   "/assets/jomco-logo.png"
-            :title "Build by Jomco B.V"
-            :alt   "Build by Jomco B.V"}]]]])
+            :alt   "Powered by BDI — Basic Data Infrastructure"}]]]])
 
 (defn field [{:keys [name label type value list value-fn]
               :as opts

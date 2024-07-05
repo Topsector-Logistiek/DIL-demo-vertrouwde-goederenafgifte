@@ -57,7 +57,6 @@
 
 (defn list-apps []
   [:main
-   [:p "Lorem ipsum.."]
    [:ul
     (for [{:keys [path title]} sites]
       [:li [:a {:href path} title]])]])
