@@ -7,10 +7,11 @@
 
 (ns dil-demo.erp.web
   (:require [clojure.string :as string]
-            [compojure.core :refer [routes DELETE GET POST]]
+            [compojure.core :refer [DELETE GET POST routes]]
             [dil-demo.master-data :as d]
             [dil-demo.otm :as otm]
             [dil-demo.store :as store]
+            [dil-demo.web-form :as f]
             [dil-demo.web-utils :as w]
             [ring.util.response :refer [redirect]])
   (:import (java.time LocalDateTime)
@@ -44,49 +45,29 @@
          [:a.button.secondary {:href  (str "publish-" id)
                                :title "Opdracht versturen naar locatie en vervoerder"}
           "Versturen"])
-       (w/delete-button (str "consignment-" id))]])])
+       (f/delete-button (str "consignment-" id))]])])
 
 (defn edit-consignment [consignment {:keys [carriers warehouses]}]
-  (let [{:keys [status ref load unload goods carrier]} consignment
+  (f/form consignment {:method "POST"}
+    [:section
+     (f/select :status {:label "Status", :list otm/status-titles, :required true})
+     (f/number :ref {:label "Klantorder nr.", :required true})]
 
-        ;; add empty option
-        carriers (into {nil nil} carriers)]
-    [:form {:method "POST"}
-     (w/anti-forgery-input)
+    [:section
+     (f/date [:load :date] {:label "Ophaaldatum", :required true})
+     (f/select [:load :location-eori] {:label "Ophaaladres", :list warehouses, :required true})
+     (f/textarea [:load :remarks] {:label "Opmerkingen"})]
 
-     [:section
-      (w/field {:name  "status", :value status,
-                :label "Status", :type  "select",
-                :list  otm/status-titles})
-      (w/field {:name     "ref",            :value ref,
-                :label    "Klantorder nr.", :type  "number",
-                :required true})]
-     [:section
-      (w/field {:name  "load[date]",  :type  "date",
-                :label "Ophaaldatum", :value (:date load)})
-      (w/field {:name  "load[location-eori]", :value    (:location-eori load), ;; EORIs?!
-                :label "Ophaaladres",         :type     "select",
-                :list  warehouses,            :required true})
-      (w/field {:name  "load[remarks]", :value (:remarks load),
-                :label "Opmerkingen",   :type  "textarea"})]
-     [:section
-      (w/field {:name  "unload[date]", :value (:date unload),
-                :label "Afleverdatum", :type  "date"})
-      (w/field {:name  "unload[location-name]", :value    (:location-name unload),
-                :label "Afleveradres",     :type     "text",
-                :list  (keys d/locations), :required true})
-      (w/field {:name  "unload[remarks]", :value (:remarks unload),
-                :label "Opmerkingen",     :type  "textarea"})]
-     [:section
-      (w/field {:name  "goods",    :value    goods,
-                :label "Goederen", :type     "text",
-                :list  d/goods,    :required true})
-      (w/field {:name  "carrier[eori]", :value    (:eori carrier),
-                :label "Vervoerder",    :type     "select",
-                :list  carriers,        :required true})]
-     [:section.actions
-      [:button {:type "submit"} "Opslaan"]
-      [:a.button {:href "."} "Annuleren"]]]))
+    [:section
+     (f/date [:unload :date] {:label "Afleverdatum", :required true})
+     (f/text [:unload :location-name] {:label "Afleveradres", :list (keys d/locations), :required true})
+     (f/textarea [:unload :remarks] {:label "Opmerkingen"})]
+
+    [:section
+     (f/text :goods {:label "Goederen", :list d/goods, :required true})
+     (f/select [:carrier :eori] {:label "Vervoerder" :list (into {nil nil} carriers), :required true})]
+
+    (f/submit-cancel-buttons)))
 
 (defn deleted-consignment [{:keys [explanation]}]
   [:div
@@ -97,51 +78,47 @@
 
 (defn publish-consignment [consignment {:keys [eori->name warehouse-addresses]}]
   (let [{:keys [status ref load unload goods carrier]} consignment]
-    [:form {:method "POST"}
-     (w/anti-forgery-input)
+    (f/form consignment {:method "POST"}
+      (when (not= otm/status-draft status)
+        [:div.flash.flash-warning
+         "Let op!  Deze opdracht is al verzonden!"])
 
-     (when (not= otm/status-draft status)
-       [:div.flash.flash-warning
-        "Let op!  Deze opdracht is al verzonden!"])
+      [:section.details
+       [:dl
+        [:div
+         [:dt "Klantorder nr."]
+         [:dd ref]]
+        [:div
+         [:dt "Ophaaldatum"]
+         [:dd (:date load)]]
+        [:div
+         [:dt "Afleverdatum"]
+         [:dd (:date unload)]]
+        [:div
+         [:dt "Vervoerder"]
+         [:dd (-> carrier :eori eori->name)]]]]
+      [:section.trip
+       [:fieldset.load-location
+        [:legend "Ophaaladres"]
+        [:h3 (-> load :location-eori eori->name)]
+        (when-let [address (-> load :location-eori warehouse-addresses)]
+          [:pre address])
+        (when-not (string/blank? (:remarks load))
+          [:blockquote.remarks (:remarks load)])]
+       [:fieldset.unload-location
+        [:legend "Afleveradres"]
+        [:h3 (:location-name unload)]
+        (when-let [address (-> unload :location-name d/locations)]
+          [:pre address])
+        (when-not (string/blank? (:remarks unload))
+          [:blockquote.remarks (:remarks unload)])]]
+      [:section.goods
+       [:fieldset
+        [:legend "Goederen"]
+        [:pre goods]]]
 
-     [:section.details
-      [:dl
-       [:div
-        [:dt "Klantorder nr."]
-        [:dd ref]]
-       [:div
-        [:dt "Ophaaldatum"]
-        [:dd (:date load)]]
-       [:div
-        [:dt "Afleverdatum"]
-        [:dd (:date unload)]]
-       [:div
-        [:dt "Vervoerder"]
-        [:dd (-> carrier :eori eori->name)]]]]
-     [:section.trip
-      [:fieldset.load-location
-       [:legend "Ophaaladres"]
-       [:h3 (-> load :location-eori eori->name)]
-       (when-let [address (-> load :location-eori warehouse-addresses)]
-         [:pre address])
-       (when-not (string/blank? (:remarks load))
-         [:blockquote.remarks (:remarks load)])]
-      [:fieldset.unload-location
-       [:legend "Afleveradres"]
-       [:h3 (:location-name unload)]
-       (when-let [address (-> unload :location-name d/locations)]
-         [:pre address])
-       (when-not (string/blank? (:remarks unload))
-         [:blockquote.remarks (:remarks unload)])]]
-     [:section.goods
-      [:fieldset
-       [:legend "Goederen"]
-       [:pre goods]]]
-     [:div.actions
-      [:button {:type    "submit"
-                :onclick "return confirm('Zeker weten?')"}
-       "Versturen"]
-      [:a.button {:href "."} "Annuleren"]]]))
+      (f/submit-cancel-buttons {:submit {:label "Versturen"
+                                         :onclick "return confirm('Zeker weten?')"}}))))
 
 (defn published-consignment [consignment
                              {:keys [eori->name]}

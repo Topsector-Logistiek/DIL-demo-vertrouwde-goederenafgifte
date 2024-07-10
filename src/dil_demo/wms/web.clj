@@ -8,8 +8,9 @@
 (ns dil-demo.wms.web
   (:require [clojure.data.json :refer [json-str]]
             [clojure.string :as string]
-            [compojure.core :refer [routes DELETE GET POST]]
+            [compojure.core :refer [DELETE GET POST routes]]
             [dil-demo.store :as store]
+            [dil-demo.web-form :as f]
             [dil-demo.web-utils :as w]
             [dil-demo.wms.verify :as verify]
             [ring.util.response :refer [redirect]])
@@ -30,7 +31,7 @@
       [:footer.actions
        [:a.button.primary {:href (str "verify-" id)}
         "Veriferen"]
-       (w/delete-button (str "transport-order-" id))]])])
+       (f/delete-button (str "transport-order-" id))]])])
 
 (defn qr-code-scan-button [carrier-id driver-id plate-id]
   (let [id (str "qr-code-video-" (UUID/randomUUID))]
@@ -46,37 +47,28 @@
                                          (json-str plate-id) ")")}
       "Scan QR"]]))
 
-(defn verify-transport-order [{:keys [id ref load goods]}]
-  [:form {:method "POST", :action (str "verify-" id)}
-   (w/anti-forgery-input)
+(defn verify-transport-order [{:keys [id] :as transport-order}]
+  (f/form transport-order {:method "POST", :action (str "verify-" id)}
+    (f/input :ref {:label "Opdracht nr.", :disabled true})
+    (f/input [:load :date] {:label "Datum", :disabled true})
+    (f/input :goods {:label "Goederen", :disabled true})
 
-   (w/field {:label "Opdracht nr.", :value ref, :disabled true})
-   (w/field {:label "Datum", :value (:date load), :disabled true})
-   (w/field {:label "Goederen", :value goods, :disabled true})
+    (when-not (string/blank? (:remarks load))
+      (f/textarea [:load :remarks] {:label "Opmerkingen", :disabled true}))
 
-   (when-not (string/blank? (:remarks load))
-     (w/field {:label "Opmerkingen", :value (:remarks load), :type "textarea", :disabled true}))
+    [:div.actions
+     (qr-code-scan-button "carrier-eoris" "driver-id-digits" "license-plate")]
 
-   [:div.actions
-    (qr-code-scan-button "carrier-eoris" "driver-id-digits" "license-plate")]
+    (f/text :carrier-eoris {:id "carrier-eoris", :label "Vervoerder EORI's", :required true})
+    (f/text :driver-id-digits {:id "driver-id-digits", :label "Rijbewijs", :required true})
+    (f/text :license-plate {:id "license-plate", :label "Kenteken", :required true})
 
-   (w/field {:id       "carrier-eoris"
-             :name     "carrier-eoris", :label "Vervoerder EORI's"
-             :required true})
-   (w/field {:id          "driver-id-digits"
-             :name        "driver-id-digits",  :label   "Rijbewijs",
-             :placeholder "Laatste 4 cijfers", :pattern "\\d{4}",
-             :required    true})
-   (w/field {:id   "license-plate"
-             :name "license-plate", :label "Kenteken",
-             :required true})
-
-   [:div.actions
-    [:button.button-primary
-     {:type "submit"
-      :onclick "return confirm('Kloppen de rijbewijs cijfers en het kenteken?')"}
-     "Veriferen"]
-    [:a.button {:href "."} "Annuleren"]]])
+    [:div.actions
+     [:button.button-primary
+      {:type "submit"
+       :onclick "return confirm('Kloppen de rijbewijs cijfers en het kenteken?')"}
+      "Veriferen"]
+     [:a.button {:href "."} "Annuleren"]]))
 
 (defn accepted-transport-order [transport-order
                                 {:keys [carrier-eoris driver-id-digits license-plate]}
