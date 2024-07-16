@@ -9,13 +9,9 @@
   (:require [clojure.data.json :as json]
             [clojure.string :as string]
             [dil-demo.sites :refer [sites]]
-            [hiccup2.core :as hiccup]
-            [ring.middleware.anti-forgery :refer [*anti-forgery-token*]])
+            [hiccup2.core :as hiccup])
   (:import (java.text SimpleDateFormat)
            (java.util UUID)))
-
-(defn anti-forgery-input []
-  [:input {:name "__anti-forgery-token", :value *anti-forgery-token*, :type "hidden"}])
 
 (defn template [site main & {:keys [flash title site-name]}]
   [:html
@@ -45,43 +41,6 @@
      [:img {:src   "/assets/bdi-logo.png"
             :title "Powered by BDI — Basic Data Infrastructure"
             :alt   "Powered by BDI — Basic Data Infrastructure"}]]]])
-
-(defn field [{:keys [name label type value list value-fn]
-              :as opts
-              :or {value-fn val}}]
-  (let [list-id (str "list-" (UUID/randomUUID))
-        datalist [:datalist {:id list-id} (for [v list] [:option {:value v}])]
-        opts (if list (assoc opts :list list-id) opts)]
-    [:div.field
-     [:label {:for name} label]
-     (cond
-       (= "textarea" type)
-       [:textarea (dissoc opts :label :type) value]
-
-       (= "select" type)
-       [:select (dissoc opts :label :type :list :value)
-        (for [option list]
-          (if (vector? option)
-            (let [[k _] option]
-              [:option {:value k, :selected (= k value)} (value-fn option)])
-            [:option {:value option, :selected (= option value)} option]))]
-
-       :else
-       [:input (cond-> opts
-                 list (assoc :list list-id)
-                 :and (dissoc :label))])
-     (when list
-       datalist)]))
-
-(defn delete-button [path & {:keys [label] :or {label "Verwijderen"}}]
-  [:form.delete {:method "POST", :action path}
-   (anti-forgery-input)
-   [:input {:type "hidden", :name "_method", :value "DELETE"}]
-   [:button.contrast {:onclick "return confirm('Zeker weten?')"} label]])
-
-(defn link-button [path label]
-  [:form {:action path}
-   [:input {:type "submit", :value label}]])
 
 (defn qr-code [text]
   (let [id (str "qrcode-" (UUID/randomUUID))]

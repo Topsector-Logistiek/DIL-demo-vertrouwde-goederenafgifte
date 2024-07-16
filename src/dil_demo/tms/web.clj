@@ -7,10 +7,11 @@
 
 (ns dil-demo.tms.web
   (:require [clojure.string :as string]
-            [compojure.core :refer [routes DELETE GET POST]]
+            [compojure.core :refer [DELETE GET POST routes]]
             [dil-demo.master-data :as d]
             [dil-demo.otm :as otm]
             [dil-demo.store :as store]
+            [dil-demo.web-form :as f]
             [dil-demo.web-utils :as w]
             [ring.util.response :refer [redirect]]))
 
@@ -53,7 +54,7 @@
          [:a.button.secondary {:href  (str "outsource-" id)
                                :title "Uitbesteden aan een andere vervoerder"}
           "Uitbesteden"])
-       (w/delete-button (str "trip-" id))]])])
+       (f/delete-button (str "trip-" id))]])])
 
 (defn qr-code-dil-demo [{:keys [carriers driver-id-digits license-plate]}]
   (w/qr-code (str ":dil-demo"
@@ -78,24 +79,22 @@
       [:footer.actions
        [:a.button.primary {:href (str "trip-" id)} "Tonen"]]])])
 
-(defn chauffeur-trip [{:keys [carriers driver-id-digits license-plate] :as trip}]
+(defn chauffeur-trip [trip]
   [:div.trip
    [:section
     (qr-code-dil-demo trip)]
 
-   [:fieldset
-    (w/field {:label    "Vervoerder EORI's"
-              :value    (->> carriers (map :eori) (string/join ","))
-              :readonly true})
-    (w/field {:label    "Rijbewijs"
-              :value    driver-id-digits
-              :readonly true})
-    (w/field {:label    "Kenteken"
-              :value    license-plate
-              :readonly true})]
+   (f/form (assoc trip
+                  :eoris (->> trip :carriers (map :eori) (string/join ",")))
+       {}
+     [:fieldset
+      (f/text :eoris {:label "Vervoerder EORI's", :readonly true})
+      (f/text :driver-id-digits {:label "Rijbewijs", :readonly true})
+      (f/text :license-plate {:label "Kenteken", :readonly true})]
 
-   [:div.actions
-    [:a.button {:href "../chauffeur/"} "Terug naar overzicht"]]])
+     [:div.actions
+      (f/cancel-button {:href "../chauffeur/"
+                        :label "Terug naar overzicht"})])])
 
 (defn trip-details [{:keys [ref load unload]}
                     {:keys [eori->name warehouse-addresses]}]
@@ -130,24 +129,16 @@
 
 (defn assign-trip [{:keys [driver-id-digits license-plate] :as trip}
                    master-data]
-  [:form {:method "POST"}
-   (w/anti-forgery-input)
+  (f/form trip {:method "POST"}
+    (when (and driver-id-digits license-plate)
+      (qr-code-dil-demo trip))
 
-   (when (and driver-id-digits license-plate)
-     (qr-code-dil-demo trip))
+    (trip-details trip master-data)
 
-   (trip-details trip master-data)
+    (f/text :driver-id-digits {:label "Rijbewijs", :placeholder "Laatste 4 cijfers", :pattern "\\d{4}", :required true})
+    (f/text :license-plate {:label "Kenteken", :required true})
 
-   (w/field {:name  "driver-id-digits", :value       driver-id-digits
-             :label "Rijbewijs",        :placeholder "Laatste 4 cijfers"
-             :type  "text",             :pattern     "\\d{4}", :required true})
-   (w/field {:name  "license-plate", :value    license-plate
-             :label "Kenteken",
-             :type  "text",          :required true})
-
-   [:div.actions
-    [:button.button-primary {:type "submit"} "Toewijzen"]
-    [:a.button {:href "."} "Annuleren"]]])
+    (f/submit-cancel-buttons {:submit {:label "Toewijzen"}})))
 
 (defn assigned-trip [{:keys [ref] :as trip} {:keys [explanation]}]
   [:div
@@ -161,21 +152,14 @@
    (w/explanation explanation)])
 
 (defn outsource-trip [trip {:keys [carriers] :as master-data}]
-  [:form {:method "POST"}
-   (w/anti-forgery-input)
+  (f/form trip {:method "POST"}
+    (trip-details trip master-data)
 
-   (trip-details trip master-data)
+    [:section
+     (f/select [:carrier :eori] {:label "Vervoerder", :list carriers, :required true})]
 
-   [:section
-    (let [;; add empty option
-          carriers (into {nil nil} carriers)]
-      (w/field {:name  "carrier[eori]",
-                :label "Vervoerder", :type     "select",
-                :list  carriers,     :required true}))]
-
-   [:div.actions
-    [:button.button-primary {:type "submit"} "Uitbesteden"]
-    [:a.button {:href "."} "Annuleren"]]])
+    (f/submit-cancel-buttons {:submit {:label   "Uitbesteden"
+                                       :onclick "return confirm('Zeker weten?')"}})))
 
 (defn outsourced-trip [{:keys [ref carriers]}
                        {:keys [explanation]}
