@@ -6,25 +6,24 @@
 ;;; SPDX-License-Identifier: AGPL-3.0-or-later
 
 (ns dil-demo.tms
-  (:require [dil-demo.tms.web :as tms.web]
-            [clojure.tools.logging.readable :as log]
+  (:require [clojure.tools.logging.readable :as log]
+            [dil-demo.ishare.client :as ishare-client]
             [dil-demo.ishare.policies :as policies]
             [dil-demo.store :as store]
-            [dil-demo.ishare.client :as ishare-client]))
+            [dil-demo.tms.web :as tms.web]
+            [dil-demo.web-utils :as w]))
 
 (defn- ishare-exec! [{:keys [client-data] :as req} title cmd]
   (binding [ishare-client/log-interceptor-atom (atom [])]
     (try
       (let [result (:ishare/result (ishare-client/exec (merge client-data cmd)))]
         (-> req
-            (update-in [:flash :explanation] (fnil conj [])
-                       [title {:ishare-log @ishare-client/log-interceptor-atom}])
+            (w/append-explanation [title {:ishare-log @ishare-client/log-interceptor-atom}])
             (assoc :ishare/result result)))
       (catch Exception ex
         (log/error ex)
         (-> req
-            (update-in [:flash :explanation] (fnil conj [])
-                       [title {:ishare-log @ishare-client/log-interceptor-atom}])
+            (w/append-explanation [title {:ishare-log @ishare-client/log-interceptor-atom}])
             (assoc-in [:flash :error] (str "Fout bij uitvoeren van iShare commando " (:ishare/message-type ex))))))))
 
 
@@ -128,7 +127,7 @@
   (let [;; remove already existing policy
         res (delete-policy-for-trip! req trip policies/outsource-pickup-access-subject)]
 
-    ;; create outsource policy
+    ;; create outsource policy, TODO allow receiving TMS to subscribe to event topic
     (create-policy-for-trip! res trip policies/outsource-pickup-access-subject)))
 
 ;; do nothing for other store commands
@@ -138,8 +137,8 @@
 
 (defn- wrap-delegation
   "Create policies in AR when trip is stored."
-  [app]
-  (fn delegation-wrapper [{:keys [client-data ::store/store] :as req}]
+  [app {:keys [client-data]}]
+  (fn delegation-wrapper [{::store/keys [store] :as req}]
     (let [{::store/keys [commands] :as res} (app req)]
       (reduce delegation-effect!
               (assoc res
@@ -149,4 +148,4 @@
 
 (defn make-handler [config]
   (-> (tms.web/make-handler config)
-      (wrap-delegation)))
+      (wrap-delegation config)))

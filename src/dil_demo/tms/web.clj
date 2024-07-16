@@ -8,6 +8,7 @@
 (ns dil-demo.tms.web
   (:require [clojure.string :as string]
             [compojure.core :refer [DELETE GET POST routes]]
+            [dil-demo.events :as events]
             [dil-demo.master-data :as d]
             [dil-demo.otm :as otm]
             [dil-demo.store :as store]
@@ -194,14 +195,17 @@
 
 (def ^:dynamic *slug* nil)
 
+(defn trip->topic [{:keys [ref], {:keys [eori]} :owner}]
+  {:topic ref, :owner-eori eori})
+
 (defn make-handler [{:keys [id site-name], own-eori :eori}]
   (let [slug   (name id)
         render (fn render [title main flash & {:keys [slug-postfix]}]
-                 (w/render-body (str slug slug-postfix)
-                                main
-                                :flash flash
-                                :title title
-                                :site-name site-name))]
+                 (w/render (str slug slug-postfix)
+                           main
+                           :flash flash
+                           :title title
+                           :site-name site-name))]
     (routes
      (GET "/" {:keys [flash master-data ::store/store]}
        (render "Opdrachten"
@@ -227,11 +231,12 @@
 
      (DELETE "/trip-:id" {::store/keys [store]
                           {:keys [id]} :params}
-       (when (get-trip store id)
+       (when-let [trip (get-trip store id)]
          (-> "deleted"
              (redirect :see-other)
-             (assoc :flash {:success "Opdracht verwijderd"})
-             (assoc ::store/commands [[:delete! :trips id]]))))
+             (assoc :flash {:success "Opdracht verwijderd"}
+                    ::store/commands [[:delete! :trips id]]
+                    ::events/commands [[:unsubscribe! (trip->topic trip)]]))))
 
      (GET "/deleted" {:keys [flash]}
        (render "Opdracht verwijderd"
@@ -250,15 +255,16 @@
                           {:keys [id
                                   driver-id-digits
                                   license-plate]} :params}
-       (when-let [trip (get-trip store id)]
+       (when-let [{:keys [ref] :as trip} (get-trip store id)]
          (let [trip (-> trip
                         (assoc :status otm/status-assigned
                                :driver-id-digits driver-id-digits
                                :license-plate license-plate))]
            (-> (str "assigned-" id)
                (redirect :see-other)
-               (assoc :flash {:success (str "Chauffeur en kenteken toegewezen aan opdracht " (:ref trip))})
-               (assoc ::store/commands [[:put! :trips trip]])))))
+               (assoc :flash {:success (str "Chauffeur en kenteken toegewezen aan opdracht " ref)}
+                      ::store/commands [[:put! :trips trip]]
+                      ::events/commands [[:subscribe! (trip->topic trip)]])))))
 
      (GET "/assigned-:id" {:keys        [flash]
                            ::store/keys [store]
@@ -285,9 +291,10 @@
                (redirect :see-other)
                (assoc :flash {:success     (str "Opdracht " (:ref trip) " naar vervoerder gestuurd")
                               :explanation [["Stuur OTM Trip naar TMS van andere vervoerder"
-                                             {:otm-object (otm/->trip trip master-data)}]]})
-               (assoc ::store/commands [[:put! :trips (assoc trip :status otm/status-outsourced)]
-                                        [:publish! :trips (:eori carrier) trip]])))))
+                                             {:otm-object (otm/->trip trip master-data)}]]}
+                      ::store/commands [[:put! :trips (assoc trip :status otm/status-outsourced)]
+                                        [:publish! :trips (:eori carrier) trip]]
+                      ::events/commands [[:subscribe! (trip->topic trip)]])))))
 
      (GET "/outsourced-:id" {:keys        [flash master-data ::store/store]
                              {:keys [id]} :params}

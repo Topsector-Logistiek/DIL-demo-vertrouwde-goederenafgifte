@@ -368,12 +368,6 @@ When bearer token is not needed, provide a `nil` token"
    :ishare/private-key                      (private-key key-file)
    :ishare/x5c                              (x5c chain-file)})
 
-(defn wrap-client-data
-  [app config]
-  (let [client-data (->client-data config)]
-    (fn client-data-wrapper [req]
-      (app (assoc req :client-data client-data)))))
-
 
 
 (comment
@@ -444,7 +438,22 @@ When bearer token is not needed, provide a `nil` token"
 
   (-> ishare-ar-request
       (assoc :ishare/message-type :ishare/policy ;; ishare-ar specific call
-             :ishare/params delegation-evidence)
+             :ishare/params
+
+             ;; pulsar access
+             {:delegationEvidence {:notBefore 1721219474
+                                   :notOnOrAfter 1847447885
+                                   :policyIssuer "EU.EORI.NLSMARTPHON"
+
+                                   ;; "topsector" is topic
+                                   :target {:accessSubject "EU.EORI.NLSECURESTO#topsector"}
+
+                                   :policySets [{:target {:environment {:licenses ["ISHARE.0001"]}}
+                                                 :policies [{:target {:resource {:type "http://rdfs.org/ns/void#Dataset"
+                                                                                 :identifiers ["topsector"]
+                                                                                 :attributes ["*"]}
+                                                                      :actions ["BDI.subscribe" "BDI.publish"]}
+                                                             :rules [{:effect "Permit"}]}]}]}})
       exec
       :ishare/result)
 

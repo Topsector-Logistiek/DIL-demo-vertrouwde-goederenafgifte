@@ -9,6 +9,7 @@
   (:require [clojure.data.json :as json]
             [clojure.string :as string]
             [dil-demo.sites :refer [sites]]
+            [ring.util.response :as response]
             [hiccup2.core :as hiccup])
   (:import (java.text SimpleDateFormat)
            (java.util UUID)))
@@ -66,6 +67,11 @@
 (defn render-body [site main & opts]
   {:pre [(string? site) (coll? main)]}
   (str "<!DOCTYPE HTML>" (hiccup/html (apply template site main opts))))
+
+(defn render [& args]
+  (-> (apply render-body args)
+      (response/response)
+      (response/header "Content-Type" "text/html; charset=utf-8")))
 
 (defn camelize
   "Convert key `s` from lispy to jsony style."
@@ -181,7 +187,7 @@
     [:details.explanation
      [:summary.button.secondary "Uitleg"]
      [:ol
-      (for [[title {:keys [otm-object ishare-log]}] explanation]
+      (for [[title {:keys [otm-object ishare-log event]}] explanation]
         [:li
          [:h3 title]
          (when otm-object
@@ -189,8 +195,12 @@
             [:summary "Bekijk OTM object"]
             [:pre (otm-to-json otm-object)]])
          (when ishare-log
-           (ishare-log-intercept-to-hiccup ishare-log))])]]))
+           (ishare-log-intercept-to-hiccup ishare-log))
+         (when event
+           [:details
+            [:summary "Bekijk event"]
+            [:pre (to-json event)]])])]]))
 
-(defn wrap-config [app config]
-  (fn config-wrapper [req]
-    (app (assoc req :config config))))
+(defn append-explanation [res & explanation]
+  (update-in res [:flash :explanation] (fnil into [])
+             explanation))

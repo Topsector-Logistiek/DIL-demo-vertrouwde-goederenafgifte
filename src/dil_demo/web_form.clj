@@ -83,7 +83,13 @@
   [path & {:keys [label] :or {label "Verwijderen"}}]
   (form nil {:method "POST", :action path}
     [:input {:type "hidden", :name "_method", :value "DELETE"}]
-    [:button.contrast {:onclick "return confirm('Zeker weten?')"} label]))
+    [:button {:onclick "return confirm('Zeker weten?')"} label]))
+
+(defn post-button
+  [path {:keys [label] :as opts}]
+  {:pre [path label]}
+  (form nil {:method "POST", :action path}
+    [:button (dissoc opts :label) label]))
 
 (defn submit-button [& [{:keys [label]
                          :or   {label "Opslaan"}

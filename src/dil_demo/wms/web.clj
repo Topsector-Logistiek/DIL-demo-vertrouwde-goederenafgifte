@@ -9,6 +9,8 @@
   (:require [clojure.data.json :refer [json-str]]
             [clojure.string :as string]
             [compojure.core :refer [DELETE GET POST routes]]
+            [dil-demo.events :as events]
+            [dil-demo.otm :as otm]
             [dil-demo.store :as store]
             [dil-demo.web-form :as f]
             [dil-demo.web-utils :as w]
@@ -22,15 +24,22 @@
      [:article.empty
       [:p "Nog geen transportopdrachten geregistreerd.."]])
 
-   (for [{:keys [id ref load goods]} transport-orders]
+   (for [{:keys [id ref load goods status]} transport-orders]
      [:article
       [:header
+       [:div.status (otm/status-titles status)]
        [:div.ref-date ref " / " (:date load)]]
       [:div.goods goods]
 
+
       [:footer.actions
-       [:a.button.primary {:href (str "verify-" id)}
-        "Veriferen"]
+       (cond
+         (= status otm/status-confirmed)
+         (f/post-button (str "send-gate-out-" id) {:label "Afgehandeld", :class "primary"})
+
+         (= status otm/status-requested)
+         [:a.button.primary {:href (str "verify-" id)} "Veriferen"])
+
        (f/delete-button (str "transport-order-" id))]])])
 
 (defn qr-code-scan-button [carrier-id driver-id plate-id]
@@ -122,6 +131,12 @@
      [:a.button {:href "."} "Terug naar overzicht"]]]
    (w/explanation explanation)])
 
+(defn gate-out-transport-order [_transport-order {:keys [explanation]}]
+  [:div
+   [:div.actions
+     [:a.button {:href "."} "Terug naar overzicht"]]
+   (w/explanation explanation)])
+
 
 
 (defn get-transport-orders [store]
@@ -131,15 +146,17 @@
   (get-in store [:transport-orders id]))
 
 
+(defn transport-order->topic [{:keys [ref], {:keys [eori]} :owner}]
+  {:topic ref, :owner-eori eori})
 
-(defn make-handler [{:keys [id site-name]}]
+(defn make-handler [{:keys [id site-name client-data]}]
   (let [slug   (name id)
         render (fn render [title main flash & {:keys [slug-postfix]}]
-                 (w/render-body (str slug slug-postfix)
-                                main
-                                :flash flash
-                                :title title
-                                :site-name site-name))]
+                 (w/render (str slug slug-postfix)
+                           main
+                           :flash flash
+                           :title title
+                           :site-name site-name))]
     (routes
      (GET "/" {:keys        [flash]
                ::store/keys [store]}
@@ -163,15 +180,36 @@
                  (verify-transport-order transport-order)
                  flash)))
 
-     (POST "/verify-:id" {:keys                   [client-data flash master-data ::store/store]
+     (POST "/verify-:id" {:keys                   [flash master-data ::store/store]
                           {:keys [id] :as params} :params}
        (when-let [transport-order (get-transport-order store id)]
          (let [params (update params :carrier-eoris string/split #",")
                result (verify/verify! client-data transport-order params)]
            (if (verify/permitted? result)
-             (render "Afgifte goedgekeurd"
-                     (accepted-transport-order transport-order params result master-data)
-                     flash)
+             (-> (render "Afgifte goedgekeurd"
+                         (accepted-transport-order transport-order params result master-data)
+                         flash)
+                 (assoc ::store/commands [[:put! :transport-orders
+                                           (assoc transport-order :status otm/status-confirmed)]]))
              (render "Afgifte afgewezen"
                      (rejected-transport-order transport-order params result master-data)
-                     flash))))))))
+                     flash)))))
+
+     (POST "/send-gate-out-:id" {:keys        [::store/store]
+                                 {:keys [id]} :params}
+       (when-let [{:keys [ref] :as transport-order} (get-transport-order store id)]
+         (-> (str "sent-gate-out-" id)
+             (redirect :see-other)
+             (assoc :flash {:success (str "Gate-out voor " ref " verstuurd")}
+                    ::store/commands [[:put! :transport-orders
+                                       (assoc transport-order :status otm/status-in-transit)]]
+                    ::events/commands [[:send! (-> transport-order
+                                                   (transport-order->topic)
+                                                   (assoc :message "GATE-OUT"))]]))))
+
+     (GET "/sent-gate-out-:id" {:keys        [flash ::store/store]
+                                {:keys [id]} :params}
+       (when-let [transport-order (get-transport-order store id)]
+         (render "Gate-out verstuurd"
+                 (gate-out-transport-order transport-order flash)
+                 flash))))))

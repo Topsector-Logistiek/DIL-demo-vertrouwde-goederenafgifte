@@ -6,11 +6,12 @@
 ;;; SPDX-License-Identifier: AGPL-3.0-or-later
 
 (ns dil-demo.erp
-  (:require [dil-demo.erp.web :as erp.web]
+  (:require [clojure.tools.logging :as log]
+            [dil-demo.erp.web :as erp.web]
             [dil-demo.ishare.client :as ishare-client]
             [dil-demo.ishare.policies :as policies]
             [dil-demo.store :as store]
-            [clojure.tools.logging :as log]))
+            [dil-demo.web-utils :as w]))
 
 (defn- map->delegation-evidence
   [client-id effect {:keys [ref load] :as obj}]
@@ -44,9 +45,9 @@
 
 (defn- wrap-policy-deletion
   "When a trip is deleted, retract existing policies in the AR."
-  [app]
+  [app {:keys [client-data]}]
   (fn policy-deletion-wrapper
-    [{:keys [client-data ::store/store] :as req}]
+    [{:keys [::store/store] :as req}]
 
     (let [{::store/keys [commands] :as res} (app req)]
       (if-let [id (-> (filter #(= [:delete! :consignments] (take 2 %))
@@ -58,16 +59,18 @@
               [result log]
               ;; kinda hackish way to delete a policy from a iSHARE AR
               (ishare-ar-create-policy! client-data "Deny" old-consignment)]
-          (cond-> (update-in res [:flash :explanation] (fnil conj [])
-                             ["Verwijderen policy" {:ishare-log log}])
-            (not result) (assoc-in [:flash :error] "Verwijderen AR policy mislukt")))
+          (cond->
+              (w/append-explanation res ["Verwijderen policy" {:ishare-log log}])
+
+            (not result)
+            (assoc-in [:flash :error] "Verwijderen AR policy mislukt")))
 
         res))))
 
 (defn wrap-delegation
   "Create policies in AR when trip is published."
-  [app]
-  (fn delegation-wrapper [{:keys [client-data] :as req}]
+  [app {:keys [client-data]}]
+  (fn delegation-wrapper [req]
     (let [{::store/keys [commands] :as res} (app req)
           trip (->> commands
                     (filter #(= [:publish! :trips] (take 2 %)))
@@ -76,12 +79,15 @@
       (if trip
         (let [[result log]
               (ishare-ar-create-policy! client-data "Permit" trip)]
-          (cond-> (update-in res [:flash :explanation] (fnil conj [])
-                             ["Toevoegen policy" {:ishare-log log}])
-            (not result) (assoc-in [:flash :error] "Aanmaken AR policy mislukt")))
+          (cond->
+              (w/append-explanation res
+                                    ["Toevoegen policy toestemming pickup" {:ishare-log log}])
+
+            (not result)
+            (assoc-in [:flash :error] "Aanmaken AR policy mislukt")))
         res))))
 
 (defn make-handler [config]
   (-> (erp.web/make-handler config)
-      (wrap-policy-deletion)
-      (wrap-delegation)))
+      (wrap-policy-deletion config)
+      (wrap-delegation config)))

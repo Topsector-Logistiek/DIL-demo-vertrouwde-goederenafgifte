@@ -8,6 +8,7 @@
 (ns dil-demo.erp.web-test
   (:require [clojure.test :refer [deftest is testing]]
             [dil-demo.erp.web :as sut]
+            [dil-demo.events :as events]
             [dil-demo.store :as store]
             [nl.jomco.http-status-codes :as http-status]
             [ring.mock.request :refer [request]]))
@@ -15,17 +16,19 @@
 (def store
   {:consignments
    {"31415"
-    {:id                  "31415"
-     :ref                 "31415"}}})
+    {:id      "31415"
+     :ref     "31415"
+     :load    {:location-eori "EU.EORI.WAREHOUSE"}
+     :carrier {:eori "EU.EORI.CARRIER"}}}})
 
 (defn do-request [method path & [params]]
-  ((sut/make-handler {:id :erp, :site-name "ERP"})
+  ((sut/make-handler {:id :erp, :site-name "ERP", :eori "EU.EORI.TEST"})
    (assoc (request method path params)
           ::store/store store
           :user-number 1
-          :master-data {:carriers {}
-                        :eori->name {}
-                        :warehouses {}
+          :master-data {:carriers            {}
+                        :eori->name          {}
+                        :warehouses          {}
                         :warehouse-addresses {}})))
 
 (deftest handler
@@ -60,9 +63,13 @@
       (is (= [:put! :consignments] (->> commands first (take 2))))))
 
   (testing "DELETE /consignment-31415"
-    (let [{:keys [status ::store/commands]} (do-request :delete "/consignment-31415")]
+    (let [{:keys [status]
+           store-commands ::store/commands
+           event-commands ::events/commands}
+          (do-request :delete "/consignment-31415")]
       (is (= http-status/see-other status))
-      (is (= [:delete! :consignments] (->> commands first (take 2))))))
+      (is (= [:delete! :consignments] (->> store-commands first (take 2))))
+      (is (= [[:unsubscribe! {:topic "31415" :owner-eori "EU.EORI.TEST"}]] event-commands))))
 
   (testing "GET /publish-31415"
     (let [{:keys [status headers body]} (do-request :get "/publish-31415")]
@@ -71,9 +78,17 @@
       (is (re-find #"\b31415\b" body))))
 
   (testing "POST /publish-31415"
-    (let [{:keys [status ::store/commands]} (do-request :post "/publish-31415")]
+    (let [{:keys [status]
+           store-commands ::store/commands
+           event-commands ::events/commands}
+          (do-request :post "/publish-31415")]
       (is (= http-status/see-other status))
-      (is (= #{:put! :publish!} (->> commands (map first) set)))))
+      (is (= #{:put! :publish!} (->> store-commands (map first) set)))
+      (is (= event-commands
+             [[:authorize! {:topic "31415" :owner-eori "EU.EORI.TEST"
+                            :read-eoris ["EU.EORI.TEST" "EU.EORI.CARRIER"],
+                            :write-eoris [ "EU.EORI.WAREHOUSE"]}]
+              [:subscribe! {:topic "31415" :owner-eori "EU.EORI.TEST"}]]))))
 
   (testing "GET /published-31415"
     (let [{:keys [status headers body]} (do-request :get "/publish-31415")]

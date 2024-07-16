@@ -7,7 +7,8 @@
 
 (ns dil-demo.core
   (:gen-class)
-  (:require [dil-demo.web :as web]
+  (:require [dil-demo.events :as events]
+            [dil-demo.web :as web]
             [ring.adapter.jetty :refer [run-jetty]]))
 
 (defn get-env
@@ -65,7 +66,11 @@
              :ar-endpoint        (get-env "TMS2_AR_ENDPOINT")
              :ar-type            (get-env "TMS2_AR_TYPE")
              :key-file           (get-env "TMS2_KEY_FILE" (str "credentials/" tms-2-eori ".pem"))
-             :chain-file         (get-env "TMS2_CHAIN_FILE" (str "credentials/" tms-2-eori ".crt"))}}))
+             :chain-file         (get-env "TMS2_CHAIN_FILE" (str "credentials/" tms-2-eori ".crt"))}
+
+     :pulsar {:token-endpoint  (get-env "PULSAR_TOKEN_ENDPOINT")
+              :token-server-id (get-env "PULSAR_SERVER_ID")
+              :url             (get-env "PULSAR_URL")}}))
 
 (defonce server-atom (atom nil))
 
@@ -75,7 +80,8 @@
 (defn stop! []
   (when-let [server @server-atom]
     (.stop server)
-    (reset! server-atom nil)))
+    (reset! server-atom nil)
+    (events/close-websockets!)))
 
 (defn start! [config]
   (stop!)

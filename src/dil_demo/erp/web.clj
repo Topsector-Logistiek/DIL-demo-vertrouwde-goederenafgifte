@@ -8,6 +8,7 @@
 (ns dil-demo.erp.web
   (:require [clojure.string :as string]
             [compojure.core :refer [DELETE GET POST routes]]
+            [dil-demo.events :as events]
             [dil-demo.master-data :as d]
             [dil-demo.otm :as otm]
             [dil-demo.store :as store]
@@ -169,11 +170,11 @@
   {:pre [(keyword? id) site-name]}
   (let [slug     (name id)
         render   (fn render [title main flash & {:keys [slug-postfix]}]
-                 (w/render-body (str slug slug-postfix)
-                                main
-                                :flash flash
-                                :title title
-                                :site-name site-name))
+                   (w/render (str slug slug-postfix)
+                             main
+                             :flash flash
+                             :title title
+                             :site-name site-name))
         params-> (fn params-> [params]
                    (-> params
                        (select-keys [:id :status :ref :load :unload :goods :carrier])
@@ -219,11 +220,13 @@
 
      (DELETE "/consignment-:id" {:keys        [::store/store]
                                  {:keys [id]} :params}
-       (when-let [consignment (get-consignment store id)]
+       (when-let [{:keys [ref] :as consignment} (get-consignment store id)]
          (-> "deleted"
              (redirect :see-other)
-             (assoc :flash {:success (str "Order " (:ref consignment) " verwijderd")})
-             (assoc ::store/commands [[:delete! :consignments id]]))))
+             (assoc :flash {:success (str "Order " (:ref consignment) " verwijderd")}
+                    ::store/commands [[:delete! :consignments id]]
+                    ::events/commands [[:unsubscribe! {:topic      ref
+                                                       :owner-eori eori}]]))))
 
      (GET "/deleted" {:keys [flash]}
        (render "Order verwijderd"
@@ -241,24 +244,35 @@
                            {:keys [id]} :params}
        (when-let [consignment (get-consignment store id)]
          (let [consignment     (assoc consignment :status otm/status-requested)
+               ref             (:ref consignment)
                transport-order (otm/consignment->transport-order consignment)
-               trip            (otm/consignment->trip consignment)]
+               trip            (otm/consignment->trip consignment)
+               warehouse-eori  (-> consignment :load :location-eori)
+               carrier-eori    (-> consignment :carrier :eori)]
            (-> (str "published-" id)
                (redirect :see-other)
-               (assoc :flash {:success     (str "Order " (:ref consignment) " verstuurd")
+               (assoc :flash {:success     (str "Order " ref " verstuurd")
                               :explanation [["Stuur OTM Transportopdracht naar WMS van DC"
                                              {:otm-object (otm/->transport-order transport-order master-data)}]
                                             ["Stuur OTM Trip naar TMS van Vervoerder"
-                                             {:otm-object (otm/->trip trip master-data)}]]})
-               (assoc ::store/commands [[:put! :consignments consignment]
-                                        [:publish! ;; to warehouse WMS
-                                         :transport-orders
-                                         (-> consignment :load :location-eori)
-                                         transport-order]
+                                             {:otm-object (otm/->trip trip master-data)}]]}
+
+                      ::store/commands [[:put! :consignments consignment]
+                                        [:publish! :transport-orders
+                                         warehouse-eori transport-order]
                                         [:publish! ;; to carrier TMS
                                          :trips
-                                         (-> consignment :carrier :eori)
-                                         trip]])))))
+                                         carrier-eori trip]]
+
+                      ;; warehouse is the only party creating events currently
+                      ::events/commands [[:authorize!
+                                          {:topic       ref
+                                           :owner-eori  eori
+                                           :read-eoris  [eori carrier-eori]
+                                           :write-eoris [warehouse-eori]}]
+                                         [:subscribe!
+                                          {:topic      ref
+                                           :owner-eori eori}]])))))
 
      (GET "/published-:id" {:keys        [flash master-data ::store/store]
                             {:keys [id]} :params}

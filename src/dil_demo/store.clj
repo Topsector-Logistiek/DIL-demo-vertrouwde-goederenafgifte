@@ -65,21 +65,21 @@
                    (future (save-store new-store filename)))))))
 
 (defn wrap
-  "Middleware providing storage.
+  "Ring middleware providing storage.
 
   Provides :dil-demo.store/store key in request, containing the
   current state of store (read-only).
 
   When :dil-demo.store/commands key in response provides a collection
   of commands, those will be committed to the storage."
-  [app store-atom own-eori]
+  [app {:keys [eori store-atom]}]
   (fn store-wrapper [{:keys [user-number] :as request}]
     (let [{::keys [commands]
            :as    response} (-> request
-                                (assoc ::store (get-in @store-atom [user-number own-eori]))
-                                (app))]
-      (when (seq commands)
-        (doseq [cmd commands]
-          (log/debug "committing" cmd)
-          (commit store-atom user-number own-eori cmd)))
+           (assoc ::store (get-in @store-atom [user-number eori]))
+           (app))]
+      (doseq [cmd commands]
+        (log/debug "committing" cmd)
+        (commit store-atom user-number eori cmd))
+
       response)))

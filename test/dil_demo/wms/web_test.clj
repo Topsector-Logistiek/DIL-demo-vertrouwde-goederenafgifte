@@ -7,6 +7,7 @@
 
 (ns dil-demo.wms.web-test
   (:require [clojure.test :refer [deftest is testing]]
+            [dil-demo.events :as events]
             [dil-demo.store :as store]
             [dil-demo.wms.web :as sut]
             [nl.jomco.http-status-codes :as http-status]
@@ -16,7 +17,8 @@
   {:transport-orders
    {"31415"
     {:id "31415"
-     :ref "31415"}}})
+     :ref "31415"
+     :owner {:eori "EU.EORI.OWNER"}}}})
 
 (defn do-request [method path & [params]]
   ((sut/make-handler {:id :wms, :site-name "WMS"})
@@ -45,4 +47,11 @@
       (is (re-find #"<input [^>]*\bvalue=\"31415\"[^>]*>" body))))
 
   (testing "POST /verify-31415"
-    "TODO, this calls out to satellite and ARs"))
+    "TODO, this calls out to satellite and ARs")
+
+  (testing "POST /send-gate-out-31415"
+    (let [{:keys [status]
+           event-commands ::events/commands}
+          (do-request :post "/send-gate-out-31415")]
+      (is (= http-status/see-other status))
+      (is (= event-commands [[:send! {:topic "31415", :owner-eori "EU.EORI.OWNER", :message "GATE-OUT"}]])))))

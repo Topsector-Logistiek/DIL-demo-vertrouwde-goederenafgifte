@@ -6,23 +6,24 @@
 ;;; SPDX-License-Identifier: AGPL-3.0-or-later
 
 (ns dil-demo.web
-  (:require [compojure.core :refer [routes GET]]
-            [compojure.route :refer [resources]]
-            [clojure.string :refer [re-quote-replacement]]
+  (:require [clojure.string :refer [re-quote-replacement]]
             [clojure.tools.logging :as log]
-            [ring.middleware.defaults :refer [site-defaults wrap-defaults]]
-            [ring.middleware.stacktrace :refer [wrap-stacktrace]]
-            [ring.middleware.basic-authentication :refer [wrap-basic-authentication]]
-            [ring.util.response :refer [content-type not-found redirect]]
-            [nl.jomco.ring-session-ttl-memory :refer [ttl-memory-store]]
+            [compojure.core :refer [GET routes]]
+            [compojure.route :refer [resources]]
+            [dil-demo.erp :as erp]
+            [dil-demo.events :as events]
             [dil-demo.ishare.client :as ishare-client]
             [dil-demo.master-data :as master-data]
-            [dil-demo.erp :as erp]
-            [dil-demo.tms :as tms]
-            [dil-demo.wms :as wms]
-            [dil-demo.web-utils :as w]
             [dil-demo.sites :refer [sites]]
-            [dil-demo.store :as store])
+            [dil-demo.store :as store]
+            [dil-demo.tms :as tms]
+            [dil-demo.web-utils :as w]
+            [dil-demo.wms :as wms]
+            [nl.jomco.ring-session-ttl-memory :refer [ttl-memory-store]]
+            [ring.middleware.basic-authentication :refer [wrap-basic-authentication]]
+            [ring.middleware.defaults :refer [site-defaults wrap-defaults]]
+            [ring.middleware.stacktrace :refer [wrap-stacktrace]]
+            [ring.util.response :refer [content-type not-found redirect]])
   (:import (java.util.regex Pattern)))
 
 (defn rewrite-relative-redirect [res url-prefix]
@@ -65,10 +66,10 @@
 (def handler
   (routes
    (GET "/" {}
-     (w/render-body "dil"
-                    (list-apps)
-                    :title "Demo Vertrouwde Goederenafgifte"
-                    :site-name "DIL-Demo"))
+     (w/render "dil"
+               (list-apps)
+               :title "Demo Vertrouwde Goederenafgifte"
+               :site-name "DIL-Demo"))
    (resources "/")
    not-found-handler))
 
@@ -107,23 +108,29 @@
                  (assoc :user-number basic-authentication))
              req)))))
 
-(defn wrap-app [app id config store make-handler]
-  (let [{:keys [eori] :as config} (-> config (get id) (assoc :id id))
-        handler                   (make-handler config)]
+(defn wrap-app [app id {:keys [pulsar store-atom] :as config} make-handler]
+  (let [config  (get config id)
+        config  (assoc config
+                       :id          id
+                       :pulsar      pulsar
+                       :store-atom  store-atom
+                       :client-data (ishare-client/->client-data config))]
     (wrap-with-prefix app
                       (str "/" (name id))
-                      (-> handler
-                          (store/wrap store eori)
-                          (ishare-client/wrap-client-data config)
-                          (w/wrap-config config)))))
+                      (-> config
+                          (make-handler)
+                          (events/wrap config)
+                          (store/wrap config)))))
 
 (defn make-app [config]
-  (let [store (store/get-store-atom (-> config :store :file))]
+  (let [;; NOTE: single atom to keep store because of publication among apps
+        store-atom (store/get-store-atom (-> config :store :file))
+        config     (assoc config :store-atom store-atom)]
     (-> handler
-        (wrap-app :erp config store erp/make-handler)
-        (wrap-app :wms config store wms/make-handler)
-        (wrap-app :tms-1 config store tms/make-handler)
-        (wrap-app :tms-2 config store tms/make-handler)
+        (wrap-app :erp config erp/make-handler)
+        (wrap-app :wms config wms/make-handler)
+        (wrap-app :tms-1 config tms/make-handler)
+        (wrap-app :tms-2 config tms/make-handler)
 
         (master-data/wrap config)
 
@@ -133,4 +140,5 @@
         (wrap-defaults (assoc-in site-defaults
                                  [:session :store] (ttl-memory-store)))
         (wrap-stacktrace)
+
         (wrap-log))))
