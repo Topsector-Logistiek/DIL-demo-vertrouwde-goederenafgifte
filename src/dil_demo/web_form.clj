@@ -81,8 +81,7 @@
 
 (defn delete-button
   [path & {:keys [label] :or {label "Verwijderen"}}]
-  (form {:method "POST", :action path}
-    (anti-forgery-input)
+  (form nil {:method "POST", :action path}
     [:input {:type "hidden", :name "_method", :value "DELETE"}]
     [:button.contrast {:onclick "return confirm('Zeker weten?')"} label]))
 
