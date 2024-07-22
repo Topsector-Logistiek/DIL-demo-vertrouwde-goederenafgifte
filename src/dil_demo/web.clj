@@ -15,6 +15,7 @@
             [ring.middleware.basic-authentication :refer [wrap-basic-authentication]]
             [ring.util.response :refer [content-type not-found redirect]]
             [nl.jomco.ring-session-ttl-memory :refer [ttl-memory-store]]
+            [dil-demo.ishare.client :as ishare-client]
             [dil-demo.master-data :as master-data]
             [dil-demo.erp :as erp]
             [dil-demo.tms :as tms]
@@ -111,7 +112,10 @@
         handler                   (make-handler config)]
     (wrap-with-prefix app
                       (str "/" (name id))
-                      (store/wrap handler store eori))))
+                      (-> handler
+                          (store/wrap store eori)
+                          (ishare-client/wrap-client-data config)
+                          (w/wrap-config config)))))
 
 (defn make-app [config]
   (let [store (store/get-store-atom (-> config :store :file))]

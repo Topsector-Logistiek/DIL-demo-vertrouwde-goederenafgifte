@@ -6,11 +6,7 @@
 ;;; SPDX-License-Identifier: AGPL-3.0-or-later
 
 (ns dil-demo.wms
-  (:require [dil-demo.ishare.client :as ishare-client]
-            [dil-demo.web-utils :as web-utils]
-            [dil-demo.wms.web :as wms.web]))
+  (:require [dil-demo.wms.web :as wms.web]))
 
 (defn make-handler [config]
-  (-> (wms.web/make-handler config)
-      (web-utils/wrap-config config)
-      (ishare-client/wrap-client-data config)))
+  (wms.web/make-handler config))

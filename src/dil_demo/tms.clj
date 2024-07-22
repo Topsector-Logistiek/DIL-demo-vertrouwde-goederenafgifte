@@ -149,5 +149,4 @@
 
 (defn make-handler [config]
   (-> (tms.web/make-handler config)
-      (wrap-delegation)
-      (ishare-client/wrap-client-data config)))
+      (wrap-delegation)))

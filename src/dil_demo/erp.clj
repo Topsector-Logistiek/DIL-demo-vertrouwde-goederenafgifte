@@ -10,8 +10,7 @@
             [dil-demo.ishare.client :as ishare-client]
             [dil-demo.ishare.policies :as policies]
             [dil-demo.store :as store]
-            [clojure.tools.logging :as log]
-            [dil-demo.web-utils :as web-utils]))
+            [clojure.tools.logging :as log]))
 
 (defn- map->delegation-evidence
   [client-id effect {:keys [ref load] :as obj}]
@@ -84,7 +83,5 @@
 
 (defn make-handler [config]
   (-> (erp.web/make-handler config)
-      (web-utils/wrap-config config)
       (wrap-policy-deletion)
-      (wrap-delegation)
-      (ishare-client/wrap-client-data config)))
+      (wrap-delegation)))
