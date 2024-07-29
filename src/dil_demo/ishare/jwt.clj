@@ -210,6 +210,9 @@
                       cert-str
                       "\n-----END CERTIFICATE-----\n")))
 
+(defn x5c->public-key [x5c]
+  (keys/public-key (cert-reader (first x5c))))
+
 (defn unsign-token
   "Parse a signed token. Returns parsed data or raises exception.
 
@@ -218,8 +221,7 @@
   [token]
   (check! ::signed-token token)
   (let [{:keys [x5c]} (check! ::header (jwt/decode-header token))
-        cert-str      (first x5c)
-        pkey          (keys/public-key (cert-reader cert-str))]
+        pkey          (x5c->public-key x5c)]
     (check! ::payload (jwt/unsign token pkey {:alg :rs256 :leeway 5}))))
 
 

@@ -64,6 +64,21 @@
                  (when (not= old-store new-store)
                    (future (save-store new-store filename)))))))
 
+(defn store-request [{:keys [user-number] :as req}
+                     {:keys [eori store-atom] :as _config}]
+  (if (and eori store-atom user-number)
+    (assoc req ::store (get-in @store-atom [user-number eori]))
+    req))
+
+(defn store-response [{:keys [user-number] :as _req}
+                      {::keys [commands] :as res}
+                      {:keys [eori store-atom] :as _config}]
+  (when (and eori store-atom user-number)
+    (doseq [cmd commands]
+      (log/debug "committing" cmd)
+      (commit store-atom user-number eori cmd)))
+  res)
+
 (defn wrap
   "Ring middleware providing storage.
 
@@ -72,14 +87,8 @@
 
   When :dil-demo.store/commands key in response provides a collection
   of commands, those will be committed to the storage."
-  [app {:keys [eori store-atom]}]
-  (fn store-wrapper [{:keys [user-number] :as request}]
-    (let [{::keys [commands]
-           :as    response} (-> request
-           (assoc ::store (get-in @store-atom [user-number eori]))
-           (app))]
-      (doseq [cmd commands]
-        (log/debug "committing" cmd)
-        (commit store-atom user-number eori cmd))
-
-      response)))
+  [app config]
+  (fn store-wrapper [req]
+    (store-response req
+                    (app (store-request req config))
+                    config)))

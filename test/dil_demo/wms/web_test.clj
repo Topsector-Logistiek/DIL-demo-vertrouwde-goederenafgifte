@@ -6,25 +6,31 @@
 ;;; SPDX-License-Identifier: AGPL-3.0-or-later
 
 (ns dil-demo.wms.web-test
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [clojure.data.json :as json]
+            [clojure.test :refer [deftest is testing]]
             [dil-demo.events :as events]
             [dil-demo.store :as store]
             [dil-demo.wms.web :as sut]
             [nl.jomco.http-status-codes :as http-status]
             [ring.mock.request :refer [request]]))
 
+(def owner-eori "EU.EORI.OWNER")
+
 (def store
   {:transport-orders
    {"31415"
     {:id "31415"
      :ref "31415"
-     :owner {:eori "EU.EORI.OWNER"}}}})
+     :load {:location-name "WAREHOUSE"}
+     :owner {:eori owner-eori}}}})
 
 (defn do-request [method path & [params]]
   ((sut/make-handler {:id :wms, :site-name "WMS"})
    (assoc (request method path params)
           ::store/store store
-          :user-number 1)))
+          :user-number 1
+          :app-id :wms ;; TODO rename app-id to slug or whatever
+          :master-data {:eori->name {}})))
 
 (deftest handler
   (testing "GET /"
@@ -51,7 +57,26 @@
 
   (testing "POST /send-gate-out-31415"
     (let [{:keys [status]
-           event-commands ::events/commands}
+           event-commands ::events/commands
+           store-commands ::store/commands}
           (do-request :post "/send-gate-out-31415")]
       (is (= http-status/see-other status))
-      (is (= event-commands [[:send! {:topic "31415", :owner-eori "EU.EORI.OWNER", :message "GATE-OUT"}]])))))
+
+      (testing "event triggered"
+        (is (= (update-in event-commands [0 1] dissoc :message)
+               [[:send! {:topic "31415", :owner-eori "EU.EORI.OWNER"}]]))
+        (is (re-matches #"http://localhost:80/1/wms/event/[0-9a-z-]+"
+                        (get-in event-commands [0 1 :message]))))
+
+      (testing "event payload stored"
+        (let [{:keys [id body content-type targets]}
+              (->> store-commands
+                   (filter #(= [:put! :events] (take 2 %)))
+                   first
+                   last)]
+          (is (= "application/json; charset=utf-8" content-type))
+          (is (contains? targets owner-eori))
+          (let [{:strs [eventId bizStep bizLocation]} (json/read-str body)]
+            (is (= id eventId))
+            (is (= "departing" bizStep))
+            (is (= "WAREHOUSE" bizLocation))))))))

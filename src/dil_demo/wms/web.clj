@@ -14,9 +14,11 @@
             [dil-demo.store :as store]
             [dil-demo.web-form :as f]
             [dil-demo.web-utils :as w]
-            [dil-demo.wms.verify :as verify]
+            [dil-demo.wms.verify :as wms.verify]
+            [dil-demo.wms.events :as wms.events]
             [ring.util.response :refer [redirect]])
-  (:import (java.util UUID)))
+  (:import (java.util UUID)
+           (java.time Instant)))
 
 (defn list-transport-orders [transport-orders]
   [:main
@@ -120,11 +122,11 @@
 
     [:p
      "Afgewezen na inspectie van het Authorisatie Register van "
-     [:q (eori->name (verify/rejection-eori result))]
+     [:q (eori->name (wms.verify/rejection-eori result))]
      " met de volgende bevindingen:"]
 
     [:ul.rejections
-     (for [rejection (verify/rejection-reasons result)]
+     (for [rejection (wms.verify/rejection-reasons result)]
        [:li rejection])]
 
     [:div.actions
@@ -149,7 +151,7 @@
 (defn transport-order->topic [{:keys [ref], {:keys [eori]} :owner}]
   {:topic ref, :owner-eori eori})
 
-(defn make-handler [{:keys [id site-name client-data]}]
+(defn make-handler [{:keys [id site-name client-data]}] ;; TODO rename :id to :site-id or :slug
   (let [slug   (name id)
         render (fn render [title main flash & {:keys [slug-postfix]}]
                  (w/render (str slug slug-postfix)
@@ -184,8 +186,8 @@
                           {:keys [id] :as params} :params}
        (when-let [transport-order (get-transport-order store id)]
          (let [params (update params :carrier-eoris string/split #",")
-               result (verify/verify! client-data transport-order params)]
-           (if (verify/permitted? result)
+               result (wms.verify/verify! client-data transport-order params)]
+           (if (wms.verify/permitted? result)
              (-> (render "Afgifte goedgekeurd"
                          (accepted-transport-order transport-order params result master-data)
                          flash)
@@ -195,17 +197,30 @@
                      (rejected-transport-order transport-order params result master-data)
                      flash)))))
 
-     (POST "/send-gate-out-:id" {:keys        [::store/store]
-                                 {:keys [id]} :params}
+     (POST "/send-gate-out-:id" {:keys        [master-data ::store/store]
+                                 {:keys [id]} :params
+                                 :as          req}
        (when-let [{:keys [ref] :as transport-order} (get-transport-order store id)]
-         (-> (str "sent-gate-out-" id)
-             (redirect :see-other)
-             (assoc :flash {:success (str "Gate-out voor " ref " verstuurd")}
-                    ::store/commands [[:put! :transport-orders
-                                       (assoc transport-order :status otm/status-in-transit)]]
-                    ::events/commands [[:send! (-> transport-order
-                                                   (transport-order->topic)
-                                                   (assoc :message "GATE-OUT"))]]))))
+         (let [event-id  (str (UUID/randomUUID))
+               event-url (wms.events/url-for req event-id)
+               targets   (wms.events/transport-order-gate-out-targets transport-order)
+               tstamp    (Instant/now)
+               body      (wms.events/transport-order-gate-out-body transport-order
+                                                                   {:event-id   event-id
+                                                                    :time-stamp tstamp}
+                                                                   master-data)]
+           (-> (str "sent-gate-out-" id)
+               (redirect :see-other)
+               (assoc :flash {:success (str "Gate-out voor " ref " verstuurd")}
+                      ::store/commands [[:put! :transport-orders
+                                         (assoc transport-order :status otm/status-in-transit)]
+                                        [:put! :events {:id           event-id
+                                                        :targets      targets
+                                                        :content-type "application/json; charset=utf-8"
+                                                        :body         (json-str body)}]]
+                      ::events/commands [[:send! (-> transport-order
+                                                     (transport-order->topic)
+                                                     (assoc :message event-url))]])))))
 
      (GET "/sent-gate-out-:id" {:keys        [flash ::store/store]
                                 {:keys [id]} :params}

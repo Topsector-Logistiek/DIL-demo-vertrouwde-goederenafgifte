@@ -19,6 +19,7 @@
             [dil-demo.tms :as tms]
             [dil-demo.web-utils :as w]
             [dil-demo.wms :as wms]
+            [dil-demo.wms.events :as wms.events]
             [nl.jomco.ring-session-ttl-memory :refer [ttl-memory-store]]
             [ring.middleware.basic-authentication :refer [wrap-basic-authentication]]
             [ring.middleware.defaults :refer [site-defaults wrap-defaults]]
@@ -108,37 +109,66 @@
                  (assoc :user-number basic-authentication))
              req)))))
 
-(defn wrap-app [app id {:keys [pulsar store-atom] :as config} make-handler]
+(defn wrap-h2m-app [app id {:keys [pulsar store-atom] :as config} make-handler]
   (let [config  (get config id)
         config  (assoc config
                        :id          id
+                       :client-data (ishare-client/->client-data config)
                        :pulsar      pulsar
-                       :store-atom  store-atom
-                       :client-data (ishare-client/->client-data config))]
+                       :store-atom  store-atom)
+        handler (make-handler config)]
     (wrap-with-prefix app
                       (str "/" (name id))
-                      (-> config
-                          (make-handler)
+                      (-> (fn wrap-h2m-app [req] (handler (assoc req :app-id id)))
                           (events/wrap config)
                           (store/wrap config)))))
 
+(defn make-h2m-app [config]
+  (-> handler
+      (wrap-h2m-app :erp config erp/make-handler)
+      (wrap-h2m-app :wms config wms/make-handler)
+      (wrap-h2m-app :tms-1 config tms/make-handler)
+      (wrap-h2m-app :tms-2 config tms/make-handler)
+
+      (master-data/wrap config)
+
+      (wrap-user-number)
+      (wrap-basic-authentication (->authenticate (config :auth)))
+
+      (wrap-defaults (assoc-in site-defaults
+                               [:session :store] (ttl-memory-store)))))
+
+(defn wrap-m2m-app [app id {:keys [store-atom] :as config} make-handler]
+  (let [app-config  (get config id)
+        app-config  (assoc app-config
+                           :client-data (ishare-client/->client-data app-config)
+                           :store-atom store-atom)
+        handler (make-handler app-config)]
+    (-> (fn [{:keys [uri] :as req}]
+          (let [[_ base-uri user-number app-id uri]
+                (re-matches #"(/(\d+)/([^/]+))(/.*)" uri)]
+            (if (and user-number app-id (= app-id (name id)))
+              (-> req
+                  (assoc :base-uri base-uri
+                         :uri uri
+                         :user-number (parse-long user-number)
+                         :eori (:eori app-config))
+                  (store/store-request app-config)
+                  (handler))
+              (app req))))
+
+        ;; FIXME: enabling this breaks h2m anti-forgery middleware
+        #_ (wrap-defaults api-defaults))))
+
+(defn make-m2m-app [config]
+  (-> (constantly nil)
+      (wrap-m2m-app :wms config wms.events/make-handler)))
+
 (defn make-app [config]
-  (let [;; NOTE: single atom to keep store because of publication among apps
+  (let [ ;; NOTE: single atom to keep store because of publication among apps
         store-atom (store/get-store-atom (-> config :store :file))
         config     (assoc config :store-atom store-atom)]
-    (-> handler
-        (wrap-app :erp config erp/make-handler)
-        (wrap-app :wms config wms/make-handler)
-        (wrap-app :tms-1 config tms/make-handler)
-        (wrap-app :tms-2 config tms/make-handler)
-
-        (master-data/wrap config)
-
-        (wrap-user-number)
-        (wrap-basic-authentication (->authenticate (config :auth)))
-
-        (wrap-defaults (assoc-in site-defaults
-                                 [:session :store] (ttl-memory-store)))
+    (-> (routes (make-m2m-app config)
+                (make-h2m-app config))
         (wrap-stacktrace)
-
         (wrap-log))))

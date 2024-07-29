@@ -12,6 +12,11 @@
   ([v] (prn v) v)
   ([k v] (prn k v) v))
 
+(defn pk->
+  "Peek value for debugging."
+  ([v] (prn v) v)
+  ([v k] (prn k v) v))
+
 (ns user
   (:require [dil-demo.core :as core]))
 

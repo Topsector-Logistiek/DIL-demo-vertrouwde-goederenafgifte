@@ -187,7 +187,7 @@
     [:details.explanation
      [:summary.button.secondary "Uitleg"]
      [:ol
-      (for [[title {:keys [otm-object ishare-log event]}] explanation]
+      (for [[title {:keys [otm-object ishare-log event http-request http-response]}] explanation]
         [:li
          [:h3 title]
          (when otm-object
@@ -196,6 +196,16 @@
             [:pre (otm-to-json otm-object)]])
          (when ishare-log
            (ishare-log-intercept-to-hiccup ishare-log))
+         (when http-request
+           [:div.request
+            [:p "Request:"]
+            [:pre (to-json http-request)]])
+         (when http-response
+           [:div.response
+            [:p "Response:"]
+            [:pre (-> http-response
+                      (dissoc :flash)
+                      (to-json))]])
          (when event
            [:details
             [:summary "Bekijk event"]
